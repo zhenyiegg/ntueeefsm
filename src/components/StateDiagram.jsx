@@ -77,17 +77,23 @@ const StateDiagram = ({
             };
 
             const calculateNextState = (currentState, input) => {
+                let nextState;
                 switch (flipFlopType) {
                     case "D":
-                        return input; // D Flip-Flop directly follows the input
+                        nextState = input; // D Flip-Flop directly follows the input
+                        break;
                     case "T":
-                        return currentState === input ? 0 : 1; // T Flip-Flop toggles if input is 1
+                        nextState = currentState === input ? 0 : 1; // T Flip-Flop toggles if input is 1
+                        break;
                     case "JK":
-                        if (input === 0) return currentState; // No change
-                        return currentState === 1 ? 0 : 1; // Toggle state
+                        if (input === 0) nextState = currentState; // No change
+                        else nextState = currentState === 1 ? 0 : 1; // Toggle state
+                        break;
                     default:
-                        return input;
+                        nextState = input;
+                        break;
                 }
+                return nextState % 2; // Ensure the next state is always binary
             };
 
             const getLoopVertices = (state, index) => {
