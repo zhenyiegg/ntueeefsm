@@ -48,16 +48,17 @@ const StateDiagram = ({
                         fill: "#6FC3DF",
                     },
                     label: {
-                        text: `S${i}`,
+                        text: `S${i}`, // This ensures only the state name appears.
                         fill: "white",
                         fontSize: 16,
                     },
                 });
 
+                // Only add output label if it's a Moore machine
                 if (diagramType === "Moore") {
                     state.attr({
                         label: {
-                            text: `S${i}\nOut=${i % 2}`,
+                            text: `S${i}\nOut=${i % 2}`, // This will show only for Moore.
                             fill: "white",
                             fontSize: 16,
                         },
@@ -90,9 +91,9 @@ const StateDiagram = ({
             };
 
             const getLoopVertices = (state, index) => {
-                const loopOffset = 120;
+                const loopOffset = 120; // Adjusted to ensure loops are drawn further from the state
                 switch (index) {
-                    case 0:
+                    case 0: // S0: Loop on the right side
                         return [
                             {
                                 x: state.position().x + loopOffset,
@@ -103,7 +104,86 @@ const StateDiagram = ({
                                 y: state.position().y + loopOffset,
                             },
                         ];
-                    // Add other cases here as needed
+                    case 1:
+                    case 2:
+                        // S1, S2: Loop on the bottom side
+                        // Conditional loop placement for 3, 4, or 5 states
+                        if (
+                            numStates === 3 ||
+                            numStates === 4 ||
+                            numStates === 5
+                        ) {
+                            return [
+                                {
+                                    x: state.position().x,
+                                    y: state.position().y + loopOffset,
+                                },
+                                {
+                                    x: state.position().x - loopOffset + 80,
+                                    y: state.position().y + loopOffset - 50,
+                                },
+                            ];
+                        } else {
+                            // Default bottom loop for other state counts
+                            return [
+                                {
+                                    x: state.position().x,
+                                    y: state.position().y + loopOffset,
+                                },
+                                {
+                                    x: state.position().x + loopOffset - 50,
+                                    y: state.position().y + loopOffset + 30,
+                                },
+                            ];
+                        }
+                    case 3: // S3: Loop on the left side
+                        return [
+                            {
+                                x: state.position().x - loopOffset,
+                                y: state.position().y + 50,
+                            },
+                            {
+                                x: state.position().x - loopOffset,
+                                y: state.position().y + loopOffset,
+                            },
+                        ];
+                    case 4: // S4: Loop on the left side
+                        if (numStates === 5) {
+                            return [
+                                {
+                                    x: state.position().x,
+                                    y: state.position().y - loopOffset,
+                                },
+                                {
+                                    x: state.position().x + loopOffset,
+                                    y: state.position().y - loopOffset - 30,
+                                },
+                            ];
+                        } else {
+                            return [
+                                {
+                                    x: state.position().x - loopOffset,
+                                    y: state.position().y,
+                                },
+                                {
+                                    x: state.position().x - loopOffset - 30,
+                                    y: state.position().y + loopOffset,
+                                },
+                            ];
+                        }
+                    case 5:
+                    case 6:
+                    case 7: // S5, S6, S7: Loop on the top side
+                        return [
+                            {
+                                x: state.position().x,
+                                y: state.position().y - loopOffset,
+                            },
+                            {
+                                x: state.position().x + loopOffset,
+                                y: state.position().y - loopOffset - 30,
+                            },
+                        ];
                     default:
                         return [];
                 }
