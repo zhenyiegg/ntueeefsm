@@ -422,6 +422,8 @@ const StateDiagram = ({
                     });
 
                     transition.set("transitionData", {
+                        fromState: currentStateId,
+                        toState: nextStateId,
                         input: binaryInput,
                         output: output,
                     });
@@ -497,6 +499,13 @@ const StateDiagram = ({
                 {selectedTransition && (
                     <div>
                         <h2>Transition Details</h2>
+                        <p>
+                            <strong>
+                                {selectedTransition.fromState}
+                                {"➡️"}
+                                {selectedTransition.toState}
+                            </strong>
+                        </p>
                         <p>
                             <strong>Input:</strong> {selectedTransition.input}
                         </p>
