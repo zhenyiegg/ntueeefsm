@@ -80,3 +80,35 @@ html, body, #root, .App {
     background-color: #f9f9f9;
   }
   
+
+  .convert-button {
+    background-color: red; /* Green background */
+    color: white; /* White text */
+    padding: 15px 40px; /* Larger padding for bigger size */
+    font-size: 1.5rem; /* Larger font size */
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.convert-button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+.generate-button {
+  background-color: red; /* Green background */
+  color: white; /* White text */
+  padding: 10px 20px; /* Larger padding for bigger size */
+  font-size: 1.5rem; /* Larger font size */
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: -10px;
+  transition: background-color 0.3s ease;
+}
+
+.generate-button:hover {
+  background-color: #45a049; /* Darker green on hover */
+}

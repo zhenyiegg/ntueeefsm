@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import StateDiagram from "../components/StateDiagram";
+import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
 
 const StateToCircuit = () => {
@@ -9,9 +10,14 @@ const StateToCircuit = () => {
     const [numInputs, setNumInputs] = useState(1);
     const [transitionTable, setTransitionTable] = useState([]);
     const [shouldGenerate, setShouldGenerate] = useState(false);
+    const [shouldConvert, setShouldConvert] = useState(false);
 
     const handleGenerate = () => {
         setShouldGenerate(true); // Trigger the generation
+    };
+
+    const handleConvert = () => {
+        setShouldConvert(true); // Trigger the conversion
     };
 
     const handleDiagramGenerated = (table) => {
@@ -118,6 +124,24 @@ const StateToCircuit = () => {
                     </table>
                 </div>
             )}
+
+            <div>
+                {/* Add Convert Button */}
+                {transitionTable.length > 0 && (
+                    <button onClick={handleConvert} className="convert-button">
+                        Convert to Circuit
+                    </button>
+                )}
+
+                {/* Conversion Logic */}
+                {shouldConvert && (
+                    <STCConversion
+                        diagramType={diagramType}
+                        flipFlopType={flipFlopType}
+                        transitionTable={transitionTable}
+                    />
+                )}
+            </div>
         </div>
     );
 };
