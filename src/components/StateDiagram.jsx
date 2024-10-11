@@ -1,5 +1,9 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { dia, shapes } from "jointjs";
+import Modal from "react-modal";
+import "../styles/StateDiagram.css";
+
+Modal.setAppElement("#root");
 
 const StateDiagram = ({
     diagramType,
@@ -11,6 +15,8 @@ const StateDiagram = ({
 }) => {
     const paperRef = useRef(null);
     const paperInstance = useRef(null); // Ref to hold the paper instance
+
+    const [selectedTransition, setSelectedTransition] = useState(null);
 
     // Define getLoopVertices here, at the top level
     const getLoopVertices = useCallback((state, stateNumber) => {
@@ -377,9 +383,9 @@ const StateDiagram = ({
                         transition.connector("smooth");
 
                         // Log curvature adjustment details
-                        console.log(
-                            `Creating transition from ${currentStateId} to ${nextStateId} with input ${binaryInput} and output ${output}. Angle offset: ${angleOffset}, Position offset: (${offsetX}, ${offsetY})`
-                        );
+                        // console.log(
+                        //     `Creating transition from ${currentStateId} to ${nextStateId} with input ${binaryInput} and output ${output}. Angle offset: ${angleOffset}, Position offset: (${offsetX}, ${offsetY})`
+                        // );
                     } else {
                         // Handle self-loop transitions
                         const loopVertices = getLoopVertices(
@@ -390,9 +396,9 @@ const StateDiagram = ({
                         transition.connector("smooth");
 
                         // Log self-loop creation
-                        console.log(
-                            `Creating self-loop on ${currentStateId} with input ${binaryInput} and output ${output}`
-                        );
+                        // console.log(
+                        //     `Creating self-loop on ${currentStateId} with input ${binaryInput} and output ${output}`
+                        // );
                     }
 
                     // Add label to transition
@@ -414,6 +420,12 @@ const StateDiagram = ({
                             },
                         },
                     });
+
+                    transition.set("transitionData", {
+                        input: binaryInput,
+                        output: output,
+                    });
+
                     transition.addTo(graph);
 
                     // Populate transition table
@@ -427,6 +439,14 @@ const StateDiagram = ({
             });
 
             onDiagramGenerated(newTransitionTable);
+
+            paperInstance.current.on("link:pointerclick", (linkView) => {
+                const linkModel = linkView.model;
+                const transitionData = linkModel.get("transitionData");
+                if (transitionData) {
+                    setSelectedTransition(transitionData);
+                }
+            });
 
             // Adjust the view to fit all content
             const fitToContent = () => {
@@ -458,7 +478,37 @@ const StateDiagram = ({
         getLoopVertices,
     ]);
 
-    return <div ref={paperRef} className="paper-container"></div>;
+    const closeModal = () => {
+        setSelectedTransition(null);
+    };
+
+    return (
+        <>
+            <div ref={paperRef} className="paper-container"></div>
+
+            {/* Modal for displaying transition details */}
+            <Modal
+                isOpen={!!selectedTransition}
+                onRequestClose={closeModal}
+                contentLabel="Transition Details"
+                className="transition-modal"
+                overlayClassName="transition-modal-overlay"
+            >
+                {selectedTransition && (
+                    <div>
+                        <h2>Transition Details</h2>
+                        <p>
+                            <strong>Input:</strong> {selectedTransition.input}
+                        </p>
+                        <p>
+                            <strong>Output:</strong> {selectedTransition.output}
+                        </p>
+                        <button onClick={closeModal}>Close</button>
+                    </div>
+                )}
+            </Modal>
+        </>
+    );
 };
 
 export default StateDiagram;
