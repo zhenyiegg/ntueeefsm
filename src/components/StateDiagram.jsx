@@ -18,6 +18,16 @@ const StateDiagram = ({
 
     const [selectedTransition, setSelectedTransition] = useState(null);
 
+    // State for managing tooltip visibility and content
+    const [tooltip, setTooltip] = useState({
+        visible: false,
+        content: "",
+        position: { x: 0, y: 0 },
+    });
+
+    // Ref to handle the tooltip timeout
+    const tooltipTimeout = useRef(null);
+
     // Define getLoopVertices here, at the top level
     const getLoopVertices = useCallback((state, stateNumber) => {
         const loopOffset = 120; // Adjusted to ensure loops are drawn further from the state
@@ -450,6 +460,48 @@ const StateDiagram = ({
                 }
             });
 
+            paperInstance.current.on("link:mouseenter", (linkView, evt) => {
+                // Start a 0.5s timer to show the tooltip
+                tooltipTimeout.current = setTimeout(() => {
+                    const transitionData = linkView.model.get("transitionData");
+                    if (transitionData) {
+                        setTooltip({
+                            visible: true,
+                            content: `Input: ${transitionData.input}, Output: ${transitionData.output}`,
+                            position: {
+                                x: evt.clientX + 10,
+                                y: evt.clientY + 10,
+                            }, // Slight offset
+                        });
+                        // Highlight the transition arrow in green
+                        linkView.model.attr({
+                            line: {
+                                stroke: "green",
+                                "stroke-width": 4,
+                            },
+                        });
+                    }
+                }, 300); // 0.3 seconds delay
+            });
+
+            paperInstance.current.on("link:mouseleave", (linkView) => {
+                // Clear the tooltip timeout if mouse leaves before 0.5s
+                clearTimeout(tooltipTimeout.current);
+                // Hide the tooltip
+                setTooltip({
+                    visible: false,
+                    content: "",
+                    position: { x: 0, y: 0 },
+                });
+                // Remove the highlight by resetting to original styles
+                linkView.model.attr({
+                    line: {
+                        stroke: "#000000", // Replace with your original stroke color if different
+                        "stroke-width": 2,
+                    },
+                });
+            });
+
             // Adjust the view to fit all content
             const fitToContent = () => {
                 if (paperInstance.current) {
@@ -488,7 +540,18 @@ const StateDiagram = ({
         <>
             <div ref={paperRef} className="paper-container"></div>
 
-            {/* Modal for displaying transition details */}
+            {tooltip.visible && (
+                <div
+                    className={`tooltip ${tooltip.visible ? "visible" : ""}`}
+                    style={{
+                        top: tooltip.position.y,
+                        left: tooltip.position.x,
+                    }}
+                >
+                    {tooltip.content}
+                </div>
+            )}
+
             <Modal
                 isOpen={!!selectedTransition}
                 onRequestClose={closeModal}

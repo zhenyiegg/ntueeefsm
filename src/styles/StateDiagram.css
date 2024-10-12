@@ -14,7 +14,6 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     max-width: 400px;
     width: 90%;
-    font-size: 28px
 }
 
 .transition-modal-overlay {
@@ -47,3 +46,27 @@
 .transition-modal button:hover {
     background-color: #5aaabf;
 }
+
+/* Tooltip styling */
+.tooltip {
+    position: fixed; /* Positioned relative to the viewport */
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    opacity: 0;
+    z-index: 1000; /* Ensure it appears above other elements */
+}
+
+.tooltip.visible {
+    opacity: 1;
+}
+
+/* Highlighted transition arrow */
+.link-hovered {
+    stroke: green;
+    stroke-width: 3;
+}
+
