@@ -1,31 +1,36 @@
-/* src/App.css */
-.App {
-  text-align: center;
+/* App.css */
+body {
+  background-color: #f8f8f2; /* Off-white */
+  font-family: Arial, sans-serif;
+  margin: 0;
 }
 
-.App-header {
-  background-color: #282c34;
-  padding: 20px;
-  color: white;
-}
-
+/* Navbar */
 .navbar {
+  background-color: #333; /* Dark grey */
+  padding: 10px;
   display: flex;
   justify-content: center;
-  gap: 20px;
 }
 
-.nav-button {
-  background-color: #61dafb;
-  border: none;
-  color: black;
+.nav-btn {
+  margin: 0 10px;
   padding: 10px 20px;
   font-size: 16px;
+  color: #fff;
+  border: none;
   cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
+  text-decoration: none; /* Remove underline */
 }
 
-.nav-button:hover {
-  background-color: #21a1f1;
+.nav-btn.state-to-circuit {
+  background-color: #84a9ff; /* Lighter blue */
+}
+
+.nav-btn.circuit-to-state {
+  background-color: #b084cc; /* Lighter purple */
+}
+
+.nav-btn {
+  color: white;
 }
