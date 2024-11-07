@@ -109,6 +109,23 @@ html, body, #root, .App {
   transition: background-color 0.3s ease;
 }
 
+
 .generate-button:hover {
+  background-color: #45a049; /* Darker green on hover */
+}
+
+.auto-generate-button {
+  background-color: purple; /* Green background */
+  color: white; /* White text */
+  padding: 10px 20px; /* Larger padding for bigger size */
+  font-size: 1.5rem; /* Larger font size */
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: -10px;
+  transition: background-color 0.3s ease;
+}
+
+.auto-generate-button:hover {
   background-color: #45a049; /* Darker green on hover */
 }
