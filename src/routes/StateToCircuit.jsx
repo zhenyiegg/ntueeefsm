@@ -22,7 +22,7 @@ const StateToCircuit = () => {
         const diagramTypes = ["Mealy", "Moore"];
         const flipFlopTypes = ["D", "T", "JK"];
         const numStatesOptions = [3, 4, 5, 6, 7, 8];
-        const numInputsOptions = [1, 2, 3, 4];
+        const numInputsOptions = [1, 2];
 
         const randomDiagramType =
             diagramTypes[Math.floor(Math.random() * diagramTypes.length)];
@@ -108,7 +108,7 @@ const StateToCircuit = () => {
                         value={numInputs}
                         onChange={(e) => setNumInputs(parseInt(e.target.value))}
                     >
-                        {[...Array(4)].map((_, i) => (
+                        {[...Array(2)].map((_, i) => (
                             <option key={i + 1} value={i + 1}>
                                 {i + 1}
                             </option>
