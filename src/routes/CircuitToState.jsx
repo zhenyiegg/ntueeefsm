@@ -97,32 +97,42 @@ function CircuitToState() {
         const randomMinterms = [];
     
         if (flipFlopType === 'D' || flipFlopType === 'T') {
-            for (let i = 0; i < numFlipFlops; i++) {
+            for (let i = 1; i <= numFlipFlops; i++) {
                 const numMinterms = getRandomNumber(minMinterms, maxMinterms);
                 const uniqueMinterms = generateUniqueMinterms(numMinterms, maxValue);
     
-                randomMinterms.push(`Q${numFlipFlops - i - 1}_next = Σm(${uniqueMinterms.join(', ')})`);
+                if (flipFlopType === 'D') {
+                  randomMinterms.push(`D${i}_input = Σm(${uniqueMinterms.join(', ')})`);
     
-                expectedExcitationTable[`Q${numFlipFlops - i - 1}`] = generateExpectedExcitationTable(uniqueMinterms, maxValue);
+                  expectedExcitationTable[`D${i}`] = generateExpectedExcitationTable(uniqueMinterms, maxValue);
+                }
+
+                if (flipFlopType === 'T') {
+                  randomMinterms.push(`T${i}_input = Σm(${uniqueMinterms.join(', ')})`);
+    
+                  expectedExcitationTable[`T${i}}`] = generateExpectedExcitationTable(uniqueMinterms, maxValue);
+                }
+                
             }
         }
     
         if (flipFlopType === 'JK') {
-            for (let i = 0; i < numFlipFlops; i++) {
+            for (let i = 1; i <= numFlipFlops; i++) {
                 const numMintermsJ = getRandomNumber(minMinterms, maxMinterms);
                 const numMintermsK = getRandomNumber(minMinterms, maxMinterms);
                 const uniqueMintermsJ = generateUniqueMinterms(numMintermsJ, maxValue);
                 const uniqueMintermsK = generateUniqueMinterms(numMintermsK, maxValue);
     
-                randomMinterms.push(`J${numFlipFlops - i - 1}_next = Σm(${uniqueMintermsJ.join(', ')})`);
-                randomMinterms.push(`K${numFlipFlops - i - 1}_next = Σm(${uniqueMintermsK.join(', ')})`);
+                randomMinterms.push(`J${i}_input = Σm(${uniqueMintermsJ.join(', ')})`);
+                randomMinterms.push(`K${i}_input = Σm(${uniqueMintermsK.join(', ')})`);
     
-                expectedExcitationTable[`J${numFlipFlops - i - 1}`] = generateExpectedExcitationTable(uniqueMintermsJ, maxValue);
-                expectedExcitationTable[`K${numFlipFlops - i - 1}`] = generateExpectedExcitationTable(uniqueMintermsK, maxValue);
+                expectedExcitationTable[`J${i}`] = generateExpectedExcitationTable(uniqueMintermsJ, maxValue);
+                expectedExcitationTable[`K${i}`] = generateExpectedExcitationTable(uniqueMintermsK, maxValue);
             }
         }
     
         setMinterms(randomMinterms.join(', '));  // Store the generated minterms in the state
+        
         setExpectedExcitationTable(expectedExcitationTable);  // Update the expected excitation table
 
         // Generate Output Z based on Mealy or Moore FSM
@@ -178,7 +188,7 @@ function CircuitToState() {
         setStateTransitionTable({});
         setCellValidation({}); // Reset validation state
         
-        setIsGenerated(false);
+        setIsGenerated(false); 
     
         // Set the generation process after resetting
         setTimeout(() => {
@@ -374,7 +384,7 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
 
     // Generate the dynamic table header for the current state (Q values) based on flip-flops
     const generateCurrentStateHeader = (numFlipFlops) => {
-      return Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - i - 1}`).join(' ');
+      return Array.from({ length: numFlipFlops }, (_, i) => `Q${i + 1}`).join(' ');
     };
 
     // Generate current state (binary Q values) and input combinations (binary X values)
@@ -434,16 +444,15 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
             <option value="Mealy">Mealy</option>
             <option value="Moore">Moore</option>
           </select>
+          {/* Generate Button */}
+          <button
+            className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
+            onClick={handleGenerate}
+            disabled={!isFormComplete}
+          >
+            Generate
+          </button>
         </div>
-  
-        {/* Generate Button */}
-        <button
-          className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
-          onClick={handleGenerate}
-          disabled={!isFormComplete}
-        >
-          Generate
-        </button>
   
         {/* Always render the canvas, but leave it empty until "Generate" is clicked */}
         <CircuitDiagram 
@@ -464,6 +473,8 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
               <span>{selectedValues.fsm}</span>
             </div>
           )}
+
+          
   
   
         {/* Excitation Table Section */}
@@ -488,15 +499,15 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
                   {flipFlopType === 'JK' &&
                     Array.from({ length: numFlipFlops }, (_, i) => (
                         <React.Fragment key={i}>
-                         <th key={`J${i}`}>{`J${numFlipFlops - i - 1}`}</th>
-                         <th key={`K${i}`}>{`K${numFlipFlops - i - 1}`}</th>
+                         <th key={`J${i}`}>{`J${i + 1}`}</th>
+                         <th key={`K${i}`}>{`K${i + 1}`}</th>
                         </React.Fragment>
                     ))}
 
                   {/* For D and T flip-flop types, only show a single column */}
                   {flipFlopType !== 'JK' &&
                     Array.from({ length: numFlipFlops }, (_, i) => (
-                      <th key={i}>{flipFlopType}{numFlipFlops - i - 1}</th>
+                      <th key={i}>{flipFlopType}{i + 1}</th>
                     ))}
                 </tr>
               </thead>
@@ -514,7 +525,7 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
                             <input
                                 id={`input-${index}-J${i}`} // Add unique id for J input
                                 type="text" 
-                                placeholder={`J${numFlipFlops - i - 1}`} 
+                                placeholder={`J${i + 1}`} 
                                 onChange={(e) => handleExcitationInputChange(index, `J${i}`, e.target.value)} 
                                 value={excitationTable[`${index}-J${i}`] || ""}
                                 disabled={isExcitationTableLocked} // Disable input if locked
@@ -524,7 +535,7 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
                             <input
                                 id={`input-${index}-K${i}`} // Add unique id for K input
                                 type="text" 
-                                placeholder={`K${numFlipFlops - i - 1}`} 
+                                placeholder={`K${i + 1}`} 
                                 onChange={(e) => handleExcitationInputChange(index, `K${i}`, e.target.value)} 
                                 value={excitationTable[`${index}-K${i}`] || ""}
                                 disabled={isExcitationTableLocked} // Disable input if locked
@@ -540,7 +551,7 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
                             <input 
                                 id={`input-${index}-${i}`} 
                                 type="text" 
-                                placeholder={`${flipFlopType}${numFlipFlops - i - 1}`} 
+                                placeholder={`${flipFlopType}${i + 1}`} 
                                 onChange={(e) => handleExcitationInputChange(index, i, e.target.value)} 
                                 value={excitationTable[index]?.[i] || ""}  // Reflect the current state value
                                 disabled={isExcitationTableLocked || cellValidation[`${index}-${i}`] === true}  // Disable correct cells

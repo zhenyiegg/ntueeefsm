@@ -1,185 +1,184 @@
 /* CircuitToState.css */
 .circuit-to-state header h1 {
-    color: #333;
-    text-align: center;
-  }
-  
-  /* Default layout: dropdowns are arranged horizontally */
-  .dropdown-container {
-    display: flex;
-    justify-content: center;
-    margin: 20px;
-  }
-  
-  select {
-    margin: 0 10px;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #b084cc;
-    border-radius: 5px;
-    cursor: pointer;
-    color: #333;
-  }
-  
-  select:focus {
-    outline: 1px solid #b084cc;
-  }
-  
-  /* Generate Button */
-  .generate-btn {
-    display: block;
-    margin: 20px auto;
-    padding: 10px 20px;
-    font-size: 18px;
-    background-color: #5e3b8f; /* Dark purple */
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-  
-  .generate-btn.disabled {
-    background-color: #888;
-    cursor: not-allowed;
-  }
-  
-  /* Canvas Section */
-  .canvas-container {
-  width: 80%; /* Adjust to 80% to match the dropdown and other elements */
-  margin: 20px auto; /* Center horizontally using auto margins */
+  color: #333;
+  text-align: center;
+}
+
+/* Default layout: dropdowns are arranged horizontally */
+.dropdown-container {
   display: flex;
-  flex-direction: column;
-  align-items: center; /* Center the canvas horizontally */
-  }
-  
-  /* Ensure the canvas itself takes up the correct width */
-  canvas { /* Referencing the HTML <canvas> tag directly */
-  width: 100%; /* Set to 100% of the canvas container */
-  max-width: 1000px; /* Optionally, limit the max width for larger screens */
-  height: 600px;
-  background-color: white;
-  border: 3px solid #b084cc; /* Purple stroke */
-  border-radius: 12px;
-  }
-  
-  /* Bottom bar styling */
-  .selection-bar {
-    display: flex;
-    margin: auto;
-    justify-content: space-evenly;
-    align-items: center;
-    background-color: #5e3b8f; 
-    padding: 10px;
-    margin-top: 0;
-    /*border-radius: 8px;*/
-    width: 60%;
-  }
-  
-  .selection-bar span {
-    margin: 0 10px;
-    color: #fff; /* Dark grey text */
-    font-size: 18px;
-  }
-  
-  /* For the rectangular sections (before expansion) */
-  .table-container {
-    width: 60%;
-    margin: 20px auto;
-    background-color: #ffffff; 
-    padding: 20px;
-    border-radius: 10px;
-    border: 2px solid #f9eeff;
-    text-align: center;
-    color: #aaa;
-    /*transition: background-color 0.3s ease, color 0.3s ease;*/
-    transition: color 0.3s ease;;
-  }
-  
-  .placeholder {
-    font-size: 20px;
-    color: #aaa; /* Lighter grey text */
-    transition: color 0.3s ease;
-  }
-  
-  .table-container.excitation.expanded, .table-container.stateTransition.expanded {
-    color: #333; /* Darker grey text when expanded */
-  }
-  
-  /* Table Styles */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  th, td {
-    border: 1px solid #5e3b8f; /* Purple border */
-    padding: 8px;
-    text-align: center;
-  }
-  
-  th {
-    background-color: #b084cc; /* Purple background */
-    color: white;
-  }
-  
-  td input {
-    width: 100%;
-    padding: 5px;
-    box-sizing: border-box;
-    text-align: center;
-  }
+  justify-content: center;
+  margin: 20px;
+}
+
+select {
+  margin: 0 10px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #b084cc;
+  border-radius: 5px;
+  cursor: pointer;
+  color: #333;
+}
+
+select:focus {
+  outline: 1px solid #b084cc;
+}
+
+/* Generate Button */
+.generate-btn {
+  display: block;
+  margin: 0 10px;
+  padding: 10px 20px;
+  font-size: 18px;
+  background-color: #5e3b8f; 
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.generate-btn.disabled {
+  background-color: #888;
+  cursor: not-allowed;
+}
+
+/* Canvas Section */
+.canvas-container {
+width: 80%; 
+margin: 20px auto;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+
+/* Ensure the canvas itself takes up the correct width */
+canvas { 
+max-width: 1200px; 
+background-color: white;
+border: 3px solid #b084cc; 
+border-radius: 12px;
+}
+
+/* Bottom bar styling */
+.selection-bar {
+  display: flex;
+  margin: auto;
+  justify-content: space-evenly;
+  align-items: center;
+  background-color: #5e3b8f; 
+  padding: 10px;
+  margin-top: 0;
+  /*border-radius: 8px;*/
+  width: 60%;
+}
+
+.selection-bar span {
+  margin: 0 10px;
+  color: #fff; /* Dark grey text */
+  font-size: 18px;
+}
+
+/* For the rectangular sections (before expansion) */
+.table-container {
+  width: 60%;
+  margin: 20px auto;
+  background-color: #ffffff; 
+  padding: 20px;
+  border-radius: 10px;
+  border: 2px solid #f9eeff;
+  text-align: center;
+  color: #aaa;
+  /*transition: background-color 0.3s ease, color 0.3s ease;*/
+  transition: color 0.3s ease;;
+}
+
+.placeholder {
+  font-size: 20px;
+  color: #aaa; /* Lighter grey text */
+  transition: color 0.3s ease;
+}
+
+.table-container.excitation.expanded, .table-container.stateTransition.expanded {
+  color: #333; /* Darker grey text when expanded */
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #5e3b8f;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background-color: #b084cc; 
+  color: white;
+}
+
+td input {
+  width: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+  text-align: center;
+}
 
 /* Styles for incorrect cells with a light red background */
 .error-incorrect { 
-  background-color: #f8d7da;  
-  border: 1px solid #f5c6cb;  
-  border-radius: 2px;
-  color: #721c24;             
+background-color: #f8d7da;  
+border: 1px solid #f5c6cb;  
+border-radius: 2px;
+color: #721c24;             
 }
 
 /* Shake animation for error-invalid feedback */ 
 @keyframes shake {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(5px); }
-  75% { transform: translateX(-5px); }
-  100% { transform: translateX(0); }
+0% { transform: translateX(0); }
+25% { transform: translateX(-5px); }
+50% { transform: translateX(5px); }
+75% { transform: translateX(-5px); }
+100% { transform: translateX(0); }
 }
 
 /* Apply the shake effect to invalid input fields */
 .error-invalid {
-  animation: shake 0.5s;
+animation: shake 0.5s;
 }
 
-  
+
 .minterms-display {
-  margin: 20px auto;
-  width: 80%;
-  background-color: #ecd4f8;
-  padding: 10px;
-  text-align: center;
-  border-radius: 8px;
-  font-size: 18px;
-  color: #333;
+margin: 20px auto;
+width: 80%;
+background-color: #ecd4f8;
+padding: 10px;
+text-align: center;
+border-radius: 8px;
+font-size: 18px;
+color: #333;
 }
-  
+
 /* Responsive layout: arrange dropdowns vertically when the browser width is reduced */
 @media (max-width: 900px) {
-  .dropdown-container {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  select {
-    margin: 10px 0; /* Add vertical spacing between dropdowns */
-    width: 80%; /* Make dropdowns take up more width in the vertical layout */
-  }
-  
-  #circuit-canvas {
-    width: 100%; /* Adjust the width to fit the screen better */
-  }
-  .table-container {
-    width: 75%;
-  }
+.dropdown-container {
+  flex-direction: column;
+  align-items: center;
 }
-  
-  
+
+select {
+  margin: 10px 0; /* Add vertical spacing between dropdowns */
+  width: 80%;
+}
+
+#circuit-canvas {
+  width: 100%; 
+}
+.table-container {
+  width: 75%;
+}
+}
+
+
