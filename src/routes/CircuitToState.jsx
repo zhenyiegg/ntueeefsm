@@ -41,6 +41,10 @@ function CircuitToState() {
     const [expectedExcitationTable, setExpectedExcitationTable] = useState({});
     const [cellValidation, setCellValidation] = useState({});
     const [isExcitationTableLocked, setIsExcitationTableLocked] = useState(false);
+    const [isExcitationTableValidated, setIsExcitationTableValidated] = useState(false);
+    const [isStateTransitionTableExpanded, setIsStateTransitionTableExpanded] = useState(false);
+
+
 
   
     // Logic to enable or disable the "Generate" button using dropdownState instead
@@ -79,10 +83,20 @@ function CircuitToState() {
         return expectedTable;
     };
     
+    // Helper to map minterms to correct excitation table rows
+    const mapMintermsToRows = (minterms, numStates) => {
+      const rows = {};
+      for (let i = 0; i < numStates; i++) {
+        rows[i] = minterms.includes(i) ? "1" : "0"; // 1 if row index is in minterms, else 0
+      }
+      return rows;
+    };
+
     // Generate expected excitation table based on minterms
     const generateMinterms = (numInputs, flipFlopType, numFlipFlops) => {
         let maxValue, minMinterms, maxMinterms;
         const expectedExcitationTable = {};
+        //const expectedTable = {};
     
         if (numFlipFlops === '2' && numInputs === '1') {
             maxValue = 8;  // 2 flip-flops, 1 input: valid minterms range from 0 to 7
@@ -100,18 +114,10 @@ function CircuitToState() {
             for (let i = 1; i <= numFlipFlops; i++) {
                 const numMinterms = getRandomNumber(minMinterms, maxMinterms);
                 const uniqueMinterms = generateUniqueMinterms(numMinterms, maxValue);
-    
-                if (flipFlopType === 'D') {
-                  randomMinterms.push(`D${i}_input = Σm(${uniqueMinterms.join(', ')})`);
-    
-                  expectedExcitationTable[`D${i}`] = generateExpectedExcitationTable(uniqueMinterms, maxValue);
-                }
 
-                if (flipFlopType === 'T') {
-                  randomMinterms.push(`T${i}_input = Σm(${uniqueMinterms.join(', ')})`);
-    
-                  expectedExcitationTable[`T${i}}`] = generateExpectedExcitationTable(uniqueMinterms, maxValue);
-                }
+                randomMinterms.push(`${flipFlopType}${i}_input = Σm(${uniqueMinterms.join(', ')})`);
+                expectedExcitationTable[`${flipFlopType}${i}`] = mapMintermsToRows(uniqueMinterms, maxValue);
+
                 
             }
         }
@@ -131,9 +137,8 @@ function CircuitToState() {
             }
         }
     
-        setMinterms(randomMinterms.join(', '));  // Store the generated minterms in the state
-        
-        setExpectedExcitationTable(expectedExcitationTable);  // Update the expected excitation table
+        setMinterms(randomMinterms.join(', '));  // Store the generated minterms for display
+        setExpectedExcitationTable(expectedExcitationTable);  // Set hidden correct answers
 
         // Generate Output Z based on Mealy or Moore FSM
         let outputZ = '';
@@ -229,6 +234,9 @@ function CircuitToState() {
                 if (value === "0" || value === "1") {
                     filledCellsCount++;
                 }
+                if (value === "" || value === undefined) {
+                  allFilled = false;
+              }
             }
         }
     
@@ -242,7 +250,7 @@ function CircuitToState() {
     const validateUserInputs = (userTable, expectedTable) => {
         const results = [];  // Array to hold validation results
     
-        // Loop through the userTable and check against expectedTable
+        // Compare each cell in userTable to the expectedTable
         for (const rowIndex in userTable) {
             const row = userTable[rowIndex];
     
@@ -251,7 +259,7 @@ function CircuitToState() {
                 const userInput = row[colKey];
                 const expectedValue = expectedTable[colKey]?.[rowIndex];  // Get the expected value for the flip-flop input at that row
     
-                const isCorrect = userInput === expectedValue;  // Validate user input with expected value
+                const isCorrect = userInput === expectedValue;  // Compare user input with correct value
     
                 // Push each validation result to the array
                 results.push({
@@ -262,6 +270,7 @@ function CircuitToState() {
             }
         }
     
+        // Update cell validation for incorrect answers
         setCellValidation(results.reduce((acc, { rowIndex, colKey, isCorrect }) => {
             acc[`${rowIndex}-${colKey}`] = isCorrect;  // Update validation for each cell
             return acc;
@@ -269,49 +278,38 @@ function CircuitToState() {
     
         return results;  // Return an array of results
     };
-    
-    
-    
-    // Lock correct cells after validation
-const lockCorrectCell = (rowIndex, colIndex) => {
-    const inputElement = document.getElementById(`input-${rowIndex}-${colIndex}`);
-    if (inputElement) {
-        inputElement.disabled = true;  // Disable input field for correct cells
-        inputElement.classList.remove('error-incorrect');  // Remove any error class if it's correct
-    }
-};
-
-// Highlight incorrect cells
-const highlightIncorrectCell = (rowIndex, colIndex) => {
-    const inputElement = document.getElementById(`input-${rowIndex}-${colIndex}`);
-    if (inputElement) {
-        inputElement.classList.add('error-incorrect');  // Add red background for incorrect cells
-    }
-};
 
     // Handle Next button click to validate inputs and transition to the next exercise
     const handleNextButtonClick = () => {
         const validationResults = validateUserInputs(excitationTable, expectedExcitationTable);
+
+        let allCorrect = true;
     
-        // Iterate over the validation results array and handle correct/incorrect cells
+        // Validate each cell in the table
         validationResults.forEach(({ rowIndex, colKey, isCorrect }) => {
-            if (isCorrect) {
-                lockCorrectCell(rowIndex, colKey);  // Lock correct cells
-            } else {
-                highlightIncorrectCell(rowIndex, colKey);  // Highlight incorrect cells
-            }
+          const inputElement = document.getElementById(`input-${rowIndex}-${colKey}`);
+          if (isCorrect) {
+              inputElement.disabled = true; // Lock correct answers
+              inputElement.classList.remove('error-incorrect');
+              //lockCorrectCell(rowIndex, colKey);
+          } else {
+              inputElement.classList.add('error-incorrect'); // Highlight incorrect answers
+              //highlightIncorrectCell(rowIndex, colKey);
+              allCorrect = false; // Mark as not all correct
+          }
         });
     
-        // Check if all cells are correct
-        if (validationResults.every(result => result.isCorrect)) {
-            setIsExcitationTableLocked(true);  // Lock table when fully validated
-            setIsExcitationTableFilled(true);  // Mark as filled
-            expandStateTransitionSection();    // Proceed to next section
+        // Only proceed if all cells are correct
+        if (allCorrect) {
+          setIsExcitationTableLocked(true); // Lock Excitation Table
+          //expandStateTransitionSection(); // Reveal the next section
+          setIsExcitationTableValidated(true); // Mark validation as successful
+          setIsStateTransitionTableExpanded(true); // Expand the State Transition Table
+        } else {
+          console.log("Some answers are incorrect. Please correct them.");
         }
     };
     
-    
-
     // Excitation Table input change handler
     const handleExcitationInputChange = (rowIndex, colKey, value) => {
         if (value === "0" || value === "1") {
@@ -353,15 +351,13 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
         }
     };
     
-    
-    
     // Expand State Transition section
-    const expandStateTransitionSection = () => {
+    /*const expandStateTransitionSection = () => {
         setIsStateTransitionTableFilled(false); // Initially not filled
         
         // Expands the state transition section and ensures inputs from excitation table are prefilled
         setIsStateTransitionTableFilled(true);
-    };
+    };*/
       
     // State Transition Table input change handler
     const handleStateTransitionInputChange = (rowIndex, colIndex, value) => {
@@ -461,6 +457,7 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
             numInputs={numInputs} 
             flipFlopType={flipFlopType} 
             numFlipFlops={numFlipFlops} 
+            fsmType={fsmType}
             isGenerated={isGenerated}
         />
 
@@ -577,12 +574,12 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
         </div>
   
         {/* State Transition Table Section */}
-        <div className={`table-container stateTransition ${isExcitationTableFilled ? 'expanded' : ''}`}>
+        <div className={`table-container stateTransition ${isStateTransitionTableExpanded ? 'expanded' : ''}`}>
           <h2>State Transition Table</h2>
-          {isExcitationTableFilled && (
+          {isStateTransitionTableExpanded && (
             <p className="instruction">Complete the State Transition Table with only "0" and "1" values.</p>
           )}
-          {!isExcitationTableFilled ? (
+          {!isStateTransitionTableExpanded ? (
             <div className="placeholder">Exercise 2</div>
           ) : (
             <table className="transition-table">
@@ -631,7 +628,7 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
               </tbody>
             </table>
           )}
-          {isExcitationTableFilled && (
+          {isStateTransitionTableExpanded && (
             <button 
                 className={`generate-btn ${isStateTransitionTableFilled ? '' : 'disabled'}`} 
                 onClick={validateStateTransitionTable} 
@@ -657,4 +654,5 @@ const highlightIncorrectCell = (rowIndex, colIndex) => {
   }
   
   export default CircuitToState;
+
 
