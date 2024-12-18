@@ -12,7 +12,7 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
       const boxWidth = 150;
       const boxHeight = 60;
       const startX = 100;
-      const startY = 70;
+      const startY = 80;
       const flipFlopSpacing = 100;
 
       p.setup = () => {
@@ -34,13 +34,15 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
           for (let i = 0; i < numInputs; i++) {
             if (i === 0) {
               // X1 connects to the top half of Next State Logic
-              p.line(startX - 50, startY + boxHeight / 4, startX, startY + boxHeight / 4); // X1 line
-              p.text('X1', startX - 30, startY + boxHeight / 4 - 5); // Label for X1
+              p.line(startX - 60, startY + boxHeight / 4, startX, startY + boxHeight / 4); // X1 line
+              p.text('X1', startX - 50, startY + boxHeight / 4 - 5); // Label for X1
             } else if (i === 1) {
               // X2 connects to the bottom half of Next State Logic
-              p.line(startX - 50, startY + (3 * boxHeight) / 4, startX, startY + (3 * boxHeight) / 4); // X2 line
-              p.text('X2', startX - 30, startY + (3 * boxHeight) / 4 - 5); // Label for X2
+              p.line(startX - 60, startY + (3 * boxHeight) / 4, startX, startY + (3 * boxHeight) / 4); // X2 line
+              p.text('X2', startX - 50, startY + (3 * boxHeight) / 4 - 5); // Label for X2
             }
+
+            
           }
 
           // Draw Flip-Flops and connections
@@ -52,30 +54,28 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
             p.fill(230, 230, 250);
             p.rect(flipFlopX, flipFlopY, boxWidth, boxHeight);
             p.fill(0);
-            p.text(`${flipFlopType} Flip-Flop`, flipFlopX + 20, flipFlopY + 35);
-
-            
+            p.text(`${flipFlopType} Flip-Flop`, flipFlopX + 32, flipFlopY + 35);
 
             // JK Flip-Flop connections with two lines and individual labels
             if (flipFlopType === 'JK') {
               // J input (top line)
-              p.line(startX + boxWidth, startY + 20, startX + boxWidth + 50, startY + 20); // Horizontal segment
+              p.line(startX + boxWidth, startY + 15, startX + boxWidth + 50, startY + 15); // Horizontal segment
               p.line(startX + boxWidth + 50, startY + 20, startX + boxWidth + 50, flipFlopY + 20); // Vertical segment
-              p.line(startX + boxWidth + 50, flipFlopY + 20, flipFlopX, flipFlopY + 20); // Horizontal to connect to J
-              p.text(`J${i + 1}_input`, startX + boxWidth + 20, flipFlopY + 20); // Label for J input line
+              p.line(startX + boxWidth + 50, flipFlopY + 15, flipFlopX, flipFlopY + 15); // Horizontal to connect to J
+              p.text(`J${i + 1}_input`, startX + boxWidth + 60, flipFlopY + 8); // Label for J input line
 
               // K input (bottom line)
-              p.line(startX + boxWidth, startY + 40, startX + boxWidth + 50, startY + 40); // Horizontal segment
-              p.line(startX + boxWidth + 50, startY + 40, startX + boxWidth + 50, flipFlopY + 40); // Vertical segment
-              p.line(startX + boxWidth + 50, flipFlopY + 40, flipFlopX, flipFlopY + 40); // Horizontal to connect to K
-              p.text(`K${i + 1}_input`, startX + boxWidth + 20, flipFlopY + 40); // Label for K input line
+              p.line(startX + boxWidth, startY + 45, startX + boxWidth + 50, startY + 45); // Horizontal segment
+              p.line(startX + boxWidth + 50, startY + 15, startX + boxWidth + 50, flipFlopY + 45); // Vertical segment
+              p.line(startX + boxWidth + 50, flipFlopY + 45, flipFlopX, flipFlopY + 45); // Horizontal to connect to K
+              p.text(`K${i + 1}_input`, startX + boxWidth + 60, flipFlopY + 38); // Label for K input line
             } else {
               // Single line for D or T flip-flop
               p.line(startX + boxWidth, startY + boxHeight / 2, startX + boxWidth + 50, startY + boxHeight / 2); // Horizontal segment
               p.line(startX + boxWidth + 50, startY + boxHeight / 2, startX + boxWidth + 50, flipFlopY + boxHeight / 2); // Vertical segment
               p.line(startX + boxWidth + 50, flipFlopY + boxHeight / 2, flipFlopX, flipFlopY + boxHeight / 2); // Horizontal to connect
               if (flipFlopType === 'D') {
-                p.text(`D${i + 1}_input`, startX + boxWidth + 80, flipFlopY + boxHeight / 2 - 10); // Minterm label
+                p.text(`D${i + 1}_input`, startX + boxWidth + 60, flipFlopY + boxHeight / 2 - 10); // Minterm label
               }
               if (flipFlopType === 'T') {
                 p.text(`T${i + 1}_input`, startX + boxWidth + 80, flipFlopY + boxHeight / 2 - 10); // Minterm label
@@ -86,10 +86,18 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
             // Route the line ABOVE the diagram to avoid overlap
             p.line(flipFlopX + boxWidth, flipFlopY + boxHeight / 2, flipFlopX + boxWidth + 60, flipFlopY + boxHeight / 2); // Horizontal segment
             p.line(flipFlopX + boxWidth + 60, flipFlopY + boxHeight / 2, flipFlopX + boxWidth + 60, 50); // Vertical upwards (above diagram)
-            p.line(flipFlopX + boxWidth + 60, 50, startX + boxWidth, 50); // Horizontal above diagram
-            p.line(startX + boxWidth, 50, startX + boxWidth, startY + boxHeight / 2); // Vertical down to Next State Logic
+            p.line(flipFlopX + boxWidth + 60, 50, startX + boxWidth / 2, 50); // Horizontal above diagram
+            p.line(startX + boxWidth / 2, 50, startX + boxWidth / 2, startY); // Vertical down to Next State Logic
 
             // No label on the feedback line connecting Q# to Next State Logic
+            
+            // Arrowhead at the line touching the top border
+            //p.fill(0); // Black fill for the arrowhead
+            //p.noStroke();
+            const arrowX = startX + boxWidth / 2; // X-coordinate of arrowhead
+            const arrowY = startY; // Y-coordinate of the top border
+            p.triangle(arrowX - 5, arrowY - 10, arrowX + 5, arrowY - 10, arrowX, arrowY); // Draw arrowhead
+            //p.stroke(0); // Reset stroke for other lines
           } 
 
           // Draw Output Logic Box
@@ -98,7 +106,7 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
           p.fill(230, 230, 250);
           p.rect(outputX, outputY, boxWidth, boxHeight);
           p.fill(0);
-          p.text("Output Logic", outputX + 20, outputY + 30);
+          p.text("Output Logic", outputX + 28, outputY + 35);
 
           // Line from Flip-Flop to Output Logic (orthogonal)
           for (let i = 0; i < numFlipFlops; i++) {
@@ -120,12 +128,17 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
           // Mealy Machine connection (X to Output Logic)
           if (fsmType === 'Mealy') {
             // Draw X going under the diagram to avoid overlap (orthogonal)
-            p.line(startX - 50, startY + boxHeight / 2, startX - 50, startY + 400); // Go down and shortened height
-            p.line(startX - 50, startY + 400, outputX, startY + 400); // Go right
-            p.line(outputX, startY + 400, outputX, outputY + boxHeight / 2); // Connect to output logic
+            p.line(startX - 15, startY + 15, startX - 15, startY + 290); // Go down and shortened height
+            p.line(startX - 15, startY + 290, outputX + boxWidth / 2 , startY + 290); // Go right
+            p.line(outputX + boxWidth / 2, startY + 290, outputX + boxWidth / 2, outputY + boxHeight); // Connect to output logic
 
             // Label for Mealy X line
-            p.text('X (Mealy)', startX - 50, startY + 420);
+            p.text('X (Mealy)', startX - 15, startY + 310);
+
+            // Draw upward-pointing arrowhead
+            const arrowX = outputX + boxWidth / 2; // X-coordinate of arrowhead
+            const arrowY = outputY + boxHeight; // Y-coordinate of the top border
+            p.triangle(arrowX - 5, arrowY + 10, arrowX + 5, arrowY + 10, arrowX, arrowY); // Draw arrowhead
           }
         }
       };
@@ -161,5 +174,3 @@ function CircuitDiagram({ minterms, mintermOutputZ, numInputs, flipFlopType, num
 }
 
 export default CircuitDiagram;
-
-
