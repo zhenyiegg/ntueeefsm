@@ -1,658 +1,730 @@
 /* CircuitToState.jsx */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import CircuitDiagram from '../components/CircuitDiagram';
-import '../styles/CircuitToState.css'; // Import specific styles for this page
-
+import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; // FontAwesome Arrow
 
-function CircuitToState() {
-    // State variables to track dropdown selections
-    const [numInputs, setNumInputs] = useState('');
-    const [flipFlopType, setFlipFlopType] = useState('');
-    const [numFlipFlops, setNumFlipFlops] = useState('');
-    const [fsmType, setFsmType] = useState('');
-    const [isGenerated, setIsGenerated] = useState(false); // Controls when generation happens
-    const [minterms, setMinterms] = useState('');
-    const [mintermOutputZ, setMintermOutputZ] = useState(''); // New state for output Z
+const CircuitToState = () => {
+  // States for generated data and user inputs
+  const [minterms, setMinterms] = useState([]);
+  const [mintermOutputZ, setMintermOutputZ] = useState("");
+  const [isGenerated, setIsGenerated] = useState(false);
+  const [excitationTable, setExcitationTable] = useState([]);
+  const [stateTransitionTable, setStateTransitionTable] = useState([]);
+  const [hiddenExcitationCorrectAnswers, setHiddenExcitationCorrectAnswers] = useState({});
+  const [hiddenStateTransitionCorrectAnswers, setHiddenStateTransitionCorrectAnswers] = useState({
+    nextState: [],
+    output: [],
+  });
+  const [userExcitationInputs, setUserExcitationInputs] = useState([]);
+  const [userStateTransitionInputs, setUserStateTransitionInputs] = useState([]);
+  const [isNextExcitationButtonEnabled, setIsNextExcitationButtonEnabled] = useState(false);
+  const [isGenerateStateDiagramButtonEnabled, setisGenerateStateDiagramButtonEnabled] = useState(false);
+  const [isExcitationTableComplete, setIsExcitationTableComplete] = useState(false);
+  const [isStateTransitionTableComplete, setIsStateTransitionTableComplete] = useState(false);
+  const [showExcitationTable, setShowExcitationTable] = useState(false);
+  const [showStateTransitionTable, setShowStateTransitionTable] = useState(false);
+  const [excitationSubheader, setExcitationSubheader] = useState("Exercise 1");
+  const [stateTransitionSubheader, setStateTransitionSubheader] = useState("Exercise 2");
+
+  // State for dropdown selections
+  const [dropdownState, setDropdownState] = useState({
+    numInputs: "",
+    flipFlopType: "",
+    numFlipFlops: "",
+    fsmType: "",
+  });
+
+  // State for finalized dropdown selections after clicking Generate
+  const [generateState, setGenerateState] = useState({
+    numInputs: "",
+    flipFlopType: "",
+    numFlipFlops: "",
+    fsmType: "",
+  });
+
+  // Helper to check if all input fields are filled
+  const areAllExcitationInputsFilled = useCallback(() => {
+    return userExcitationInputs.every((row) =>
+      Object.values(row.flipFlopInputs).every(({ value }) => value === "0" || value === "1")
+    );
+  }, [userExcitationInputs]);
+
+  // Helper to check if all input fields are filled
+  const areAllStateTransitionInputsFilled = useCallback(() => {
+    const { numFlipFlops } = generateState;
+
+    return userStateTransitionInputs.every((row) => {
+      const isNextStateValid =
+        (!row.nextState.editable || 
+          (row.nextState.value.length === parseInt(numFlipFlops) &&
+          /^[01]+$/.test(row.nextState.value)));
+      const isOutputValid =
+        (!row.output.editable || /^[01]$/.test(row.output.value));
+
+      return isNextStateValid && isOutputValid;
+    });
+  }, [userStateTransitionInputs, generateState]);
+
+  // Update button state when user inputs change
+  useEffect(() => {
+    setIsNextExcitationButtonEnabled(areAllExcitationInputsFilled());
+  }, [areAllExcitationInputsFilled]);
+
+  // Update button state when user inputs change
+  useEffect(() => {
+    setisGenerateStateDiagramButtonEnabled(areAllStateTransitionInputsFilled());
+  }, [areAllStateTransitionInputsFilled]);
+
+  // Helper: Check if all dropdowns are selected
+  const isFormComplete =
+    dropdownState.numInputs &&
+    dropdownState.flipFlopType &&
+    dropdownState.numFlipFlops &&
+    dropdownState.fsmType;
   
-    // State to store the selected values for display
-    const [selectedValues, setSelectedValues] = useState({
-      inputs: '',
-      flipFlop: '',
-      flipFlopsNum: '',
-      fsm: ''
+  // Handle dropdown changes with dependent resets
+  const handleDropdownChange = (key, value) => {
+    const updatedState = { ...dropdownState, [key]: value };
+
+    // Logic for resetting number of flip-flops if inputs change to 2
+    if (key === "numInputs" && value === "2") {
+      if (dropdownState.numFlipFlops === "3") {
+        updatedState.numFlipFlops = ""; 
+      }
+    }
+
+    setDropdownState(updatedState);
+  };
+
+  // Helper: Generate binary states for the number of flip-flops or inputs
+  const generateBinaryStates = (numBits) => {
+    const totalStates = Math.pow(2, numBits);
+    const states = [];
+    for (let i = 0; i < totalStates; i++) {
+      states.push(i.toString(2).padStart(numBits, "0"));
+    }
+    return states;
+  };
+
+  // Helper: Generate random number between min and max
+  const getRandomNumber = (min, max) =>
+    Math.floor(Math.random() * (max - min + 1)) + min;
+
+  // Helper: Shuffle array (Fisher-Yates Shuffle)
+  const shuffleArray = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  };
+
+  // Helper: Generate unique minterms
+  const generateUniqueMinterms = (limit, maxValue) => {
+    const possibleMinterms = Array.from({ length: maxValue }, (_, index) => index);
+    const shuffledMinterms = shuffleArray(possibleMinterms);
+    return shuffledMinterms.slice(0, limit).sort((a, b) => a - b);
+  };
+
+  // Generate minterms, hidden correct answers and populate tables 
+  const generateMinterms = () => {
+    setShowExcitationTable(true); 
+    setExcitationSubheader('Complete the Excitation Table with only binary "0" and "1" values.');
+    setShowStateTransitionTable(false); 
+    setStateTransitionSubheader("Exercise 2");
+
+    // Reset completion states and hide the state transition table
+    setIsExcitationTableComplete(false);
+    setIsStateTransitionTableComplete(false);
+    setShowStateTransitionTable(false); 
+
+    setGenerateState({ ...dropdownState }); // Finalize the dropdown selections
+    const { numInputs, flipFlopType, numFlipFlops } = dropdownState;
+    let maxValue, minMinterms, maxMinterms;
+
+    if (numFlipFlops === "2" && numInputs === "1") {
+      maxValue = 8; // 2 flip-flops, 1 input: valid minterms range from 0 to 7
+      minMinterms = 2;
+      maxMinterms = 4;
+    } else {
+      maxValue = 16; // 3 flip-flops or 2 inputs: valid minterms range from 0 to 15
+      minMinterms = 2;
+      maxMinterms = 8;
+    }
+
+    const generatedMinterms = [];
+    const excitationCorrectAnswers = {};
+
+    // Generate minterms for D or T Flip-Flops
+    if (flipFlopType === "D" || flipFlopType === "T") {
+      for (let i = 1; i <= parseInt(numFlipFlops); i++) {
+        const mintermsDT = generateUniqueMinterms(
+          getRandomNumber(minMinterms, maxMinterms),
+          maxValue
+        );
+        generatedMinterms.push({
+          flipFlop: `${flipFlopType}${i}_input`,
+          minterms: mintermsDT,
+        });
+        excitationCorrectAnswers[`${flipFlopType}${i}_input`] = mintermsDT; // Match the key
+      }
+    }
+
+    // Generate minterms for JK Flip-Flops
+    if (flipFlopType === "JK") {
+      for (let i = 1; i <= parseInt(numFlipFlops); i++) {
+        const mintermsJ = generateUniqueMinterms(
+          getRandomNumber(minMinterms, maxMinterms),
+          maxValue
+        );
+        const mintermsK = generateUniqueMinterms(
+          getRandomNumber(minMinterms, maxMinterms),
+          maxValue
+        );
+        generatedMinterms.push(
+          { flipFlop: `J${i}_input`, minterms: mintermsJ },
+          { flipFlop: `K${i}_input`, minterms: mintermsK }
+        );
+        excitationCorrectAnswers[`J${i}_input`] = mintermsJ; // Match the key
+        excitationCorrectAnswers[`K${i}_input`] = mintermsK; // Match the key
+      }
+    }
+
+    // Generate Output Z
+    const outputMinterms = generateUniqueMinterms(
+      getRandomNumber(minMinterms, maxMinterms),
+      maxValue
+    );
+    const outputZMinterms = `∑m(${outputMinterms.join(", ")})`;
+
+    // Update states
+    setMinterms(generatedMinterms);
+    setMintermOutputZ(outputZMinterms);
+    setHiddenExcitationCorrectAnswers(excitationCorrectAnswers);
+    setIsGenerated(true);
+
+    // Generate  table
+    const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
+    const binaryInputs = generateBinaryStates(parseInt(numInputs));
+
+    const newExcitationTable = [];
+    const newStateTransitionTable = [];
+
+    binaryStates.forEach((currentState, stateIndex) => {
+      binaryInputs.forEach((input, inputIndex) => {
+        const rowIndex = stateIndex * binaryInputs.length + inputIndex;
+
+        // Create excitation table rows
+        const excitationRow = {
+          currentState,
+          input,
+          flipFlopInputs: {},
+        };
+
+        // Compute the next state
+        const nextState = computeNextState(
+          flipFlopType,
+          currentState,
+          excitationCorrectAnswers,
+          rowIndex,
+          parseInt(numFlipFlops)
+        );
+
+        // Add to state transition table
+        const transitionRow = {
+          currentState,
+          input,
+          nextState,
+          output: outputMinterms.includes(rowIndex) ? "1" : "0",
+        };
+
+        // Populate flip-flop inputs based on minterms
+        generatedMinterms.forEach(({ flipFlop, minterms }) => {
+          excitationRow.flipFlopInputs[flipFlop] = minterms.includes(rowIndex) ? "1" : "0";
+        });
+
+        newExcitationTable.push(excitationRow);
+        newStateTransitionTable.push(transitionRow);
+      });
     });
 
-    // To hold the dropdown selections before clicking "Generate"
-    const [dropdownState, setDropdownState] = useState({
-        numInputs: '',
-        flipFlopType: '',
-        numFlipFlops: '',
-        fsmType: ''
-     });
-     
+    // Set hidden correct answers for validation
+    setHiddenStateTransitionCorrectAnswers({
+      nextState: newStateTransitionTable.map((row) => row.nextState),
+      output: newStateTransitionTable.map((row) => row.output),
+    });
 
-    const [excitationTable, setExcitationTable] = useState({});
-    const [stateTransitionTable, setStateTransitionTable] = useState({});
-    const [isExcitationTableFilled, setIsExcitationTableFilled] = useState(false);
-    const [isStateTransitionTableFilled, setIsStateTransitionTableFilled] = useState(false);
-
-    const [expectedExcitationTable, setExpectedExcitationTable] = useState({});
-    const [cellValidation, setCellValidation] = useState({});
-    const [isExcitationTableLocked, setIsExcitationTableLocked] = useState(false);
-    const [isExcitationTableValidated, setIsExcitationTableValidated] = useState(false);
-    const [isStateTransitionTableExpanded, setIsStateTransitionTableExpanded] = useState(false);
-
-
-
-  
-    // Logic to enable or disable the "Generate" button using dropdownState instead
-    const isFormComplete = dropdownState.numInputs && dropdownState.flipFlopType && dropdownState.numFlipFlops && dropdownState.fsmType;
-  
-    // Helper function to generate a random number between min and max
-    const getRandomNumber = (min, max) => {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    };
-
-    // Helper function to shuffle an array (Fisher-Yates Shuffle)
-    const shuffleArray = (array) => {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    };
-
-    // Helper function to generate unique minterms within a defined range
-    const generateUniqueMinterms = (limit, maxValue) => {
-        const possibleMinterms = Array.from({ length: maxValue }, (_, index) => index); // Create array [0, 1, 2, ..., maxValue-1]
-
-        const shuffledMinterms = shuffleArray(possibleMinterms); // Shuffle the array to randomize the selection
-
-        return shuffledMinterms.slice(0, limit).sort((a, b) => a - b); // Select 'limit' number of unique minterms and sort them in ascending order
-    };
-
-    // Helper to generate expected binary inputs for flip-flop columns based on minterms
-    const generateExpectedExcitationTable = (uniqueMinterms, numRows) => {
-        const expectedTable = {};
-        for (let i = 0; i < numRows; i++) {
-            // Check if the current row index matches a minterm
-            expectedTable[i] = uniqueMinterms.includes(i) ? "1" : "0";  // "1" if present in minterms, otherwise "0"
-        }
-        return expectedTable;
-    };
+    setExcitationTable(newExcitationTable);
+    setStateTransitionTable(newStateTransitionTable);
     
-    // Helper to map minterms to correct excitation table rows
-    const mapMintermsToRows = (minterms, numStates) => {
-      const rows = {};
-      for (let i = 0; i < numStates; i++) {
-        rows[i] = minterms.includes(i) ? "1" : "0"; // 1 if row index is in minterms, else 0
-      }
-      return rows;
-    };
-
-    // Generate expected excitation table based on minterms
-    const generateMinterms = (numInputs, flipFlopType, numFlipFlops) => {
-        let maxValue, minMinterms, maxMinterms;
-        const expectedExcitationTable = {};
-        //const expectedTable = {};
-    
-        if (numFlipFlops === '2' && numInputs === '1') {
-            maxValue = 8;  // 2 flip-flops, 1 input: valid minterms range from 0 to 7
-            minMinterms = 2;
-            maxMinterms = 4;
-        } else {
-            maxValue = 16;  // 3 flip-flops or 2 inputs: valid minterms range from 0 to 15
-            minMinterms = 2;
-            maxMinterms = 8;
-        }
-    
-        const randomMinterms = [];
-    
-        if (flipFlopType === 'D' || flipFlopType === 'T') {
-            for (let i = 1; i <= numFlipFlops; i++) {
-                const numMinterms = getRandomNumber(minMinterms, maxMinterms);
-                const uniqueMinterms = generateUniqueMinterms(numMinterms, maxValue);
-
-                randomMinterms.push(`${flipFlopType}${i}_input = Σm(${uniqueMinterms.join(', ')})`);
-                expectedExcitationTable[`${flipFlopType}${i}`] = mapMintermsToRows(uniqueMinterms, maxValue);
-
-                
-            }
-        }
-    
-        if (flipFlopType === 'JK') {
-            for (let i = 1; i <= numFlipFlops; i++) {
-                const numMintermsJ = getRandomNumber(minMinterms, maxMinterms);
-                const numMintermsK = getRandomNumber(minMinterms, maxMinterms);
-                const uniqueMintermsJ = generateUniqueMinterms(numMintermsJ, maxValue);
-                const uniqueMintermsK = generateUniqueMinterms(numMintermsK, maxValue);
-    
-                randomMinterms.push(`J${i}_input = Σm(${uniqueMintermsJ.join(', ')})`);
-                randomMinterms.push(`K${i}_input = Σm(${uniqueMintermsK.join(', ')})`);
-    
-                expectedExcitationTable[`J${i}`] = generateExpectedExcitationTable(uniqueMintermsJ, maxValue);
-                expectedExcitationTable[`K${i}`] = generateExpectedExcitationTable(uniqueMintermsK, maxValue);
-            }
-        }
-    
-        setMinterms(randomMinterms.join(', '));  // Store the generated minterms for display
-        setExpectedExcitationTable(expectedExcitationTable);  // Set hidden correct answers
-
-        // Generate Output Z based on Mealy or Moore FSM
-        let outputZ = '';
-        const numOutputMinterms = getRandomNumber(minMinterms, maxMinterms); // Randomly choose number of output minterms
-        if (fsmType === 'Mealy') {
-            const uniqueOutputZ = generateUniqueMinterms(numOutputMinterms, maxValue); // Mealy uses more combinations, and sort them
-            outputZ = `Z = Σm(${uniqueOutputZ.join(', ')}) based on state & input`;
-        } else {
-            const uniqueOutputZ = generateUniqueMinterms(numOutputMinterms, maxValue); // Moore uses fewer combinations, and sort them
-            outputZ = `Z = Σm(${uniqueOutputZ.join(', ')}) based on state only`;
-        }
-
-        setMintermOutputZ(outputZ); // Update the state with generated output Z
-    };
-
-    // Dropdown change handlers
-    const handleNumInputsChange = (e) => {
-        // Handles number of inputs change and flip-flop reset logic
-        const newNumInputs = e.target.value;
-    
-        // If changing to 2 inputs and 3 flip-flops is currently selected, reset the flip-flop selection
-        if (newNumInputs === '2' && dropdownState.numFlipFlops === '3') {
-            setDropdownState((prevState) => ({
-            ...prevState,
-                numInputs: newNumInputs,
-                numFlipFlops: '', // Reset flip-flop selection
-            }));
-        } else {
-            setDropdownState((prevState) => ({
-            ...prevState,
-                numInputs: newNumInputs,
-            }));
-        }
-    };
-
-    // Generate button click handler
-    const handleGenerate = () => {
-        // Reset and set state for excitation and state transition tables, regenerate minterms
-
-        setNumInputs(dropdownState.numInputs);
-        setFlipFlopType(dropdownState.flipFlopType);
-        setNumFlipFlops(dropdownState.numFlipFlops);
-        setFsmType(dropdownState.fsmType);
-        
-        // Reset the flags to disable the next button
-        setIsExcitationTableFilled(false);
-        setIsStateTransitionTableFilled(false);
-        setIsExcitationTableLocked(false); // Unlock the excitation table
-        
-        // Clear tables before generating new minterms
-        setExcitationTable({});
-        setStateTransitionTable({});
-        setCellValidation({}); // Reset validation state
-        
-        setIsGenerated(false); 
-    
-        // Set the generation process after resetting
-        setTimeout(() => {
-            setIsGenerated(true); // Activate generation
-            generateMinterms(dropdownState.numInputs, dropdownState.flipFlopType, dropdownState.numFlipFlops, dropdownState.fsmType); 
-            setSelectedValues({
-                inputs: dropdownState.numInputs === '1' ? '1 Input' : '2 Inputs',
-                flipFlop: dropdownState.flipFlopType + ' Flip Flop',
-                flipFlopsNum: dropdownState.numFlipFlops + ' Flip Flops',
-                fsm: dropdownState.fsmType
-            });
-            console.log("State values updated: ", { numInputs, flipFlopType, numFlipFlops, fsmType }); // Debugging
-        }, 0); // Ensuring async state update
-    };
-
-    // Excitation Table validation function and enable/disable the Next button
-    const validateExcitationTable = (table) => {
-        let allFilled = true;
-    
-        // Calculate the total number of rows and columns expected in the table
-        const numStates = Math.pow(2, numFlipFlops);  // Number of state rows
-        const numInputCombos = Math.pow(2, numInputs);  // Number of input combinations
-    
-        // Calculate total expected columns based on flip-flop type
-        const numColumns = flipFlopType === 'JK' ? numFlipFlops * 2 : numFlipFlops;
-    
-        const totalCells = numStates * numInputCombos * numColumns;
-    
-        let filledCellsCount = 0;  // Counter for correctly filled cells
-    
-        // Loop through each row in the table
-        for (const rowIndex in table) {
-            const row = table[rowIndex];
-    
-            // Check each cell in the row
-            for (const colIndex in row) {
-                const value = row[colIndex];
-                if (value === "0" || value === "1") {
-                    filledCellsCount++;
-                }
-                if (value === "" || value === undefined) {
-                  allFilled = false;
-              }
-            }
-        }
-    
-        // Check if the number of filled cells matches the total number of cells
-        allFilled = filledCellsCount === totalCells;
-    
-        setIsExcitationTableFilled(allFilled);  // Update the state based on whether all cells are filled
-    };
-        
-    // Validate user inputs based on the generated expected table
-    const validateUserInputs = (userTable, expectedTable) => {
-        const results = [];  // Array to hold validation results
-    
-        // Compare each cell in userTable to the expectedTable
-        for (const rowIndex in userTable) {
-            const row = userTable[rowIndex];
-    
-            // Validate each cell in the row
-            for (const colKey in row) {
-                const userInput = row[colKey];
-                const expectedValue = expectedTable[colKey]?.[rowIndex];  // Get the expected value for the flip-flop input at that row
-    
-                const isCorrect = userInput === expectedValue;  // Compare user input with correct value
-    
-                // Push each validation result to the array
-                results.push({
-                    rowIndex,
-                    colKey,
-                    isCorrect,
-                });
-            }
-        }
-    
-        // Update cell validation for incorrect answers
-        setCellValidation(results.reduce((acc, { rowIndex, colKey, isCorrect }) => {
-            acc[`${rowIndex}-${colKey}`] = isCorrect;  // Update validation for each cell
-            return acc;
-        }, {}));  // Update the validation state as an object (used for UI)
-    
-        return results;  // Return an array of results
-    };
-
-    // Handle Next button click to validate inputs and transition to the next exercise
-    const handleNextButtonClick = () => {
-        const validationResults = validateUserInputs(excitationTable, expectedExcitationTable);
-
-        let allCorrect = true;
-    
-        // Validate each cell in the table
-        validationResults.forEach(({ rowIndex, colKey, isCorrect }) => {
-          const inputElement = document.getElementById(`input-${rowIndex}-${colKey}`);
-          if (isCorrect) {
-              inputElement.disabled = true; // Lock correct answers
-              inputElement.classList.remove('error-incorrect');
-              //lockCorrectCell(rowIndex, colKey);
-          } else {
-              inputElement.classList.add('error-incorrect'); // Highlight incorrect answers
-              //highlightIncorrectCell(rowIndex, colKey);
-              allCorrect = false; // Mark as not all correct
-          }
-        });
-    
-        // Only proceed if all cells are correct
-        if (allCorrect) {
-          setIsExcitationTableLocked(true); // Lock Excitation Table
-          //expandStateTransitionSection(); // Reveal the next section
-          setIsExcitationTableValidated(true); // Mark validation as successful
-          setIsStateTransitionTableExpanded(true); // Expand the State Transition Table
-        } else {
-          console.log("Some answers are incorrect. Please correct them.");
-        }
-    };
-    
-    // Excitation Table input change handler
-    const handleExcitationInputChange = (rowIndex, colKey, value) => {
-        if (value === "0" || value === "1") {
-            setExcitationTable((prevTable) => {
-                const updatedRow = {
-                    ...prevTable[rowIndex],
-                    [colKey]: value,  // Update the specific flip-flop input column (J, K, D, T)
-                };
-                const updatedTable = {
-                    ...prevTable,
-                    [rowIndex]: updatedRow,
-                };
-    
-                validateExcitationTable(updatedTable);  // Revalidate after input change
-                return updatedTable;
-            });
-        } else if (value === "") {
-            // Handle empty input (reset cell)
-            setExcitationTable((prevTable) => {
-                const updatedRow = {
-                    ...prevTable[rowIndex],
-                    [colKey]: "",  // Clear the column
-                };
-                const updatedTable = {
-                    ...prevTable,
-                    [rowIndex]: updatedRow,
-                };
-    
-                validateExcitationTable(updatedTable);  // Revalidate after clearing input
-                return updatedTable;
-            });
-        } else {
-            // Handle invalid input
-            const inputElement = document.getElementById(`input-${rowIndex}-${colKey}`);
-            if (inputElement) {
-                inputElement.classList.add('error-invalid');  // Add shake effect for invalid input
-                setTimeout(() => inputElement.classList.remove('error-invalid'), 1000);  // Remove shake effect
-            }
-        }
-    };
-    
-    // Expand State Transition section
-    /*const expandStateTransitionSection = () => {
-        setIsStateTransitionTableFilled(false); // Initially not filled
-        
-        // Expands the state transition section and ensures inputs from excitation table are prefilled
-        setIsStateTransitionTableFilled(true);
-    };*/
-      
-    // State Transition Table input change handler
-    const handleStateTransitionInputChange = (rowIndex, colIndex, value) => {
-        // Handles input changes in the state transition table and validates the inputs
-        const validBinary = /^[01]{2,3}$/; // For 2 or 3 binary digits
-        if (validBinary.test(value)) {
-            setStateTransitionTable((prevTable) => ({
-                ...prevTable,
-                [`${rowIndex}-${colIndex}`]: value
-            }));
-        }
-    };
-    
-    // Validate the entire State Transition Table
-    const validateStateTransitionTable = () => {
-        // Checks if all state transition inputs are valid
-        const isFilled = Object.values(stateTransitionTable).every((value) => /^[01]{2,3}$/.test(value));
-        setIsStateTransitionTableFilled(isFilled);
-    };     
-
-    // Generate the dynamic table header for the current state (Q values) based on flip-flops
-    const generateCurrentStateHeader = (numFlipFlops) => {
-      return Array.from({ length: numFlipFlops }, (_, i) => `Q${i + 1}`).join(' ');
-    };
-
-    // Generate current state (binary Q values) and input combinations (binary X values)
-    const generateCurrentStateInputs = (numFlipFlops, numInputs) => {
-      const numStates = Math.pow(2, numFlipFlops);
-      const numInputCombos = Math.pow(2, numInputs);
-      const rows = [];
-
-      for (let i = 0; i < numStates; i++) {
-        const currentState = i.toString(2).padStart(numFlipFlops, '0');
-        for (let j = 0; j < numInputCombos; j++) {
-          const inputs = j.toString(2).padStart(numInputs, '0');
-          rows.push({
-            currentState: currentState,
-            inputs: inputs
-          });
-        }
-      }
-
-      return rows;
-    };
-
-    // Render 
-    return (
-      <div className="circuit-to-state">
-        {/* Header */}
-        <header>
-            <h1>
-            Circuit <FontAwesomeIcon icon={faArrowRight} /> State Diagram
-            </h1>
-        </header>
-
-  
-        {/* Dropdown Inputs */}
-        <div className="dropdown-container">
-          <select value={dropdownState.numInputs} onChange={handleNumInputsChange}>
-            <option value="">Select Number of Inputs</option>
-            <option value="1">1 Input</option>
-            <option value="2">2 Inputs</option>
-          </select>
-  
-          <select value={dropdownState.flipFlopType} onChange={(e) => setDropdownState({ ...dropdownState, flipFlopType: e.target.value })}>
-            <option value="">Select Flip-Flop Type</option>
-            <option value="D">D Flip-Flop</option>
-            <option value="T">T Flip-Flop</option>
-            <option value="JK">JK Flip-Flop</option>
-          </select>
-  
-          <select value={dropdownState.numFlipFlops} onChange={(e) => setDropdownState({ ...dropdownState, numFlipFlops: e.target.value })} disabled={!dropdownState.numInputs}>
-            <option value="">Select Number of Flip-Flops</option>
-            <option value="2">2 Flip-Flops</option>
-            <option value="3" disabled={dropdownState.numInputs === '2'}>3 Flip-Flops</option> {/* Visible but disabled for 2 inputs */}
-          </select>
-  
-          <select value={dropdownState.fsmType} onChange={(e) => setDropdownState({ ...dropdownState, fsmType: e.target.value })}>
-            <option value="">Select FSM Type</option>
-            <option value="Mealy">Mealy</option>
-            <option value="Moore">Moore</option>
-          </select>
-          {/* Generate Button */}
-          <button
-            className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
-            onClick={handleGenerate}
-            disabled={!isFormComplete}
-          >
-            Generate
-          </button>
-        </div>
-  
-        {/* Always render the canvas, but leave it empty until "Generate" is clicked */}
-        <CircuitDiagram 
-            minterms={minterms} 
-            mintermOutputZ={mintermOutputZ} 
-            numInputs={numInputs} 
-            flipFlopType={flipFlopType} 
-            numFlipFlops={numFlipFlops} 
-            fsmType={fsmType}
-            isGenerated={isGenerated}
-        />
-
-        {/* Display selected values in the bottom bar */}
-        {isGenerated && (
-            <div className="selection-bar">
-              <span>{selectedValues.inputs}</span>
-              <span>{selectedValues.flipFlop}</span>
-              <span>{selectedValues.flipFlopsNum}</span>
-              <span>{selectedValues.fsm}</span>
-            </div>
-          )}
-
-          
-  
-  
-        {/* Excitation Table Section */}
-        <div className={`table-container excitation ${isGenerated ? 'expanded' : ''}`}>
-          <h2>Excitation Table</h2>
-          {isGenerated && (
-            <p className="instruction">Complete the Excitation Table with only "0" and "1" values.</p>
-          )}
-          {!isGenerated ? (
-            <div className="placeholder">Exercise 1</div>
-          ) : (
-            <table className="excitation-table">
-              <thead>
-                <tr>
-                  {/* Table headers based on flip-flop type and inputs */}
-                  {/* Dynamically generate the Current State header */}
-                  <th style={{ width: '15%' }}>Current State <br />({generateCurrentStateHeader(numFlipFlops)})</th>
-                  {numInputs === '2' && <th style={{ width: '15%' }}>Inputs <br />(X1, X2)</th>}
-                  {numInputs === '1' && <th style={{ width: '15%' }}>Input <br />(X1)</th>}
-
-                  {/* Generate J and K columns for JK flip-flop */}
-                  {flipFlopType === 'JK' &&
-                    Array.from({ length: numFlipFlops }, (_, i) => (
-                        <React.Fragment key={i}>
-                         <th key={`J${i}`}>{`J${i + 1}`}</th>
-                         <th key={`K${i}`}>{`K${i + 1}`}</th>
-                        </React.Fragment>
-                    ))}
-
-                  {/* For D and T flip-flop types, only show a single column */}
-                  {flipFlopType !== 'JK' &&
-                    Array.from({ length: numFlipFlops }, (_, i) => (
-                      <th key={i}>{flipFlopType}{i + 1}</th>
-                    ))}
-                </tr>
-              </thead>
-              <tbody>
-                {/* Generate pre-filled rows for current state and inputs */}
-                {generateCurrentStateInputs(numFlipFlops, numInputs).map((row, index) => (
-                  <tr key={index}>
-                    <td>{row.currentState}</td>
-                    <td>{row.inputs}</td>
-                    {/* Dynamically generate flip-flop inputs */}
-                    {flipFlopType === 'JK' &&
-                      Array.from({ length: numFlipFlops }, (_, i) => (
-                        <React.Fragment key={i}>
-                          <td key={`J${i}`}>
-                            <input
-                                id={`input-${index}-J${i}`} // Add unique id for J input
-                                type="text" 
-                                placeholder={`J${i + 1}`} 
-                                onChange={(e) => handleExcitationInputChange(index, `J${i}`, e.target.value)} 
-                                value={excitationTable[`${index}-J${i}`] || ""}
-                                disabled={isExcitationTableLocked} // Disable input if locked
-                            />
-                          </td>
-                          <td key={`K${i}`}>
-                            <input
-                                id={`input-${index}-K${i}`} // Add unique id for K input
-                                type="text" 
-                                placeholder={`K${i + 1}`} 
-                                onChange={(e) => handleExcitationInputChange(index, `K${i}`, e.target.value)} 
-                                value={excitationTable[`${index}-K${i}`] || ""}
-                                disabled={isExcitationTableLocked} // Disable input if locked
-                            />
-                          </td>
-                        </React.Fragment>
-                      ))
-                    }
-                    {/* For D and T flip-flop types, only show a single column */}  
-                    {flipFlopType !== 'JK' &&
-                      Array.from({ length: numFlipFlops }, (_, i) => (
-                        <td key={i}>
-                            <input 
-                                id={`input-${index}-${i}`} 
-                                type="text" 
-                                placeholder={`${flipFlopType}${i + 1}`} 
-                                onChange={(e) => handleExcitationInputChange(index, i, e.target.value)} 
-                                value={excitationTable[index]?.[i] || ""}  // Reflect the current state value
-                                disabled={isExcitationTableLocked || cellValidation[`${index}-${i}`] === true}  // Disable correct cells
-                                className={cellValidation[`${index}-${i}`] === false ? 'error-incorrect' : ''}  // Highlight incorrect cells
-                            />
-                        </td>
-                      ))
-                    }
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {isGenerated && (
-            <button 
-                className={`generate-btn ${isExcitationTableFilled ? '' : 'disabled'}`} 
-                onClick={handleNextButtonClick} 
-                disabled={!isExcitationTableFilled} // Disable button when table is not complete
-            >
-              Next
-            </button>
-          )}
-        </div>
-  
-        {/* State Transition Table Section */}
-        <div className={`table-container stateTransition ${isStateTransitionTableExpanded ? 'expanded' : ''}`}>
-          <h2>State Transition Table</h2>
-          {isStateTransitionTableExpanded && (
-            <p className="instruction">Complete the State Transition Table with only "0" and "1" values.</p>
-          )}
-          {!isStateTransitionTableExpanded ? (
-            <div className="placeholder">Exercise 2</div>
-          ) : (
-            <table className="transition-table">
-              <thead>
-                <tr>
-                  <th>Current State ({generateCurrentStateHeader(numFlipFlops)})</th>
-                  {numInputs === '2' && <th>Inputs (X1, X2)</th>}
-                  {numInputs === '1' && <th>Input (X1)</th>}
-                  {/* Prefilled Flip-Flop inputs */}
-                  {flipFlopType === 'JK' &&
-                    Array.from({ length: numFlipFlops }, (_, i) => (
-                        <React.Fragment key={i}>
-                            <th key={`J${i}`}>{`J${numFlipFlops - i - 1}`}</th>
-                            <th key={`K${i}`}>{`K${numFlipFlops - i - 1}`}</th>
-                        </React.Fragment>
-                    ))}
-                  {flipFlopType !== 'JK' &&
-                    Array.from({ length: numFlipFlops }, (_, i) => (
-                      <th key={i}>{flipFlopType}{numFlipFlops - i - 1}</th>
-                    ))}
-                  <th>Next State</th>
-                  <th>Output Z</th>
-                </tr>
-              </thead>
-              <tbody>
-                {generateCurrentStateInputs(numFlipFlops, numInputs).map((row, index) => (
-                  <tr key={index}>
-                    <td>{row.currentState}</td>
-                    <td>{row.inputs}</td>
-                    {/* Flip-Flop inputs */}
-                    {flipFlopType === 'JK' &&
-                      Array.from({ length: numFlipFlops }, (_, i) => (
-                        <React.Fragment key={i}>
-                          <td key={`J${i}`}><input type="text" value={excitationTable[`${index}-J${i}`]} readOnly /></td>
-                          <td key={`K${i}`}><input type="text" value={excitationTable[`${index}-K${i}`]} readOnly /></td>
-                        </React.Fragment>
-                      ))}
-                    {flipFlopType !== 'JK' &&
-                      Array.from({ length: numFlipFlops }, (_, i) => (
-                        <td key={i}><input type="text" value={excitationTable[`${index}-${i}`]} readOnly /></td>
-                      ))}
-                    <td><input type="text" onChange={(e) => handleStateTransitionInputChange(index, 'nextState', e.target.value)} /></td>
-                    <td><input type="text" onChange={(e) => handleStateTransitionInputChange(index, 'outputZ', e.target.value)} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {isStateTransitionTableExpanded && (
-            <button 
-                className={`generate-btn ${isStateTransitionTableFilled ? '' : 'disabled'}`} 
-                onClick={validateStateTransitionTable} 
-                disabled={!isStateTransitionTableFilled}>
-              Next
-            </button>
-          )}
-        </div>
-  
-        {/* State Diagram Section */}
-        <div className={`table-container ${isGenerated ? 'expanded' : ''}`}>
-          <h2>State Diagram</h2>
-          {!isGenerated ? (
-            <div className="placeholder">State Diagram</div>
-          ) : (
-            <div className="state-diagram">
-              {/* State diagram content will go here later */}
-            </div>
-          )}
-        </div>
-      </div>
+    // Initialize user inputs
+    setUserExcitationInputs(
+      newExcitationTable.map((row) => ({
+        ...row,
+        flipFlopInputs: Object.keys(row.flipFlopInputs).reduce((acc, key) => {
+          acc[key] = { value: "", status: "editable" }; // Initialize as editable
+          return acc;
+        }, {}),
+      }))
     );
-  }
-  
-  export default CircuitToState;
 
+    setUserStateTransitionInputs(
+      newStateTransitionTable.map((row) => ({
+        ...row,
+        nextState: { value: "", status: "editable", editable: true },
+        output: { value: "", status: "editable", editable: true },
+      }))
+    );
+  };
 
+  // Compute the next state based on flip-flop type and inputs
+  const computeNextState = (flipFlopType, currentState, excitationAnswers, rowIndex, numFlipFlops) => {
+    const currentStateBits = currentState.split("");
+    const nextStateBits = [];
+
+    for (let i = 0; i < numFlipFlops; i++) {
+      const flipFlopKey =
+        flipFlopType === "JK"
+          ? [`J${i + 1}_input`, `K${i + 1}_input`]
+          : `${flipFlopType}${i + 1}_input`;
+
+      if (flipFlopType === "D") {
+        nextStateBits.push(excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0");
+      } else if (flipFlopType === "T") {
+        const toggle = excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0";
+        nextStateBits.push(toggle === "1" ? (currentStateBits[i] === "1" ? "0" : "1") : currentStateBits[i]);
+      } else if (flipFlopType === "JK") {
+        const [jKey, kKey] = flipFlopKey;
+        const j = excitationAnswers[jKey]?.includes(rowIndex) ? "1" : "0";
+        const k = excitationAnswers[kKey]?.includes(rowIndex) ? "1" : "0";
+        if (j === "0" && k === "0") nextStateBits.push(currentStateBits[i]);
+        if (j === "0" && k === "1") nextStateBits.push("0");
+        if (j === "1" && k === "0") nextStateBits.push("1");
+        if (j === "1" && k === "1") nextStateBits.push(currentStateBits[i] === "1" ? "0" : "1");
+      }
+    }
+    return nextStateBits.join("");
+  };
+
+   // Handle user input change
+   const handleExcitationInputChange = (rowIndex, flipFlop, value) => {
+    if (value === "" || value === "0" || value === "1") {
+      // Allow only binary values or empty input (for backspace)
+      setUserExcitationInputs((prevInputs) => {
+        const updatedInputs = [...prevInputs];
+        updatedInputs[rowIndex].flipFlopInputs[flipFlop].value = value;
+        return updatedInputs;
+      });
+    } else {
+      // Alert on invalid input
+      alert("Flip-Flop inputs must be single binary values (0 or 1) only.");
+    }
+  };
+
+  // Handle user input change in state transition table
+  const handleStateTransitionInputChange = (rowIndex, column, value) => {
+    const { numFlipFlops } = generateState;
+
+    if (column === "nextState") {
+      // Allow typing progressively valid binary values
+      const isValidNextState = new RegExp(`^[01]{0,${numFlipFlops}}$`).test(value);
+
+      if (isValidNextState) {
+        setUserStateTransitionInputs((prevInputs) => {
+          const updatedInputs = [...prevInputs];
+          updatedInputs[rowIndex][column].value = value;
+          return updatedInputs;
+        });
+      } else {
+        alert(`Next State must be a ${numFlipFlops}-bit binary number (0 and 1) only.`);
+      }
+    } else if (column === "output") {
+      // Allow only single binary digit for Output Z
+      const isValidOutput = /^[01]?$/.test(value);
+
+      if (isValidOutput) {
+        setUserStateTransitionInputs((prevInputs) => {
+          const updatedInputs = [...prevInputs];
+          updatedInputs[rowIndex][column].value = value;
+          return updatedInputs;
+        });
+      } else {
+        alert("Output Z must be single binary values (0 or 1) only.");
+      }
+    }
+  };
+
+  // Validate excitation inputs and reveal the state transition table if all are correct
+  const validateExcitationInputs = () => {
+    let allCorrect = true;
+
+    const updatedInputs = userExcitationInputs.map((row, index) => {
+      const updatedRow = { ...row };
+      Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
+        const correctExcitationValue =
+          hiddenExcitationCorrectAnswers[flipFlop]?.includes(index) ? "1" : "0";
+        if (row.flipFlopInputs[flipFlop].value === correctExcitationValue) {
+          updatedRow.flipFlopInputs[flipFlop] = {
+            value: correctExcitationValue,
+            status: "correct",
+          };
+        } else {
+            allCorrect = false;
+            updatedRow.flipFlopInputs[flipFlop] = {
+              value: row.flipFlopInputs[flipFlop].value,
+              status: "incorrect",
+            };
+          }
+      });
+      return updatedRow;
+    });
+    setUserExcitationInputs(updatedInputs);
+    setIsExcitationTableComplete(allCorrect);
+
+    if (allCorrect) {
+      setShowStateTransitionTable(true);
+      setExcitationSubheader(
+        'Completed!'
+      );
+      setStateTransitionSubheader(
+        'Complete the State Transition Table with only binary "0" and "1" values.'
+      );
+    }
+  };
+
+  // Validate user inputs in the state transition table
+  const validateStateTransitionInputs = () => {
+    let allCorrect = true;
+
+    const updatedInputs = userStateTransitionInputs.map((row, index) => {
+      const updatedRow = { ...row };
+
+      // Validate next state
+      const correctNextState = hiddenStateTransitionCorrectAnswers.nextState[index];
+      if (row.nextState.value === correctNextState) {
+        updatedRow.nextState = {
+          value: correctNextState,
+          status: "correct",
+          editable: false, 
+        };
+      } else {
+        allCorrect = false;
+        updatedRow.nextState = {
+          value: row.nextState.value,
+          status: "incorrect",
+          editable: true, 
+        };
+      }
+
+      // Validate output
+      const correctOutput = hiddenStateTransitionCorrectAnswers.output[index];
+      if (row.output.value === correctOutput) {
+        updatedRow.output = {
+          value: correctOutput,
+          status: "correct",
+          editable: false, 
+        };
+      } else {
+        allCorrect = false;
+        updatedRow.output = {
+          value: row.output.value,
+          status: "incorrect",
+          editable: true, 
+        };
+      }
+      return updatedRow;
+    });
+    setUserStateTransitionInputs(updatedInputs);
+    setIsStateTransitionTableComplete(allCorrect);
+
+    if (allCorrect) {
+      setStateTransitionSubheader(
+        'Completed!'
+      );
+    }
+  };
+
+  // Excitation Table Headers
+  const generateExcitationTableHeaders = () => {
+    const { flipFlopType, numFlipFlops, numInputs } = generateState;
+    const headers = [
+      <>
+        Current State<br />{Array.from({ length: numFlipFlops }, (_, i) => `Q${i + 1}`).join("")}
+      </>,
+      <>
+        Input<br />{Array.from({ length: numInputs }, (_, i) => `X${i + 1}`).join("")}
+      </>,
+    ];
+    for (let i = 1; i <= parseInt(numFlipFlops); i++) {
+      if (flipFlopType === "D" || flipFlopType === "T") {
+        headers.push(`${flipFlopType}${i}`);
+      } else if (flipFlopType === "JK") {
+        headers.push(`J${i}`, `K${i}`);
+      }
+    }
+    return headers;
+  };
+
+  // State Transition Table Headers
+  const generateStateTransitionTableHeaders = () => {
+    const { numFlipFlops, numInputs } = generateState;
+    const headers = [
+      <>
+      Current State<br />{Array.from({ length: numFlipFlops }, (_, i) => `Q${i + 1}`).join("")}
+      </>,
+      <>
+        Input<br />{Array.from({ length: numInputs }, (_, i) => `X${i + 1}`).join("")}
+      </>,
+      <>
+        Next State<br />{Array.from({ length: numFlipFlops }, (_, i) => `Q${i + 1}'`).join("")}
+      </>,
+      <>
+        Output<br />Z
+      </>,
+    ];
+    return headers;
+  };
+
+  // Render
+  return (
+    <div className="container">
+      {/* Header */}
+      <header>
+        <h1>
+          Circuit <FontAwesomeIcon icon={faArrowRight} /> State Diagram
+        </h1>
+      </header>
+
+      {/* Dropdowns */}
+      <div className="dropdown-container">
+        <select
+          value={dropdownState.numInputs}
+          onChange={(e) =>
+            handleDropdownChange("numInputs", e.target.value)
+          }
+        >
+          <option value="">Select Number of Inputs</option>
+          <option value="1">1 Input X1</option>
+          <option value="2">2 Inputs X1X2</option>
+        </select>
+      
+        <select
+          value={dropdownState.flipFlopType}
+          onChange={(e) =>
+            handleDropdownChange("flipFlopType", e.target.value)
+          }
+        >
+          <option value="">Select Flip-Flop Type</option>
+          <option value="D">D Flip-Flop</option>
+          <option value="T">T Flip-Flop</option>
+          <option value="JK">JK Flip-Flop</option>
+        </select>
+      
+        <select
+          value={dropdownState.numFlipFlops}
+          onChange={(e) =>
+            handleDropdownChange("numFlipFlops", e.target.value)
+          }
+        >
+          <option value="">Select Number of Flip-Flops</option>
+          <option value="2">2 Flip-Flops</option>
+          <option value="3" disabled={dropdownState.numInputs === '2'}>3 Flip-Flops</option>
+        </select>
+
+        <select
+          value={dropdownState.fsmType}
+          onChange={(e) =>
+            handleDropdownChange("fsmType", e.target.value)
+          }
+        >
+          <option value="">Select FSM Type</option>
+          <option value="Mealy">Mealy</option>
+          <option value="Moore">Moore</option>
+        </select>
+
+        {/* Generate Button */}
+        <button 
+          className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
+          onClick={generateMinterms} 
+          disabled={!isFormComplete}
+        >
+          Generate Circuit & Minterms
+        </button>
+      </div>
+      
+      {/* Empty canvas until "Generate" is clicked */}
+      <CircuitDiagram 
+        numInputs={generateState.numInputs} 
+        flipFlopType={generateState.flipFlopType} 
+        numFlipFlops={generateState.numFlipFlops} 
+        fsmType={generateState.fsmType}
+        isGenerated={isGenerated}
+      />
+
+      {/* Display Generated Minterms */}
+      {isGenerated && (
+        <div className="minterms-section">
+          {/*<h3><strong>Generated Minterms</strong></h3>*/}
+          <p>
+            {minterms.map(
+              ({ flipFlop, minterms }) => (
+                <span key={flipFlop}>
+                  <strong>{flipFlop} = </strong>∑m({minterms.join(",")})
+                </span>
+              )
+            )
+            .reduce((prev, curr) => [prev, ", ", curr])}
+          </p>
+          <p><strong>Z = </strong>{mintermOutputZ}</p>
+        </div>
+      )}
+
+      {/* Display User Selections */}
+      {/*{generateState.numInputs && (
+        <div className="selection-display">
+          <p>
+            {generateState.numInputs} {generateState.numInputs === "1" ? "Input" : "Inputs"},{" "}
+            {generateState.flipFlopType} Flip-Flop,{" "}
+            {generateState.numFlipFlops} Flip-Flops,{" "}
+            {generateState.fsmType}
+          </p>
+        </div>
+      )}*/}
+
+      {/* Excitation Table Section */}
+      <div className={`content-box ${showExcitationTable ? "active" : ""}`}>
+        <h2>Excitation Table</h2>
+        <p>{excitationSubheader}</p>
+        {excitationTable.length > 0 && (
+          <div>
+            {showExcitationTable && (
+            <table border="1">
+              <thead>
+                <tr>
+                  {generateExcitationTableHeaders().map((header, index) => (
+                    <th key={index}>{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {userExcitationInputs.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td>{row.currentState}</td>
+                    <td>{row.input}</td>
+                    {Object.entries(row.flipFlopInputs).map(
+                      ([flipFlop, { value, status }], colIndex) => (
+                        <td key={colIndex}>
+                          <input
+                            type="text"
+                            value={value}
+                            onChange={(e) =>
+                              handleExcitationInputChange(rowIndex, flipFlop, e.target.value)
+                            }
+                            disabled={status === "correct"}
+                            className={
+                              status === "correct"
+                                ? "input-correct"
+                                : status === "incorrect"
+                                ? "input-incorrect"
+                                : "input-default"
+                            }
+                          />
+                        </td>
+                      )
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            )}
+            {!isExcitationTableComplete && (
+              <button
+                className={`next-btn ${isNextExcitationButtonEnabled ? '' : 'disabled'}`}
+                disabled={!isNextExcitationButtonEnabled}
+                onClick={validateExcitationInputs}
+              >
+                Next
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* State Transition Table */}
+      <div className={`content-box ${showStateTransitionTable ? "active" : ""}`}>
+        <h2>State Transition Table</h2>
+        <p>{stateTransitionSubheader}</p>
+        {showStateTransitionTable && stateTransitionTable.length > 0 && (
+          <div>
+            <table border="1">
+              <thead>
+                <tr>
+                  {generateStateTransitionTableHeaders().map((header, index) => (
+                    <th key={index}>{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {userStateTransitionInputs.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    <td>{row.currentState}</td>
+                    <td>{row.input}</td>
+                    <td>
+                      <input
+                        type="text"
+                        value={row.nextState.value}
+                        onChange={(e) =>
+                          row.nextState.editable &&
+                          handleStateTransitionInputChange(rowIndex, "nextState", e.target.value)
+                        }
+                        disabled={!row.nextState.editable}
+                        className={
+                          row.nextState.status === "correct"
+                            ? "input-correct"
+                            : row.nextState.status === "incorrect"
+                            ? "input-incorrect"
+                            : "input-default"
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={row.output.value}
+                        onChange={(e) =>
+                          row.output.editable &&
+                          handleStateTransitionInputChange(rowIndex, "output", e.target.value)
+                        }
+                        disabled={!row.output.editable}
+                        className={
+                          row.output.status === "correct"
+                            ? "input-correct"
+                            : row.output.status === "incorrect"
+                            ? "input-incorrect"
+                            : "input-default"
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!isStateTransitionTableComplete && (
+              <button
+                className={`next-btn ${isGenerateStateDiagramButtonEnabled ? '' : 'disabled'}`}
+                disabled={!isGenerateStateDiagramButtonEnabled}
+                onClick={validateStateTransitionInputs}
+              >
+                Generate State Diagram
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CircuitToState;

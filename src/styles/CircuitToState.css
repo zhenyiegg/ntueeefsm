@@ -1,21 +1,30 @@
 /* CircuitToState.css */
-.circuit-to-state header h1 {
-  color: #333;
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh; 
   text-align: center;
 }
 
-/* Default layout: dropdowns are arranged horizontally */
-.dropdown-container {
-  display: flex;
-  justify-content: center;
-  margin: 20px;
+.container header {
+  margin-top: 20px;
 }
 
+.container header h1 {
+  color: #333;
+}
+
+.dropdown-container {
+  display: flex;
+  margin: 0 20px 20px 20px;
+}   
+
 select {
-  margin: 0 10px;
+  margin: 0 10px 0 0;
   padding: 10px;
   font-size: 16px;
-  border: 1px solid #b084cc;
+  border: 1.5px solid #b084cc;
   border-radius: 5px;
   cursor: pointer;
   color: #333;
@@ -25,12 +34,10 @@ select:focus {
   outline: 1px solid #b084cc;
 }
 
-/* Generate Button */
 .generate-btn {
-  display: block;
-  margin: 0 10px;
+  margin: 0;
   padding: 10px 20px;
-  font-size: 18px;
+  font-size: 16px;
   background-color: #5e3b8f; 
   color: white;
   border: none;
@@ -38,147 +45,142 @@ select:focus {
   cursor: pointer;
 }
 
+.generate-btn:hover {
+  background-color: #452276;
+}
+
 .generate-btn.disabled {
-  background-color: #888;
+  background-color: #aaa;
   cursor: not-allowed;
 }
 
-/* Canvas Section */
-.canvas-container {
-width: 80%; 
-margin: 20px auto;
-display: flex;
-flex-direction: column;
-align-items: center;
-}
-
-/* Ensure the canvas itself takes up the correct width */
-canvas { 
-max-width: 1200px; 
-background-color: white;
-border: 3px solid #b084cc; 
-border-radius: 12px;
-}
-
-/* Bottom bar styling */
-.selection-bar {
-  display: flex;
-  margin: auto;
-  justify-content: space-evenly;
-  align-items: center;
+.selection-display {
   background-color: #5e3b8f; 
-  padding: 10px;
-  margin-top: 0;
-  /*border-radius: 8px;*/
-  width: 60%;
+  border: 1px solid #ddd; 
+  padding: 0 20px;
+  margin-bottom: 20PX;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 16px;
+  color: #fff;
 }
 
-.selection-bar span {
-  margin: 0 10px;
-  color: #fff; /* Dark grey text */
-  font-size: 18px;
+.canvas-container {
+  width: 80%; 
+  margin-bottom: 20px;
 }
 
-/* For the rectangular sections (before expansion) */
-.table-container {
-  width: 60%;
-  margin: 20px auto;
-  background-color: #ffffff; 
+canvas { 
+  max-width: 1200px; 
   padding: 20px;
+  background-color: white;
+  border: 3px solid #b084cc; 
+  border-radius: 12px;
+}
+
+.minterms-section {
+  text-align: left;
+  margin: 0 auto;
+  padding: 0 60px 10px 60px;
+  color: #333;
+}
+
+.minterms-section h3 {
+  text-align: center;
+}
+
+.content-box {
+  border: 1px solid black;
+  padding: 10px 20px;
+  margin: 0 0 20px 0;
+  width: 65%;
+  background-color: #ffffff;
   border-radius: 10px;
   border: 2px solid #f9eeff;
+  /*max-width: 600px; */
   text-align: center;
-  color: #aaa;
-  /*transition: background-color 0.3s ease, color 0.3s ease;*/
-  transition: color 0.3s ease;;
 }
 
-.placeholder {
-  font-size: 20px;
-  color: #aaa; /* Lighter grey text */
-  transition: color 0.3s ease;
+.content-box h2, .content-box p {
+  color: #aaa; 
 }
 
-.table-container.excitation.expanded, .table-container.stateTransition.expanded {
-  color: #333; /* Darker grey text when expanded */
+.content-box.active h2, .content-box.active p {
+  color: #333;
 }
 
-/* Table Styles */
+.next-btn {
+  margin: 20px;
+  padding: 10px 16px;
+  font-size: 16px;
+  background-color: #5e3b8f; 
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.next-btn:hover {
+  background-color: #452276;
+}
+
+.next-btn.disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
 }
 
-th, td {
+table th {
+  background-color: #b084cc; 
+  color: #fff;
+}
+
+table th, table td {
   border: 1px solid #5e3b8f;
-  padding: 8px;
+  padding: 4px;
   text-align: center;
 }
 
-th {
-  background-color: #b084cc; 
-  color: white;
-}
-
-td input {
+table td input {
   width: 100%;
-  padding: 5px;
+  padding: 4px;
   box-sizing: border-box;
   text-align: center;
 }
 
-/* Styles for incorrect cells with a light red background */
-.error-incorrect { 
-background-color: #f8d7da;  
-border: 1px solid #f5c6cb;  
-border-radius: 2px;
-color: #721c24;             
+.input-correct {
+  background-color: #befcbe;
 }
 
-/* Shake animation for error-invalid feedback */ 
-@keyframes shake {
-0% { transform: translateX(0); }
-25% { transform: translateX(-5px); }
-50% { transform: translateX(5px); }
-75% { transform: translateX(-5px); }
-100% { transform: translateX(0); }
+.input-incorrect {
+  background-color: #ffa5a5;
 }
 
-/* Apply the shake effect to invalid input fields */
-.error-invalid {
-animation: shake 0.5s;
+.input-default {
+  background-color: #fff;
 }
 
-
-.minterms-display {
-margin: 20px auto;
-width: 80%;
-background-color: #ecd4f8;
-padding: 10px;
-text-align: center;
-border-radius: 8px;
-font-size: 18px;
-color: #333;
-}
-
-/* Responsive layout: arrange dropdowns vertically when the browser width is reduced */
+/* Responsive layout */
 @media (max-width: 900px) {
-.dropdown-container {
-  flex-direction: column;
-  align-items: center;
-}
+  .dropdown-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  select {
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  
+  .canvas-container {
+    width: 80%; 
+  }
 
-select {
-  margin: 10px 0; /* Add vertical spacing between dropdowns */
-  width: 80%;
+  .content-box {
+      width: 80%;
+  }
 }
-
-#circuit-canvas {
-  width: 100%; 
-}
-.table-container {
-  width: 75%;
-}
-}
-
-
