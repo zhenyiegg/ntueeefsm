@@ -2,7 +2,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import './styles/App.css'; // Navbar and basic styles
-import CircuitToState from './routes/CircuitToState'; // Import the Circuit to State page
+import CircuitToState from './routes/CircuitToState'; 
+import StateToCircuit from './routes/StateToCircuit';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; // FontAwesome Arrow
@@ -23,7 +24,7 @@ function App() {
       {/* Routes */}
       <Routes>
         <Route path="/circuit-to-state" element={<CircuitToState />} />
-        
+        <Route path="/state-to-circuit" element={<StateToCircuit />} />
       </Routes>
     </Router>
   );
