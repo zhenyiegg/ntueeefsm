@@ -14,7 +14,7 @@ const StateDiagram = ({
     onDiagramGenerated,
 }) => {
     const paperRef = useRef(null);
-    const paperInstance = useRef(null); // Ref to hold the paper instance
+    const paperInstance = useRef(null);
 
     const [selectedTransition, setSelectedTransition] = useState(null);
 
@@ -28,93 +28,118 @@ const StateDiagram = ({
     // Ref to handle the tooltip timeout
     const tooltipTimeout = useRef(null);
 
-    // Define getLoopVertices here, at the top level
-    const getLoopVertices = useCallback((state, stateNumber) => {
-        const loopOffset = 120; // Adjusted to ensure loops are drawn further from the state
-        switch (stateNumber) {
-            case 0:
-                return [
-                    {
-                        x: state.position().x + loopOffset + 60,
-                        y: state.position().y,
-                    },
-                    {
-                        x: state.position().x + loopOffset + 30,
-                        y: state.position().y + loopOffset,
-                    },
-                ];
-            case 3:
-            case 6:
-                // S3, S6: Loop on the bottom side
-                return [
-                    {
-                        x: state.position().x,
-                        y: state.position().y + loopOffset,
-                    },
-                    {
-                        x: state.position().x + loopOffset - 50,
-                        y: state.position().y + loopOffset + 30,
-                    },
-                ];
-            case 1:
-            case 4:
-                // S1, S4: Loop on the left side
-                return [
-                    {
-                        x: state.position().x - loopOffset,
-                        y: state.position().y,
-                    },
-                    {
-                        x: state.position().x - loopOffset - 30,
-                        y: state.position().y + loopOffset,
-                    },
-                ];
-            case 7:
-                // S7: Loop on the top side
-                return [
-                    {
-                        x: state.position().x,
-                        y: state.position().y - loopOffset,
-                    },
-                    {
-                        x: state.position().x + loopOffset,
-                        y: state.position().y - loopOffset - 30,
-                    },
-                ];
-            case 2:
-                return [
-                    {
-                        x: state.position().x,
-                        y: state.position().y - loopOffset + 30,
-                    },
-                    {
-                        x: state.position().x + loopOffset - 40,
-                        y: state.position().y - loopOffset,
-                    },
-                ];
-            case 5:
-                // S5: Loop on the right side
-                return [
-                    {
-                        x: state.position().x + loopOffset,
-                        y: state.position().y,
-                    },
-                    {
-                        x: state.position().x + loopOffset + 30,
-                        y: state.position().y - loopOffset,
-                    },
-                ];
-            default:
-                return [];
-        }
-    }, []);
+    // Define getLoopVertices with adaptive offsets
+    const getLoopVertices = useCallback(
+        (state, stateNumber, transitionIndex = 0, totalTransitions = 1) => {
+            const baseLoopOffset = 120; // Base offset for loops
+            const loopOffsetFactor = 20; // Factor to adjust the loop offset
+            const loopOffset =
+                baseLoopOffset +
+                (transitionIndex - (totalTransitions - 1) / 2) *
+                    loopOffsetFactor;
+
+            switch (stateNumber) {
+                case 0:
+                    return [
+                        {
+                            x: state.position().x + loopOffset + 100,
+                            y: state.position().y,
+                        },
+                        {
+                            x: state.position().x + loopOffset + 50,
+                            y: state.position().y + loopOffset,
+                        },
+                    ];
+                case 3:
+                    return [
+                        {
+                            x: state.position().x + loopOffset + 100,
+                            y: state.position().y + 100,
+                        },
+                        {
+                            x: state.position().x + loopOffset + 50,
+                            y: state.position().y + loopOffset + 100,
+                        },
+                    ];
+                case 6:
+                    return [
+                        {
+                            x: state.position().x + 100,
+                            y: state.position().y + loopOffset + 50,
+                        },
+                        {
+                            x: state.position().x - loopOffset + 100,
+                            y: state.position().y + loopOffset + 50,
+                        },
+                    ];
+                case 1:
+                    return [
+                        {
+                            x: state.position().x + 20,
+                            y: state.position().y + loopOffset + 50,
+                        },
+                        {
+                            x: state.position().x - loopOffset,
+                            y: state.position().y + loopOffset - 50,
+                        },
+                    ];
+                case 4:
+                    return [
+                        {
+                            x: state.position().x - loopOffset,
+                            y: state.position().y,
+                        },
+                        {
+                            x: state.position().x - loopOffset,
+                            y: state.position().y - loopOffset,
+                        },
+                    ];
+                case 7:
+                    return [
+                        {
+                            x: state.position().x,
+                            y: state.position().y - loopOffset,
+                        },
+                        {
+                            x: state.position().x + loopOffset,
+                            y: state.position().y - loopOffset,
+                        },
+                    ];
+                case 2:
+                    return [
+                        {
+                            x: state.position().x - 50,
+                            y: state.position().y - loopOffset + 50,
+                        },
+                        {
+                            x: state.position().x + loopOffset,
+                            y: state.position().y - loopOffset + 50,
+                        },
+                    ];
+                case 5:
+                    return [
+                        {
+                            x: state.position().x + loopOffset + 50,
+                            y: state.position().y,
+                        },
+                        {
+                            x: state.position().x + loopOffset + 50,
+                            y: state.position().y + loopOffset,
+                        },
+                    ];
+                default:
+                    return [];
+            }
+        },
+        []
+    );
 
     useEffect(() => {
         if (shouldGenerate && numStates && numInputs && paperRef.current) {
             const graph = new dia.Graph();
 
-            const paperWidth = 1200;
-            const paperHeight = 1000;
+            const paperWidth = 1400;
+            const paperHeight = 1200;
 
             paperInstance.current = new dia.Paper({
                 el: paperRef.current,
@@ -128,42 +153,53 @@ const StateDiagram = ({
 
             const TOTAL_STATES = 8; // Always create 8 states
             const states = [];
-            const centerX = paperWidth / 2;
-            const centerY = paperHeight / 2;
+
             const radius = Math.min(paperWidth, paperHeight) / 2 - 120;
 
-            const stateOrder = [0, 3, 6, 1, 4, 7, 2, 5]; // Custom arrangement order
+            const centerX = paperWidth / 2;
+            const centerY = paperHeight / 2;
+
+            const stateOrder = [0, 3, 6, 1, 4, 7, 2, 5];
 
             // State creation and placement
             for (let i = 0; i < TOTAL_STATES; i++) {
                 const stateNumber = stateOrder[i];
-                const stateId = `S${stateNumber}`; // Assign labeled IDs based on stateOrder
+                const stateId = `S${stateNumber}`;
 
-                const angle = ((2 * Math.PI) / TOTAL_STATES) * i;
+                const angle =
+                    ((2 * Math.PI) / Math.max(numStates, TOTAL_STATES)) * i; // [Modified]
                 const x = centerX + radius * Math.cos(angle);
                 const y = centerY + radius * Math.sin(angle);
 
                 const state = new shapes.standard.Circle();
                 state.position(x, y);
-                state.resize(100, 100);
+                state.resize(120, 120);
 
                 // Determine if the state is active or inactive
                 const isActive = stateNumber < numStates;
 
                 // Assign the unique stateId to the element's data
                 state.set("stateId", stateId);
-                state.set("stateNumber", stateNumber); // Store stateNumber for easy access
+                state.set("stateNumber", stateNumber);
+
+                // Adjust font size
+                const minFontSize = 12; // [Modified]
+                const maxFontSize = 16; // [Modified]
+                const fontSize =
+                    maxFontSize - (numStates - 3) > minFontSize // [Modified]
+                        ? maxFontSize - (numStates - 3)
+                        : minFontSize;
 
                 state.attr({
                     body: {
-                        fill: isActive ? "#6FC3DF" : "#CCCCCC", // Active: blue, Inactive: gray
-                        opacity: isActive ? 1 : 0.1, // Fully opaque for active states, transparent for inactive
+                        fill: isActive ? "#6FC3DF" : "#CCCCCC",
+                        opacity: isActive ? 1 : 0.1,
                         "pointer-events": isActive ? "visiblePainted" : "none",
                     },
                     label: {
-                        text: isActive ? `${stateId}` : "", // Display the stateId as the label
+                        text: isActive ? `${stateId}` : "",
                         fill: isActive ? "white" : "#666666",
-                        fontSize: 16,
+                        fontSize: fontSize, // [Modified]
                     },
                 });
 
@@ -171,9 +207,9 @@ const StateDiagram = ({
                 if (diagramType === "Moore" && isActive) {
                     state.attr({
                         label: {
-                            text: `${stateId}\nOut=${stateNumber % 2}`, // Moore output based on state number
+                            text: `${stateId}\nOut=${stateNumber % 2}`,
                             fill: "white",
-                            fontSize: 16,
+                            fontSize: fontSize, // [Modified]
                         },
                     });
                 }
@@ -198,26 +234,25 @@ const StateDiagram = ({
                 let nextStateNumber;
                 switch (flipFlopType) {
                     case "D":
-                        nextStateNumber = inputValue; // D Flip-Flop directly follows the input
+                        nextStateNumber = inputValue;
                         break;
                     case "T":
                         nextStateNumber =
-                            currentStateNumber === inputValue ? 0 : 1; // T Flip-Flop toggles if input is 1
+                            currentStateNumber === inputValue ? 0 : 1;
                         break;
                     case "JK":
                         if (inputValue === 0)
-                            nextStateNumber = currentStateNumber; // No change
-                        else nextStateNumber = currentStateNumber === 1 ? 0 : 1; // Toggle state
+                            nextStateNumber = currentStateNumber;
+                        else nextStateNumber = currentStateNumber === 1 ? 0 : 1;
                         break;
                     default:
                         nextStateNumber = inputValue;
                         break;
                 }
-                return nextStateNumber % numStates; // Ensure the next state is within active states
+                return nextStateNumber % numStates;
             };
 
-            const transitionsBetweenStates = {};
-            const totalTransitionsBetweenStates = {};
+            const transitionDataList = [];
 
             activeStates.forEach((state) => {
                 const currentStateNumber = state.get("stateNumber");
@@ -225,7 +260,7 @@ const StateDiagram = ({
                     currentStateNumber,
                     numStates
                 );
-                const currentStateId = state.get("stateId"); // e.g., 'S0', 'S1', 'S2'
+                const currentStateId = state.get("stateId");
 
                 for (let j = 0; j < Math.pow(2, numInputs); j++) {
                     const binaryInput = j.toString(2).padStart(numInputs, "0");
@@ -241,7 +276,7 @@ const StateDiagram = ({
                         (s) => s.get("stateNumber") === nextStateNumber
                     );
 
-                    if (!nextState) continue; // Skip if the next state is not active
+                    if (!nextState) continue;
 
                     const nextStateId = nextState.get("stateId");
                     const nextStateEncoding = getStateEncoding(
@@ -252,98 +287,118 @@ const StateDiagram = ({
                     const outputValue =
                         diagramType === "Mealy"
                             ? nextStateNumber
-                            : currentStateNumber % 2; // Moore output based on current state
+                            : currentStateNumber % 2;
 
-                    // Convert output to binary if it's 2 or higher
                     const output =
                         outputValue >= 2
                             ? outputValue.toString(2)
                             : `${outputValue}`;
 
-                    const transitionKey = `${currentStateId}->${nextStateId}`;
-                    const transitionPairKey = [currentStateId, nextStateId]
-                        .sort()
-                        .join("-");
-
-                    // Initialize or increment the total count of transitions between the states
-                    if (!totalTransitionsBetweenStates[transitionPairKey]) {
-                        totalTransitionsBetweenStates[transitionPairKey] = 0;
-                    }
-                    totalTransitionsBetweenStates[transitionPairKey]++;
-
-                    // Assign an index to the current transition
-                    if (!transitionsBetweenStates[transitionKey]) {
-                        transitionsBetweenStates[transitionKey] = [];
-                    }
-                    transitionsBetweenStates[transitionKey].push({
+                    // Store transition data for later processing
+                    const transitionData = {
+                        fromState: currentStateId,
+                        toState: nextStateId,
                         input: binaryInput,
-                        output,
-                        index: totalTransitionsBetweenStates[transitionPairKey], // 1-based index
-                    });
+                        output: output,
+                        fromStateNumber: currentStateNumber,
+                        toStateNumber: nextStateNumber,
+                    };
 
-                    const transitionIndex =
-                        transitionsBetweenStates[transitionKey].length;
-                    const totalTransitions =
-                        totalTransitionsBetweenStates[transitionPairKey];
+                    transitionDataList.push(transitionData);
+
+                    // Populate transition table
+                    newTransitionTable.push({
+                        presentState: `${currentStateId} (${stateEncoding})`,
+                        input: binaryInput,
+                        nextState: `${nextStateId} (${nextStateEncoding})`,
+                        output,
+                    });
+                }
+            });
+
+            // Process transitions to adjust curvature
+            const transitionGroups = {};
+
+            transitionDataList.forEach((data) => {
+                const key = `${data.fromState}->${data.toState}`;
+                if (!transitionGroups[key]) {
+                    transitionGroups[key] = [];
+                }
+                transitionGroups[key].push(data);
+            });
+
+            Object.values(transitionGroups).forEach((group) => {
+                const totalTransitions = group.length;
+
+                group.forEach((transitionData, index) => {
+                    const { fromState, toState, input, output } =
+                        transitionData;
+
+                    const state = activeStates.find(
+                        (s) => s.get("stateId") === fromState
+                    );
+                    const nextState = activeStates.find(
+                        (s) => s.get("stateId") === toState
+                    );
 
                     // Create transition link
                     const transition = new shapes.standard.Link();
                     transition.source(state);
                     transition.target(nextState);
 
-                    // Adjust transition curvature
-                    if (currentStateId !== nextStateId) {
+                    if (fromState !== toState) {
+                        // Adjust curvature for transitions between different states
+                        const curvatureFactor =
+                            flipFlopType === "JK" || flipFlopType === "T"
+                                ? 40
+                                : 20;
+                        const transitionIndex = index;
+                        const curveOffset =
+                            (transitionIndex - (totalTransitions - 1) / 2) *
+                            curvatureFactor;
+
+                        const midPoint = {
+                            x:
+                                (state.position().x + nextState.position().x) /
+                                2,
+                            y:
+                                (state.position().y + nextState.position().y) /
+                                2,
+                        };
+
                         const dx = nextState.position().x - state.position().x;
                         const dy = nextState.position().y - state.position().y;
-                        const baseAngle = Math.atan2(dy, dx);
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const normal = {
+                            x: -dy / distance,
+                            y: dx / distance,
+                        };
 
-                        const angleIncrement =
-                            Math.PI / 1 / (totalTransitions - 1 || 1); // Adjust the denominator as needed
-                        const angleOffset =
-                            angleIncrement *
-                            (transitionIndex - 1 - (totalTransitions - 1) / 2);
-
-                        const radius = 100; // Adjust as needed for curvature
-                        const adjustedAngle =
-                            baseAngle + Math.PI / 2 + angleOffset;
-
-                        const midX =
-                            (state.position().x + nextState.position().x) / 2;
-                        const midY =
-                            (state.position().y + nextState.position().y) / 2;
-
-                        const offsetX = midX + radius * Math.cos(adjustedAngle);
-                        const offsetY = midY + radius * Math.sin(adjustedAngle);
+                        const offsetX = midPoint.x + normal.x * curveOffset;
+                        const offsetY = midPoint.y + normal.y * curveOffset;
 
                         transition.vertices([{ x: offsetX, y: offsetY }]);
                         transition.connector("smooth");
-
-                        // Log curvature adjustment details
-                        // console.log(
-                        //     `Creating transition from ${currentStateId} to ${nextStateId} with input ${binaryInput} and output ${output}. Angle offset: ${angleOffset}, Position offset: (${offsetX}, ${offsetY})`
-                        // );
                     } else {
-                        // Handle self-loop transitions
+                        // Adjust loop vertices for self-loops
+                        const transitionIndex = index;
                         const loopVertices = getLoopVertices(
                             state,
-                            currentStateNumber
+                            state.get("stateNumber"),
+                            transitionIndex,
+                            totalTransitions
                         );
                         transition.vertices(loopVertices);
                         transition.connector("smooth");
-
-                        // Log self-loop creation
-                        // console.log(
-                        //     `Creating self-loop on ${currentStateId} with input ${binaryInput} and output ${output}`
-                        // );
                     }
 
                     // Add label to transition
                     transition.appendLabel({
                         attrs: {
                             text: {
-                                text: `${binaryInput}${
+                                text: `${input}${
                                     diagramType === "Mealy" ? `/${output}` : ""
-                                }`, // Only show output in Mealy machine
+                                }`,
                                 fill: "black",
                                 fontSize: 28,
                             },
@@ -358,22 +413,14 @@ const StateDiagram = ({
                     });
 
                     transition.set("transitionData", {
-                        fromState: currentStateId,
-                        toState: nextStateId,
-                        input: binaryInput,
-                        output: output,
+                        fromState,
+                        toState,
+                        input,
+                        output,
                     });
 
                     transition.addTo(graph);
-
-                    // Populate transition table
-                    newTransitionTable.push({
-                        presentState: `${currentStateId} (${stateEncoding})`,
-                        input: binaryInput,
-                        nextState: `${nextStateId} (${nextStateEncoding})`,
-                        output,
-                    });
-                }
+                });
             });
 
             onDiagramGenerated(newTransitionTable);
@@ -397,7 +444,7 @@ const StateDiagram = ({
                             position: {
                                 x: evt.clientX + 10,
                                 y: evt.clientY + 10,
-                            }, // Slight offset
+                            },
                         });
                         // Highlight the transition arrow in green
                         linkView.model.attr({
@@ -407,7 +454,7 @@ const StateDiagram = ({
                             },
                         });
                     }
-                }, 300); // 0.3 seconds delay
+                }, 300);
             });
 
             paperInstance.current.on("link:mouseleave", (linkView) => {
@@ -422,7 +469,7 @@ const StateDiagram = ({
                 // Remove the highlight by resetting to original styles
                 linkView.model.attr({
                     line: {
-                        stroke: "#000000", // Replace with your original stroke color if different
+                        stroke: "#000000",
                         "stroke-width": 2,
                     },
                 });
@@ -432,16 +479,68 @@ const StateDiagram = ({
             const fitToContent = () => {
                 if (paperInstance.current) {
                     paperInstance.current.scaleContentToFit({
-                        minScaleX: 0.5,
-                        minScaleY: 0.5,
-                        maxScaleX: 1.0,
-                        maxScaleY: 1.0,
-                        padding: 50,
+                        minScaleX: 0.3,
+                        minScaleY: 0.3,
+                        maxScaleX: 0.7,
+                        maxScaleY: 0.7,
+                        padding: 100,
                     });
+
+                    // Apply centering adjustment only for D and T flip-flops
+                    if (flipFlopType === "D" || flipFlopType === "T") {
+                        // Center the content manually
+                        const paperWidth = paperInstance.current.options.width;
+                        const paperHeight =
+                            paperInstance.current.options.height;
+                        const contentBBox =
+                            paperInstance.current.getContentBBox();
+                        const contentCenterX =
+                            contentBBox.x + contentBBox.width / 2;
+                        const contentCenterY =
+                            contentBBox.y + contentBBox.height / 2;
+
+                        const paperCenterX = paperWidth / 2;
+                        const paperCenterY = paperHeight / 2;
+
+                        // Add offsets to deltaX and deltaY
+                        const offsetX = -135; // Positive value moves diagram right
+                        const offsetY = -20; // Negative value moves diagram up
+
+                        const deltaX = paperCenterX - contentCenterX + offsetX;
+                        const deltaY = paperCenterY - contentCenterY + offsetY;
+
+                        paperInstance.current.translate(deltaX, deltaY);
+                    }
+
+                    // Apply centering adjustment only for D and T flip-flops
+                    if (flipFlopType === "JK") {
+                        // Center the content manually
+                        const paperWidth = paperInstance.current.options.width;
+                        const paperHeight =
+                            paperInstance.current.options.height;
+                        const contentBBox =
+                            paperInstance.current.getContentBBox();
+                        const contentCenterX =
+                            contentBBox.x + contentBBox.width / 2;
+                        const contentCenterY =
+                            contentBBox.y + contentBBox.height / 2;
+
+                        const paperCenterX = paperWidth / 2;
+                        const paperCenterY = paperHeight / 2;
+
+                        // Add offsets to deltaX and deltaY
+                        const offsetX = -75; // Positive value moves diagram right
+                        const offsetY = 50; // Negative value moves diagram up
+
+                        const deltaX = paperCenterX - contentCenterX + offsetX;
+                        const deltaY = paperCenterY - contentCenterY + offsetY;
+
+                        paperInstance.current.translate(deltaX, deltaY);
+                    }
                 }
             };
 
-            fitToContent(); // Call initially to fit the content
+            fitToContent();
             window.addEventListener("resize", fitToContent);
 
             return () => {
