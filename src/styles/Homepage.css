@@ -1,0 +1,89 @@
+/* Container that was "min-h-screen flex flex-col items-center justify-center bg-[#e6e6e6] p-4 space-y-8" */
+.page-container {
+    min-height: 100vh;        /* equivalent to min-h-screen */
+    display: flex;            /* flex */
+    flex-direction: column;   /* flex-col */
+    align-items: center;      /* items-center */
+    justify-content: center;  /* justify-center */
+    background-color: #e6e6e6;/* bg-[#e6e6e6] */
+    padding: 1rem;            /* p-4 (1rem) */
+    gap: 2rem;                /* space-y-8 => vertical gap of ~2rem */
+  }
+  
+  /* Title container ("text-center space-y-2") */
+  .title-container {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* space-y-2 => 0.5rem */
+  }
+  
+  /* Main title ("text-4xl font-mono font-bold text-gray-800") */
+  .main-title {
+    font-size: 2.25rem;        /* ~text-4xl */
+    font-family: monospace;    /* font-mono */
+    font-weight: 700;          /* font-bold */
+    color: #1F2937;            /* text-gray-800 */
+    margin: 0;                 /* remove default h1 margin if desired */
+  }
+  
+  /* Subtitle ("text-2xl font-mono text-gray-700") */
+  .sub-title {
+    font-size: 1.5rem;         /* ~text-2xl */
+    font-family: monospace;    /* font-mono */
+    color: #374151;            /* text-gray-700 */
+    margin: 0;                 /* remove default h2 margin if desired */
+  }
+  
+  /* Divider container ("w-full max-w-md space-y-1") */
+  .divider-container {
+    width: 100%;            /* w-full */
+    max-width: 28rem;       /* max-w-md (~448px) */
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;           /* space-y-1 => 0.25rem */
+  }
+  
+  /* Divider line ("border-t border-gray-400") */
+  .divider {
+    border-top: 1px solid #9CA3AF; /* ~border-gray-400 */
+  }
+  
+  /* Buttons container ("flex flex-col sm:flex-row gap-4 w-full max-w-2xl justify-center items-center mt-16") */
+  .buttons-container {
+    display: flex;
+    flex-direction: column;     /* flex-col by default */
+    gap: 1rem;                  /* gap-4 => 1rem */
+    width: 100%;                /* w-full */
+    max-width: 42rem;           /* max-w-2xl (~672px) */
+    justify-content: center;    /* justify-center */
+    align-items: center;        /* items-center */
+    margin-top: 4rem;           /* mt-16 => 4rem */
+  }
+  
+  /* Switch to row layout on small screens (sm:flex-row) */
+  @media (min-width: 640px) {
+    .buttons-container {
+      flex-direction: row; /* sm:flex-row */
+    }
+  }
+  
+  /* Button styles ("w-48 h-12 rounded-full bg-gray-600 hover:bg-gray-700 text-white") */
+  .custom-button {
+    width: 12rem;               /* w-48 => 192px */
+    height: 3rem;               /* h-12 => 48px */
+    border-radius: 9999px;      /* rounded-full */
+    background-color: #4B5563;  /* bg-gray-600 */
+    color: #fff;                /* text-white */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s ease-in-out;
+  }
+  
+  .custom-button:hover {
+    background-color: #374151; /* hover:bg-gray-700 */
+  }
+  
