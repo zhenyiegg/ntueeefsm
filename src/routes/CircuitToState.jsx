@@ -1,6 +1,7 @@
 /* CircuitToState.jsx */
 import React, { useState, useEffect, useCallback } from "react";
 import CircuitDiagram from '../components/CircuitDiagram';
+import CTSConversion from '../components/CTSConversion'; 
 import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; // FontAwesome Arrow
@@ -27,6 +28,9 @@ const CircuitToState = () => {
   const [showStateTransitionTable, setShowStateTransitionTable] = useState(false);
   const [excitationSubheader, setExcitationSubheader] = useState("Exercise 1");
   const [stateTransitionSubheader, setStateTransitionSubheader] = useState("Exercise 2");
+  const [showStateDiagram, setShowStateDiagram] = useState(false);
+  const [popupMessage, setPopupMessage] = useState(null); 
+  const [showPopup, setShowPopup] = useState(false);
 
   // State for dropdown selections
   const [dropdownState, setDropdownState] = useState({
@@ -72,7 +76,6 @@ const CircuitToState = () => {
     setIsNextExcitationButtonEnabled(areAllExcitationInputsFilled());
   }, [areAllExcitationInputsFilled]);
 
-  // Update button state when user inputs change
   useEffect(() => {
     setisGenerateStateDiagramButtonEnabled(areAllStateTransitionInputsFilled());
   }, [areAllStateTransitionInputsFilled]);
@@ -96,6 +99,35 @@ const CircuitToState = () => {
     }
 
     setDropdownState(updatedState);
+  };
+
+  // Compute the next state based on flip-flop type and inputs
+  const computeNextState = (flipFlopType, currentState, excitationAnswers, rowIndex, numFlipFlops) => {
+    const currentStateBits = currentState.split("");
+    const nextStateBits = [];
+
+    for (let i = 0; i < numFlipFlops; i++) {
+      const flipFlopKey =
+        flipFlopType === "JK"
+          ? [`J${i + 1}_input`, `K${i + 1}_input`]
+          : `${flipFlopType}${i + 1}_input`;
+
+      if (flipFlopType === "D") {
+        nextStateBits.push(excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0");
+      } else if (flipFlopType === "T") {
+        const toggle = excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0";
+        nextStateBits.push(toggle === "1" ? (currentStateBits[i] === "1" ? "0" : "1") : currentStateBits[i]);
+      } else if (flipFlopType === "JK") {
+        const [jKey, kKey] = flipFlopKey;
+        const j = excitationAnswers[jKey]?.includes(rowIndex) ? "1" : "0";
+        const k = excitationAnswers[kKey]?.includes(rowIndex) ? "1" : "0";
+        if (j === "0" && k === "0") nextStateBits.push(currentStateBits[i]);
+        if (j === "0" && k === "1") nextStateBits.push("0");
+        if (j === "1" && k === "0") nextStateBits.push("1");
+        if (j === "1" && k === "1") nextStateBits.push(currentStateBits[i] === "1" ? "0" : "1");
+      }
+    }
+    return nextStateBits.join("");
   };
 
   // Helper: Generate binary states for the number of flip-flops or inputs
@@ -139,6 +171,7 @@ const CircuitToState = () => {
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
     setShowStateTransitionTable(false); 
+    setShowStateDiagram(false);
 
     setGenerateState({ ...dropdownState }); // Finalize the dropdown selections
     const { numInputs, flipFlopType, numFlipFlops } = dropdownState;
@@ -279,37 +312,19 @@ const CircuitToState = () => {
     );
   };
 
-  // Compute the next state based on flip-flop type and inputs
-  const computeNextState = (flipFlopType, currentState, excitationAnswers, rowIndex, numFlipFlops) => {
-    const currentStateBits = currentState.split("");
-    const nextStateBits = [];
-
-    for (let i = 0; i < numFlipFlops; i++) {
-      const flipFlopKey =
-        flipFlopType === "JK"
-          ? [`J${i + 1}_input`, `K${i + 1}_input`]
-          : `${flipFlopType}${i + 1}_input`;
-
-      if (flipFlopType === "D") {
-        nextStateBits.push(excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0");
-      } else if (flipFlopType === "T") {
-        const toggle = excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0";
-        nextStateBits.push(toggle === "1" ? (currentStateBits[i] === "1" ? "0" : "1") : currentStateBits[i]);
-      } else if (flipFlopType === "JK") {
-        const [jKey, kKey] = flipFlopKey;
-        const j = excitationAnswers[jKey]?.includes(rowIndex) ? "1" : "0";
-        const k = excitationAnswers[kKey]?.includes(rowIndex) ? "1" : "0";
-        if (j === "0" && k === "0") nextStateBits.push(currentStateBits[i]);
-        if (j === "0" && k === "1") nextStateBits.push("0");
-        if (j === "1" && k === "0") nextStateBits.push("1");
-        if (j === "1" && k === "1") nextStateBits.push(currentStateBits[i] === "1" ? "0" : "1");
-      }
-    }
-    return nextStateBits.join("");
+  // Helper to show the popup
+  const showPopupMessage = (message) => {
+    setPopupMessage(message);
+    setShowPopup(true);
   };
 
-   // Handle user input change
-   const handleExcitationInputChange = (rowIndex, flipFlop, value) => {
+  // Handle popup close
+  const handleClosePopup = () => {
+    setShowPopup(false);
+  };
+
+  // Handle user input change
+  const handleExcitationInputChange = (rowIndex, flipFlop, value) => {
     if (value === "" || value === "0" || value === "1") {
       // Allow only binary values or empty input (for backspace)
       setUserExcitationInputs((prevInputs) => {
@@ -319,7 +334,7 @@ const CircuitToState = () => {
       });
     } else {
       // Alert on invalid input
-      alert("Flip-Flop inputs must be single binary values (0 or 1) only.");
+      showPopupMessage("Flip-Flop inputs must be single binary values (0 or 1) only.");
     }
   };
 
@@ -338,7 +353,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        alert(`Next State must be a ${numFlipFlops}-bit binary number (0 and 1) only.`);
+        showPopupMessage(`Next State must be a ${numFlipFlops}-bit binary number (0 and 1) only.`);
       }
     } else if (column === "output") {
       // Allow only single binary digit for Output Z
@@ -351,12 +366,12 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        alert("Output Z must be single binary values (0 or 1) only.");
+        showPopupMessage("Output Z must be single binary values (0 or 1) only.");
       }
     }
   };
 
-  // Validate excitation inputs and reveal the state transition table if all are correct
+  // Validate excitation inputs and reveal state transition table if all are correct
   const validateExcitationInputs = () => {
     let allCorrect = true;
 
@@ -385,12 +400,8 @@ const CircuitToState = () => {
 
     if (allCorrect) {
       setShowStateTransitionTable(true);
-      setExcitationSubheader(
-        'Completed!'
-      );
-      setStateTransitionSubheader(
-        'Complete the State Transition Table with only binary "0" and "1" values.'
-      );
+      setExcitationSubheader('Completed!');
+      setStateTransitionSubheader('Complete the State Transition Table with only binary "0" and "1" values.');
     }
   };
 
@@ -440,9 +451,8 @@ const CircuitToState = () => {
     setIsStateTransitionTableComplete(allCorrect);
 
     if (allCorrect) {
-      setStateTransitionSubheader(
-        'Completed!'
-      );
+      setStateTransitionSubheader('Completed!');
+      setShowStateDiagram(true);
     }
   };
 
@@ -496,6 +506,18 @@ const CircuitToState = () => {
           Circuit <FontAwesomeIcon icon={faArrowRight} /> State Diagram
         </h1>
       </header>
+
+      {/* Popup */}
+      {showPopup && (
+        <div className="popup">
+          <div className="popup-content">
+            <button className="popup-close" onClick={handleClosePopup}>
+              &times;
+            </button>
+            <p>{popupMessage}</p>
+          </div>
+        </div>
+      )}
 
       {/* Dropdowns */}
       <div className="dropdown-container">
@@ -553,7 +575,7 @@ const CircuitToState = () => {
           Generate Circuit & Minterms
         </button>
       </div>
-      
+              
       {/* Empty canvas until "Generate" is clicked */}
       <CircuitDiagram 
         numInputs={generateState.numInputs} 
@@ -566,7 +588,6 @@ const CircuitToState = () => {
       {/* Display Generated Minterms */}
       {isGenerated && (
         <div className="minterms-section">
-          {/*<h3><strong>Generated Minterms</strong></h3>*/}
           <p>
             {minterms.map(
               ({ flipFlop, minterms }) => (
@@ -580,18 +601,6 @@ const CircuitToState = () => {
           <p><strong>Z = </strong>{mintermOutputZ}</p>
         </div>
       )}
-
-      {/* Display User Selections */}
-      {/*{generateState.numInputs && (
-        <div className="selection-display">
-          <p>
-            {generateState.numInputs} {generateState.numInputs === "1" ? "Input" : "Inputs"},{" "}
-            {generateState.flipFlopType} Flip-Flop,{" "}
-            {generateState.numFlipFlops} Flip-Flops,{" "}
-            {generateState.fsmType}
-          </p>
-        </div>
-      )}*/}
 
       {/* Excitation Table Section */}
       <div className={`content-box ${showExcitationTable ? "active" : ""}`}>
@@ -611,11 +620,11 @@ const CircuitToState = () => {
               <tbody>
                 {userExcitationInputs.map((row, rowIndex) => (
                   <tr key={rowIndex}>
-                    <td>{row.currentState}</td>
-                    <td>{row.input}</td>
+                    <td className="currentState-column">{row.currentState}</td>
+                    <td className="inputX-column">{row.input}</td>
                     {Object.entries(row.flipFlopInputs).map(
                       ([flipFlop, { value, status }], colIndex) => (
-                        <td key={colIndex}>
+                        <td key={colIndex} className="flipFlop-column">
                           <input
                             type="text"
                             value={value}
@@ -669,9 +678,9 @@ const CircuitToState = () => {
               <tbody>
                 {userStateTransitionInputs.map((row, rowIndex) => (
                   <tr key={rowIndex}>
-                    <td>{row.currentState}</td>
-                    <td>{row.input}</td>
-                    <td>
+                    <td className="currentState-column">{row.currentState}</td>
+                    <td className="inputX-column">{row.input}</td>
+                    <td className="nextState-column">
                       <input
                         type="text"
                         value={row.nextState.value}
@@ -689,7 +698,7 @@ const CircuitToState = () => {
                         }
                       />
                     </td>
-                    <td>
+                    <td className="outputZ-column">
                       <input
                         type="text"
                         value={row.output.value}
@@ -723,8 +732,30 @@ const CircuitToState = () => {
           </div>
         )}
       </div>
+
+      {/* State Diagram Section */}
+      <div className={`content-box stateDiagram-box ${showStateDiagram ? "active" : ""}`}>
+        <h2>State Diagram</h2>
+        {showStateDiagram ? (
+          <div className="state-diagram-placeholder">
+            {stateTransitionTable.length > 0 && (
+              <CTSConversion
+                stateTransitionTable={stateTransitionTable}
+                fsmType={generateState.fsmType}
+                numFlipFlops={parseInt(generateState.numFlipFlops)}
+                numInputs={parseInt(generateState.numInputs)}
+              />
+            )}
+          </div>
+        ) : (
+          <p>{generateState.fsmType} State Diagram</p>
+        )}
+      </div>
     </div>
   );
 };
 
 export default CircuitToState;
+
+
+
