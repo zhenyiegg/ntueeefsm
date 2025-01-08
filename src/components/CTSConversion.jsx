@@ -44,12 +44,20 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       outgoingTransitions[state] = 0;
     });
 
+    // Count incoming and outgoing transitions
     stateTransitionTable.forEach(row => {
       incomingTransitions[row.nextState] += 1;
       outgoingTransitions[row.currentState] += 1;
     });
 
+    // Define reset states explicitly
+    const resetStates = ["00", "000"]; 
+
     const unusedStates = states.filter(state => {
+      // Skip reset states from being considered unused
+      if (resetStates.includes(state)) {
+        return false;
+      }
       // Count incoming, outgoing transitions and detect self-loop
       let hasSelfLoop = false;
       let hasOutgoing = false;
@@ -97,7 +105,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         label: {
           text: `${state}${fsmType === "Moore" && uniqueOutputs.length > 0 ? `\nZ=${uniqueOutputs.join(",")}` : ""}`,
           fill: "black",
-          fontSize: 14,
+          fontSize: 16,
         },
       });
       circle.addTo(graph);
@@ -109,7 +117,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       ? `State${unusedStates.length > 1 ? "s" : ""} ${unusedStates.join(", ")} ${unusedStates.length > 1 ? "are" : "is"} unused state${unusedStates.length > 1 ? "s" : ""} because no other state transitions into ${unusedStates.length > 1 ? "them" : "it"}.`
       : "All states are reachable.";
 
-    setDiagramInfo(`${fsmType} State Diagram\n${states.length - unusedStates.length} active states, ${unusedStates.length} unused states\n${explanation}`);
+    setDiagramInfo(`${fsmType} State Diagram\nAssume State ${numFlipFlops === 2 ? "00" : "000"} is a reset state.\n${states.length - unusedStates.length} active states, ${unusedStates.length} unused states\n${explanation}`);
 
     // Add grouped transitions
     Object.entries(groupedTransitions).forEach(([key, transitions]) => {
@@ -194,7 +202,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             text: {
               text: labels,
               fill: "black",
-              fontSize: 12,
+              fontSize: 14,
               textAnchor: "middle", // Center the text horizontally
               yAlignment: "middle", // Center the text vertically
             },
@@ -225,7 +233,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       // Hover and click events handled through Paper
       paper.on("link:mouseenter", (linkView) => {
         if (linkView.model === link) {
-          linkView.model.attr("line/stroke", "purple");
+          linkView.model.attr("line/stroke", "#b084cc");
         }
       });
 
@@ -377,10 +385,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           <div className="popup-contentTransition">
             <button className="close-button" onClick={closePopup}>✖</button>
             <h3>State Transition</h3>
-            <p>
-              {popupData.from} ➔ {popupData.to}
-            </p>
-            <p>X: {popupData.transitions.map(t => t.input).join(", ")}</p>
+            <p>Q1{numFlipFlops === 2 ? "Q2" : "Q2Q3"} ➔ Q1'{numFlipFlops === 2 ? "Q2'" : "Q2'Q3'"}</p>
+            <p>{popupData.from} ➔ {popupData.to}</p>
+            <p>X{numInputs === 2 ? "1X2" : "1"}: {popupData.transitions.map(t => t.input).join(", ")}</p>
             <p>Z: {popupData.transitions.map(t => t.output).join(", ")}</p>
           </div>
         </div>
