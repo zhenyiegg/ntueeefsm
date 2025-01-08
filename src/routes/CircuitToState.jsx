@@ -160,8 +160,49 @@ const CircuitToState = () => {
     return shuffledMinterms.slice(0, limit).sort((a, b) => a - b);
   };
 
+  const generateRandomMintermsForFlipFlop = (
+    flipFlopName, state, targetStates, flipFlopType, minMinterms, maxMinterms, maxValue, numFlipFlops
+  ) => {
+    let minterms = generateUniqueMinterms(getRandomNumber(minMinterms, maxMinterms), maxValue);
+
+    // Ensure the first row does not result in all zeros
+    if ((numFlipFlops === "2" && state === "00") || (numFlipFlops === "3" && state === "000")) {
+      const resetStateIndex = parseInt(state, 2); // Current reset state
+      const otherStatesIndexes = targetStates.map((s) => parseInt(s, 2)); // Convert target states to indexes
+
+      // Ensure at least one outgoing transition exists
+      let outgoingTransitions = minterms.filter((minterm) => minterm !== resetStateIndex);
+
+      if (outgoingTransitions.length === 0) {
+        const validTarget = otherStatesIndexes.find((target) => !minterms.includes(target));
+        if (validTarget !== undefined) {
+          outgoingTransitions.push(validTarget); // Add one valid outgoing transition
+        }
+      }
+
+      // Remove the reset state from minterms for the first row
+      minterms = outgoingTransitions.filter((minterm) => minterm !== resetStateIndex);
+
+      // Add a valid non-zero state for the first row
+      if (minterms.length === 0) {
+        const validNonZeroState = otherStatesIndexes.find((state) => state !== resetStateIndex);
+        if (validNonZeroState !== undefined) {
+          minterms.push(validNonZeroState);
+        }
+      }
+    }
+
+    // Ensure minterms include the first minterm as 0
+    if (!minterms.includes(0)) {minterms.unshift(0);}
+
+    return minterms.slice(0, maxMinterms); // Ensure within max constraints
+    
+  };
+
   // Generate minterms, hidden correct answers and populate tables 
   const generateMinterms = () => {
+    const { numInputs, flipFlopType, numFlipFlops } = dropdownState;
+
     setShowExcitationTable(true); 
     setExcitationSubheader('Complete the Excitation Table with only binary "0" and "1" values.');
     setShowStateTransitionTable(false); 
@@ -174,16 +215,15 @@ const CircuitToState = () => {
     setShowStateDiagram(false);
 
     setGenerateState({ ...dropdownState }); // Finalize the dropdown selections
-    const { numInputs, flipFlopType, numFlipFlops } = dropdownState;
     let maxValue, minMinterms, maxMinterms;
 
     if (numFlipFlops === "2" && numInputs === "1") {
-      maxValue = 8; // 2 flip-flops, 1 input: valid minterms range from 0 to 7
+      maxValue = 8; // 0 to 7
       minMinterms = 2;
       maxMinterms = 4;
-    } else {
-      maxValue = 16; // 3 flip-flops or 2 inputs: valid minterms range from 0 to 15
-      minMinterms = 2;
+    } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
+      maxValue = 16; // 0 to 15
+      minMinterms = 4;
       maxMinterms = 8;
     }
 
@@ -193,35 +233,53 @@ const CircuitToState = () => {
     // Generate minterms for D or T Flip-Flops
     if (flipFlopType === "D" || flipFlopType === "T") {
       for (let i = 1; i <= parseInt(numFlipFlops); i++) {
-        const mintermsDT = generateUniqueMinterms(
-          getRandomNumber(minMinterms, maxMinterms),
-          maxValue
+        const mintermsDT = generateRandomMintermsForFlipFlop(
+          `${flipFlopType}${i}_input`,
+          "00",
+          numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
+          flipFlopType,
+          minMinterms,
+          maxMinterms,
+          maxValue,
+          numFlipFlops
         );
         generatedMinterms.push({
           flipFlop: `${flipFlopType}${i}_input`,
           minterms: mintermsDT,
         });
-        excitationCorrectAnswers[`${flipFlopType}${i}_input`] = mintermsDT; // Match the key
+        excitationCorrectAnswers[`${flipFlopType}${i}_input`] = mintermsDT;
       }
     }
 
     // Generate minterms for JK Flip-Flops
     if (flipFlopType === "JK") {
       for (let i = 1; i <= parseInt(numFlipFlops); i++) {
-        const mintermsJ = generateUniqueMinterms(
-          getRandomNumber(minMinterms, maxMinterms),
-          maxValue
+        const mintermsJ = generateRandomMintermsForFlipFlop(
+          `J${i}_input`,
+          "00",
+          numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
+          flipFlopType,
+          minMinterms,
+          maxMinterms,
+          maxValue,
+          numFlipFlops
         );
-        const mintermsK = generateUniqueMinterms(
-          getRandomNumber(minMinterms, maxMinterms),
-          maxValue
+        const mintermsK = generateRandomMintermsForFlipFlop(
+          `K${i}_input`,
+          "00",
+          numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
+          flipFlopType,
+          minMinterms,
+          maxMinterms,
+          maxValue,
+          numFlipFlops
         );
         generatedMinterms.push(
           { flipFlop: `J${i}_input`, minterms: mintermsJ },
           { flipFlop: `K${i}_input`, minterms: mintermsK }
         );
-        excitationCorrectAnswers[`J${i}_input`] = mintermsJ; // Match the key
-        excitationCorrectAnswers[`K${i}_input`] = mintermsK; // Match the key
+        excitationCorrectAnswers[`J${i}_input`] = mintermsJ;
+        excitationCorrectAnswers[`K${i}_input`] = mintermsK;
       }
     }
 
@@ -334,7 +392,7 @@ const CircuitToState = () => {
       });
     } else {
       // Alert on invalid input
-      showPopupMessage("Flip-Flop inputs must be single binary values (0 or 1) only.");
+      showPopupMessage("Flip-Flop inputs must be single binary values (0 as False and 1 as True).");
     }
   };
 
@@ -353,7 +411,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage(`Next State must be a ${numFlipFlops}-bit binary number (0 and 1) only.`);
+        showPopupMessage(`With ${numFlipFlops} flip-flops, the Next State must be a ${numFlipFlops}-bit binary number (0 and 1).`);
       }
     } else if (column === "output") {
       // Allow only single binary digit for Output Z
@@ -366,7 +424,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage("Output Z must be single binary values (0 or 1) only.");
+        showPopupMessage("With one output, Z must be a single binary value (0 or 1) only.");
       }
     }
   };
@@ -586,7 +644,29 @@ const CircuitToState = () => {
       />
 
       {/* Display Generated Minterms */}
-      {isGenerated && (
+      <div className="minterms-section">
+        {!isGenerated ? (
+          <h3 style = {{color: "#aaa"}}>Generated Minterms</h3>
+        ) : (
+          <>
+            <p>
+              {minterms.map(
+                ({ flipFlop, minterms }) => (
+                  <span key={flipFlop}>
+                    <strong>{flipFlop} = </strong>∑m({minterms.join(",")})
+                  </span>
+                )
+              )
+              .reduce((prev, curr) => [prev, ", ", curr])}
+            </p>
+            <p>
+              <strong>Z = </strong>{mintermOutputZ}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/*{isGenerated && (
         <div className="minterms-section">
           <p>
             {minterms.map(
@@ -600,7 +680,19 @@ const CircuitToState = () => {
           </p>
           <p><strong>Z = </strong>{mintermOutputZ}</p>
         </div>
-      )}
+      )}*/}
+ 
+      {/* Display User Selections */}
+      {/*{generateState.numInputs && (
+        <div className="selection-display">
+          <p>
+            {generateState.numInputs} {generateState.numInputs === "1" ? "Input" : "Inputs"},{" "}
+            {generateState.flipFlopType} Flip-Flop,{" "}
+            {generateState.numFlipFlops} Flip-Flops,{" "}
+            {generateState.fsmType}
+          </p>
+        </div>
+      )}*/}
 
       {/* Excitation Table Section */}
       <div className={`content-box ${showExcitationTable ? "active" : ""}`}>
