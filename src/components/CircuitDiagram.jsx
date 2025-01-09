@@ -10,138 +10,223 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
   useEffect(() => {
     // Define the p5 sketch
     const sketch = (p) => {
-      const boxWidth = 150;
+      const boxWidth = 145;
       const boxHeight = 60;
-      const startX = 230;
-      const startY = 80;
-      const flipFlopSpacing = 100;
+      const startX = 235;
+      const startY = 56;
+      const flipFlopSpacing = 140;
 
       p.setup = () => {
         // Attach the canvas to the existing canvas container
-        p.createCanvas(1200, 400).parent(canvasRef.current);
+        if (numFlipFlops === '3') {
+          p.createCanvas(1200, 530).parent(canvasRef.current);
+        } else {
+          p.createCanvas(1200, 400).parent(canvasRef.current);
+        }
         p.background(255); // White background
         p.strokeWeight(1.5);
 
         // Draw diagram only if `isGenerated` is true
         if (isGenerated) {
-          // State Logic Box
+          // Next State Logic Box
           p.fill(230, 230, 250); // Light purple
-          p.rect(startX, startY, boxWidth, boxHeight);
+
+          if (numFlipFlops === '2') {
+            p.rect(startX, startY, boxWidth, boxHeight + 200);
+          } else {
+            p.rect(startX, startY, boxWidth, boxHeight + 340);
+          }
+
           p.fill(0);
           p.textSize(16);
-          p.text('State Logic', startX + 30, startY + 35);
+          p.text('Next State Logic', startX + 15, startY + 100);
 
           // Draw Inputs (X1, X2)
           for (let i = 0; i < numInputs; i++) {
             if (i === 0) {
-              // X1 connects to the top half of State Logic
-              p.line(startX - 100, startY + boxHeight / 4, startX, startY + boxHeight / 4); // X1 line
-              p.text('X1', startX - 100, startY + boxHeight / 4 - 5); // Label for X1
+              // X1 connects to the Next State Logic
+              p.line(startX - 100, startY + boxHeight + 110, startX, startY + boxHeight + 110); 
+              p.text('X1', startX - 100, startY + boxHeight + 110 - 10); 
 
-              // Arrowhead for right-pointing arrow
-              const arrowX1 = startX - 10; // X-coordinate of arrow tip
-              const arrowY1 = startY + boxHeight / 4; // Y-coordinate
-              p.triangle(arrowX1, arrowY1 - 5, arrowX1, arrowY1 + 5, arrowX1 + 10, arrowY1); // Draw arrowhead
+              // Arrowhead X1
+              const arrowX1 = startX - 10; 
+              const arrowY1 = startY + boxHeight + 110; 
+              p.triangle(arrowX1, arrowY1 - 5, arrowX1, arrowY1 + 5, arrowX1 + 10, arrowY1); 
 
             } else if (i === 1) {
               // X2 connects to the bottom half of State Logic
-              p.line(startX - 100, startY + (3 * boxHeight) / 4, startX, startY + (3 * boxHeight) / 4); // X2 line
-              p.text('X2', startX - 100, startY + (3 * boxHeight) / 4 - 5); // Label for X2
+              p.line(startX - 100, startY + boxHeight + 160, startX, startY + boxHeight + 160);
+              p.text('X2', startX - 100, startY + boxHeight + 160 - 10); 
 
-              // Arrowhead for right-pointing arrow
+              // Arrowhead X2
               const arrowX2 = startX - 10; 
-              const arrowY2 = startY + (3 * boxHeight) / 4; 
+              const arrowY2 = startY + boxHeight + 160; 
               p.triangle(arrowX2, arrowY2 - 5, arrowX2, arrowY2 + 5, arrowX2 + 10, arrowY2); 
             }
           }
 
           // Draw Flip-Flops and connections
           for (let i = 0; i < numFlipFlops; i++) {
-            const flipFlopX = startX + 300;
+            const flipFlopX = startX + 320;
             const flipFlopY = startY + i * flipFlopSpacing;
+            const flipFlopWidth = boxWidth - 35;
+            const flipFlopHeight = boxHeight + 60;
+
+            const flipFlopLabelX = flipFlopX + 15;
+
+            const topLabelX = flipFlopX + 75;
+            const topLabelY = flipFlopY + 35;
+
+            const bottomLabelX = flipFlopX + 75;
+            const bottomLabelY = flipFlopY + 100;
 
             // Draw Flip-Flop Box
-            p.fill(230, 230, 250);
-            p.rect(flipFlopX, flipFlopY, boxWidth, boxHeight);
+            p.fill(214, 181, 235);
+            p.rect(flipFlopX, flipFlopY, flipFlopWidth, flipFlopHeight);
             p.fill(0);
-            p.text(`${flipFlopType} Flip-Flop`, flipFlopX + 32, flipFlopY + 35);
 
-            // JK Flip-Flop connections with two lines and individual labels
+            // JK Flip-Flop connections 
             if (flipFlopType === 'JK') {
-              // J input (top line)
-              p.line(startX + boxWidth, startY + 15, startX + boxWidth + 50, startY + 15); // Horizontal segment
-              p.line(startX + boxWidth + 50, startY + 20, startX + boxWidth + 50, flipFlopY + 20); // Vertical segment
-              p.line(startX + boxWidth + 50, flipFlopY + 15, flipFlopX, flipFlopY + 15); // Horizontal to connect to J
-              p.text(`J${i + 1}_input`, startX + boxWidth + 60, flipFlopY + 8); // Label for J input line
 
-              // Arrowhead for right-pointing arrow
-              const arrowXJ1 = flipFlopX - 10; 
-              const arrowYK1 = flipFlopY + 15; 
-              p.triangle(arrowXJ1, arrowYK1 - 5, arrowXJ1, arrowYK1 + 5, arrowXJ1 + 10, arrowYK1); 
+              p.text(`J`, flipFlopLabelX, topLabelY);
+              p.text(`K`, flipFlopLabelX, bottomLabelY);
+              p.text(`Q${i+1}`, topLabelX, topLabelY);
+              p.text(`Q${i+1}'`, bottomLabelX, bottomLabelY);
+
+              // J input (top line) 
+              p.line(flipFlopX, topLabelY - 6, startX + boxWidth, topLabelY - 6); 
+              p.text(`J${i + 1}`, startX + boxWidth + 10, flipFlopY + boxHeight / 2 - 10); 
+      
 
               // K input (bottom line)
-              p.line(startX + boxWidth, startY + 45, startX + boxWidth + 50, startY + 45); // Horizontal segment
-              p.line(startX + boxWidth + 50, startY + 15, startX + boxWidth + 50, flipFlopY + 45); // Vertical segment
-              p.line(startX + boxWidth + 50, flipFlopY + 45, flipFlopX, flipFlopY + 45); // Horizontal to connect to K
-              p.text(`K${i + 1}_input`, startX + boxWidth + 60, flipFlopY + 38); // Label for K input line
+              p.line(flipFlopX, bottomLabelY - 6, startX + boxWidth, bottomLabelY - 6);
+              p.text(`K${i + 1}`, startX + boxWidth + 10, bottomLabelY - 14); 
 
-              // Arrowhead for right-pointing arrow
-              const arrowXJ2 = flipFlopX - 10; 
-              const arrowYK2 = flipFlopY + 45; 
-              p.triangle(arrowXJ2, arrowYK2 - 5, arrowXJ2, arrowYK2 + 5, arrowXJ2 + 10, arrowYK2); 
+              p.push(); // Save current style settings
+              p.fill(0) // fill for J and K arrowhead
+
+              // Arrowhead J
+              const arrowXJ = flipFlopX - 10; 
+              const arrowYJ = topLabelY - 6; 
+              p.triangle(arrowXJ, arrowYJ - 5, arrowXJ, arrowYJ + 5, arrowXJ + 10, arrowYJ); 
+
+              // Arrowhead K
+              const arrowXK = flipFlopX - 10; 
+              const arrowYK = bottomLabelY - 6; 
+              p.triangle(arrowXK, arrowYK - 5, arrowXK, arrowYK + 5, arrowXK + 10, arrowYK); 
+
+              p.push(); 
+              p.noFill(); // no fill for the clk triangle
+              
+              // Arrowhead for clk
+              const arrowX1 = flipFlopX; 
+              const arrowY1 = flipFlopY + 60; 
+              p.triangle(arrowX1, arrowY1 - 5, arrowX1, arrowY1 + 5, arrowX1 + 10, arrowY1);
+
+              // clk line
+              p.push();
+              p.stroke(131, 80, 163);
+              p.line(flipFlopX, flipFlopY + 60, flipFlopX - 80, flipFlopY + 60); // Horizontal
+              if (numFlipFlops === '2') {
+                p.line(startX + boxWidth + 95, startY + 60, startX + boxWidth + 95, startY + 325); // Vertical
+                p.pop();
+              } else {
+                p.line(startX + boxWidth + 95, startY + 60, startX + boxWidth + 95, startY + 455); // Vertical
+                p.pop();
+              }
 
             } else {
-              // Single line for D or T flip-flop
-              p.line(startX + boxWidth, startY + boxHeight / 2, startX + boxWidth + 50, startY + boxHeight / 2); // Horizontal segment
-              p.line(startX + boxWidth + 50, startY + boxHeight / 2, startX + boxWidth + 50, flipFlopY + boxHeight / 2); // Vertical segment
-              p.line(startX + boxWidth + 50, flipFlopY + boxHeight / 2, flipFlopX, flipFlopY + boxHeight / 2); // Horizontal to connect
-              if (flipFlopType === 'D') {
-                p.text(`D${i + 1}_input`, startX + boxWidth + 60, flipFlopY + boxHeight / 2 - 10); // Minterm label
-              }
-              if (flipFlopType === 'T') {
-                p.text(`T${i + 1}_input`, startX + boxWidth + 60, flipFlopY + boxHeight / 2 - 10); // Minterm label
-              }
+              // D and T Flip-Flop connections 
+              p.text(`${flipFlopType}`, flipFlopLabelX, topLabelY);
+              p.text(`Q${i+1}`, topLabelX, topLabelY);
+              p.text(`Q${i+1}'`, bottomLabelX, bottomLabelY);
+              p.text(`${flipFlopType}${i + 1}`, startX + boxWidth + 10, flipFlopY + boxHeight / 2 - 10);
 
-              // Arrowhead for right-pointing arrow
+              // Single line for D or T flip-flop
+              p.line(startX + boxWidth, flipFlopY + boxHeight / 2, flipFlopX, flipFlopY + boxHeight / 2); 
+        
+              p.push();
+              p.fill(0); // fill for D and T arrowhead
+
+              // Arrowhead D and T
               const arrowX = flipFlopX - 10; 
               const arrowY = flipFlopY + boxHeight / 2; 
               p.triangle(arrowX, arrowY - 5, arrowX, arrowY + 5, arrowX + 10, arrowY); 
+
+              p.push(); 
+              p.noFill(); // no fill for the clk triangle
+
+              // Arrowhead clk
+              const arrowX1 = flipFlopX; 
+              const arrowY1 = bottomLabelY - 6; 
+              p.triangle(arrowX1, arrowY1 - 5, arrowX1, arrowY1 + 5, arrowX1 + 10, arrowY1); 
+
+              p.pop(); // Restore the previous style settings
+
+              // clk line
+              p.push();
+              p.stroke(131, 80, 163);
+              p.line(flipFlopX, bottomLabelY - 6, flipFlopX - 80, bottomLabelY - 6); // Horizontal
+              if (numFlipFlops === '2') {
+                p.line(startX + boxWidth + 95, startY + 95, startX + boxWidth + 95, startY + 325); // Vertical
+                p.pop();
+              } else {
+                p.line(startX + boxWidth + 95, startY + 95, startX + boxWidth + 95, startY + 455); // Vertical
+                p.pop();
+              }
             }
 
-            // Connection from Flip-Flop outputs (Q#) back to State Logic
+            // line to clk label
+            if (numFlipFlops === '2') {
+              p.push();
+              p.stroke(131, 80, 163);
+              p.line(startX + boxWidth + 95, startY + 325, startX - 100, startY + 325); // Horizontal
+              p.pop();
+              p.push();
+              p.fill(131, 80, 163);
+              p.text(`CLK`, startX - 100, startY + 325 - 10);
+              p.pop();
+            } else {
+              p.push();
+              p.stroke(131, 80, 163);
+              p.line(startX + boxWidth + 95, startY + 455, startX - 100, startY + 455); // Horizontal
+              p.pop();
+              p.push();
+              p.fill(131, 80, 163);
+              p.text(`CLK`, startX - 100, startY + 455 - 10);
+              p.pop();
+            }
+
+            // Connection from Flip-Flop outputs (Q#) back to Next State Logic
             // Route the line ABOVE the diagram to avoid overlap
-            p.line(flipFlopX + boxWidth, flipFlopY + boxHeight / 2, flipFlopX + boxWidth + 80, flipFlopY + boxHeight / 2); // Horizontal segment
-            p.line(flipFlopX + boxWidth + 80, flipFlopY + boxHeight / 2, flipFlopX + boxWidth + 80, 30); // Vertical upwards (above diagram)
-            p.line(flipFlopX + boxWidth + 80, 30, startX + boxWidth / 2, 30); // Horizontal above diagram
-            p.line(startX + boxWidth / 2, 30, startX + boxWidth / 2, startY); // Vertical down to State Logic
+            p.line(flipFlopX + flipFlopWidth, flipFlopY + boxHeight / 2, flipFlopX + flipFlopWidth + 90, flipFlopY + boxHeight / 2); // Q Horizontal from FF to middle vertical line
+            p.line(flipFlopX + flipFlopWidth, bottomLabelY - 6, flipFlopX + flipFlopWidth + 90, bottomLabelY - 6); // Q' Horizontal from FF to middle vertical line
+            p.line(flipFlopX + flipFlopWidth + 90, flipFlopY + 94, flipFlopX + flipFlopWidth + 90, 25); // Vertical upwards
+            p.line(flipFlopX + boxWidth + 55, 25, startX + boxWidth / 2, 25); // Horizontal above diagram
+            p.line(startX + boxWidth / 2, 25, startX + boxWidth / 2, startY); // Vertical down to Next State Logic
+
+            p.push(); 
+            p.fill(0); // fill for J arrowhead
             
-            // Draw downward-pointing arrowhead
-            const arrowX = startX + boxWidth / 2; // X-coordinate 
-            const arrowY = startY; // Y-coordinate
+            // Downward-pointing arrowhead to Next State Logic
+            const arrowX = startX + boxWidth / 2; 
+            const arrowY = startY; 
             p.triangle(arrowX - 5, arrowY - 10, arrowX + 5, arrowY - 10, arrowX, arrowY); // Draw arrowhead
           } 
 
           // Draw Output Logic Box
           const outputX = startX + 600;
-          const outputY = startY + flipFlopSpacing;
+          const outputY = startY + flipFlopSpacing - 40;
           p.fill(230, 230, 250);
           p.rect(outputX, outputY, boxWidth, boxHeight);
           p.fill(0);
           p.text("Output Logic", outputX + 28, outputY + 35);
 
-          // Line from Flip-Flop to Output Logic (orthogonal)
+          // Line from middle to Output Logic 
           for (let i = 0; i < numFlipFlops; i++) {
-            const flipFlopX = startX + 320;
-            const flipFlopY = startY + i * flipFlopSpacing;
-
-            //p.line(flipFlopX + 20, flipFlopY + boxHeight / 2, flipFlopX + boxWidth + 10, flipFlopY + boxHeight / 2); // Horizontal segment
-            p.line(flipFlopX + boxWidth + 60, flipFlopX + boxWidth + 60, outputY + boxHeight / 2); // Vertical segment
-            p.line(flipFlopX + boxWidth + 60, outputY + boxHeight / 2, outputX, outputY + boxHeight / 2); // Connect horizontally
+            p.line(outputX, outputY + boxHeight / 2, outputX - 80, outputY + boxHeight / 2); // middle to output
           
-            // Label for Flip-Flop Outputs Q#
-            p.text(`Q${i + 1}`, flipFlopX + boxWidth + 35, flipFlopY + (boxHeight / 2) - 5);
-
-            // Arrowhead for right-pointing arrow
+            // Arrowhead to Output Logic
             const arrowX = outputX - 10; 
             const arrowY = outputY + boxHeight / 2; 
             p.triangle(arrowX, arrowY - 5, arrowX, arrowY + 5, arrowX + 10, arrowY); 
@@ -149,24 +234,30 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
 
           // Line from Output Logic to nowhere (Z Minterms)
           p.line(outputX + boxWidth, outputY + boxHeight / 2, outputX + boxWidth + 100, outputY + boxHeight / 2);
-          p.text('Z', outputX + boxWidth + 40, outputY + (boxHeight / 2) - 5); // Position label on the line
+          p.text('Z', outputX + boxWidth + 40, outputY + (boxHeight / 2) - 5); 
 
-          // Arrowhead for right-pointing arrow
+          // Arrowhead Z
           const arrowX = outputX + boxWidth + 90; 
           const arrowY = outputY + boxHeight / 2; 
           p.triangle(arrowX, arrowY - 5, arrowX, arrowY + 5, arrowX + 10, arrowY); 
 
           // Mealy Machine connection (X to Output Logic)
           if (fsmType === 'Mealy') {
-            // Draw X going under the diagram to avoid overlap (orthogonal)
-            p.line(startX - 40, startY + 15, startX - 40, startY + 290); // Go down and shortened height
-            p.line(startX - 40, startY + 290, outputX + boxWidth / 2 , startY + 290); // Go right
-            p.line(outputX + boxWidth / 2, startY + 290, outputX + boxWidth / 2, outputY + boxHeight); // Connect to output logic
-
-            // Draw upward-pointing arrowhead
+            // Upward-pointing arrowhead to Output Logic
             const arrowX = outputX + boxWidth / 2; 
             const arrowY = outputY + boxHeight; 
             p.triangle(arrowX - 5, arrowY + 10, arrowX + 5, arrowY + 10, arrowX, arrowY); 
+
+            if (numFlipFlops === '3') {
+              // Draw X going under the diagram to avoid overlap (orthogonal)
+              p.line(startX - 40, startY + boxHeight + 110, startX - 40, startY + boxHeight + 370); // Go down 
+              p.line(startX - 40, startY + boxHeight + 370, outputX + boxWidth / 2 , startY + boxHeight + 370); // Go right
+              p.line(outputX + boxWidth / 2, outputY + boxHeight, outputX + boxWidth / 2, outputY + boxHeight + 270); // Connect to output logic
+            } else {
+              p.line(startX - 40, startY + boxHeight + 110, startX - 40, startY + boxHeight + 240); // Go down 
+              p.line(startX - 40, startY + boxHeight + 240, outputX + boxWidth / 2 , startY + boxHeight + 240); // Go right
+              p.line(outputX + boxWidth / 2, outputY + boxHeight, outputX + boxWidth / 2, outputY + boxHeight + 140); // Connect to output logic
+            }
           }
         }
       };
