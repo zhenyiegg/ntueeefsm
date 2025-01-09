@@ -109,8 +109,8 @@ const CircuitToState = () => {
     for (let i = 0; i < numFlipFlops; i++) {
       const flipFlopKey =
         flipFlopType === "JK"
-          ? [`J${i + 1}_input`, `K${i + 1}_input`]
-          : `${flipFlopType}${i + 1}_input`;
+          ? [`J${i + 1}`, `K${i + 1}`]
+          : `${flipFlopType}${i + 1}`;
 
       if (flipFlopType === "D") {
         nextStateBits.push(excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0");
@@ -234,7 +234,7 @@ const CircuitToState = () => {
     if (flipFlopType === "D" || flipFlopType === "T") {
       for (let i = 1; i <= parseInt(numFlipFlops); i++) {
         const mintermsDT = generateRandomMintermsForFlipFlop(
-          `${flipFlopType}${i}_input`,
+          `${flipFlopType}${i}`,
           "00",
           numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
           flipFlopType,
@@ -244,10 +244,10 @@ const CircuitToState = () => {
           numFlipFlops
         );
         generatedMinterms.push({
-          flipFlop: `${flipFlopType}${i}_input`,
+          flipFlop: `${flipFlopType}${i}`,
           minterms: mintermsDT,
         });
-        excitationCorrectAnswers[`${flipFlopType}${i}_input`] = mintermsDT;
+        excitationCorrectAnswers[`${flipFlopType}${i}`] = mintermsDT;
       }
     }
 
@@ -255,7 +255,7 @@ const CircuitToState = () => {
     if (flipFlopType === "JK") {
       for (let i = 1; i <= parseInt(numFlipFlops); i++) {
         const mintermsJ = generateRandomMintermsForFlipFlop(
-          `J${i}_input`,
+          `J${i}`,
           "00",
           numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
           flipFlopType,
@@ -265,7 +265,7 @@ const CircuitToState = () => {
           numFlipFlops
         );
         const mintermsK = generateRandomMintermsForFlipFlop(
-          `K${i}_input`,
+          `K${i}`,
           "00",
           numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
           flipFlopType,
@@ -275,11 +275,11 @@ const CircuitToState = () => {
           numFlipFlops
         );
         generatedMinterms.push(
-          { flipFlop: `J${i}_input`, minterms: mintermsJ },
-          { flipFlop: `K${i}_input`, minterms: mintermsK }
+          { flipFlop: `J${i}`, minterms: mintermsJ },
+          { flipFlop: `K${i}`, minterms: mintermsK }
         );
-        excitationCorrectAnswers[`J${i}_input`] = mintermsJ;
-        excitationCorrectAnswers[`K${i}_input`] = mintermsK;
+        excitationCorrectAnswers[`J${i}`] = mintermsJ;
+        excitationCorrectAnswers[`K${i}`] = mintermsK;
       }
     }
 
@@ -653,7 +653,7 @@ const CircuitToState = () => {
               {minterms.map(
                 ({ flipFlop, minterms }) => (
                   <span key={flipFlop}>
-                    <strong>{flipFlop} = </strong>∑m({minterms.join(",")})
+                    <strong>{flipFlop}&nbsp;=&nbsp;</strong>∑m({minterms.join(",\u00A0")})&nbsp;
                   </span>
                 )
               )
@@ -665,34 +665,6 @@ const CircuitToState = () => {
           </>
         )}
       </div>
-
-      {/*{isGenerated && (
-        <div className="minterms-section">
-          <p>
-            {minterms.map(
-              ({ flipFlop, minterms }) => (
-                <span key={flipFlop}>
-                  <strong>{flipFlop} = </strong>∑m({minterms.join(",")})
-                </span>
-              )
-            )
-            .reduce((prev, curr) => [prev, ", ", curr])}
-          </p>
-          <p><strong>Z = </strong>{mintermOutputZ}</p>
-        </div>
-      )}*/}
- 
-      {/* Display User Selections */}
-      {/*{generateState.numInputs && (
-        <div className="selection-display">
-          <p>
-            {generateState.numInputs} {generateState.numInputs === "1" ? "Input" : "Inputs"},{" "}
-            {generateState.flipFlopType} Flip-Flop,{" "}
-            {generateState.numFlipFlops} Flip-Flops,{" "}
-            {generateState.fsmType}
-          </p>
-        </div>
-      )}*/}
 
       {/* Excitation Table Section */}
       <div className={`content-box ${showExcitationTable ? "active" : ""}`}>
