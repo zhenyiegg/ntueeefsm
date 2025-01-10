@@ -71,21 +71,21 @@ canvas {
   border-radius: 12px;
 }
 
-.minterms-section {
-  text-align: left;
+.minMaxterms-section {
+  text-align: center;
   margin: 0 200px;
-  padding: 0 60px 10px 60px;
+  padding: 0 60px 0 60px;
   color: #333;
   line-height: 1.6;
 }
 
-.minterms-section h3 {
+.minMaxterms-section h3 {
   text-align: center;
 }
 
 .content-box {
   border: 1px solid black;
-  padding: 10px 20px;
+  padding: 40px 20px;
   margin: 0 0 20px 0;
   width: 65%;
   background-color: #ffffff;
@@ -93,6 +93,10 @@ canvas {
   border: 2px solid #f9eeff;
   /*max-width: 600px; */
   text-align: center;
+}
+
+.content-box h2 {
+  margin-top: 0;
 }
 
 .content-box h2, .content-box p {
@@ -106,6 +110,8 @@ canvas {
 .stateDiagram-box {
   width: 80%;
   margin-bottom: 100px;
+  background-color: transparent;
+  border: none;
 }
 
 .next-btn {
@@ -225,7 +231,7 @@ table td input {
 
 
 /* Responsive layout */
-@media (max-width: 900px) {
+@media (max-width: 1064px) {
   .dropdown-container {
     flex-direction: column;
     align-items: center;
