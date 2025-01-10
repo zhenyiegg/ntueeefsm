@@ -8,8 +8,8 @@ import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; // FontAwesome
 
 const CircuitToState = () => {
   // States for generated data and user inputs
-  const [minterms, setMinterms] = useState([]);
-  const [mintermOutputZ, setMintermOutputZ] = useState("");
+  const [minMaxterms, setMinMaxterms] = useState([]);
+  const [minMaxtermOutputZ, setMinMaxtermOutputZ] = useState("");
   const [isGenerated, setIsGenerated] = useState(false);
   const [excitationTable, setExcitationTable] = useState([]);
   const [stateTransitionTable, setStateTransitionTable] = useState([]);
@@ -105,31 +105,56 @@ const CircuitToState = () => {
   const computeNextState = (flipFlopType, currentState, excitationAnswers, rowIndex, numFlipFlops) => {
     const currentStateBits = currentState.split("");
     const nextStateBits = [];
-
+  
     for (let i = 0; i < numFlipFlops; i++) {
-      const flipFlopKey =
-        flipFlopType === "JK"
-          ? [`J${i + 1}`, `K${i + 1}`]
-          : `${flipFlopType}${i + 1}`;
-
-      if (flipFlopType === "D") {
-        nextStateBits.push(excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0");
-      } else if (flipFlopType === "T") {
-        const toggle = excitationAnswers[flipFlopKey]?.includes(rowIndex) ? "1" : "0";
-        nextStateBits.push(toggle === "1" ? (currentStateBits[i] === "1" ? "0" : "1") : currentStateBits[i]);
-      } else if (flipFlopType === "JK") {
-        const [jKey, kKey] = flipFlopKey;
-        const j = excitationAnswers[jKey]?.includes(rowIndex) ? "1" : "0";
-        const k = excitationAnswers[kKey]?.includes(rowIndex) ? "1" : "0";
-        if (j === "0" && k === "0") nextStateBits.push(currentStateBits[i]);
-        if (j === "0" && k === "1") nextStateBits.push("0");
-        if (j === "1" && k === "0") nextStateBits.push("1");
-        if (j === "1" && k === "1") nextStateBits.push(currentStateBits[i] === "1" ? "0" : "1");
+      let flipFlopKey;
+  
+      if (flipFlopType === "JK") {
+        const jKey = `J${i + 1}`;
+        const kKey = `K${i + 1}`;
+        const jTerms = excitationAnswers[jKey]?.terms || [];
+        const kTerms = excitationAnswers[kKey]?.terms || [];
+        const isJMinterm = excitationAnswers[jKey]?.isMinterm;
+        const isKMinterm = excitationAnswers[kKey]?.isMinterm;
+  
+        const j = isJMinterm
+          ? jTerms.includes(rowIndex) ? "1" : "0"
+          : jTerms.includes(rowIndex) ? "0" : "1";
+  
+        const k = isKMinterm
+          ? kTerms.includes(rowIndex) ? "1" : "0"
+          : kTerms.includes(rowIndex) ? "0" : "1";
+  
+        if (j === "0" && k === "0") nextStateBits.push(currentStateBits[i]); // Hold
+        else if (j === "0" && k === "1") nextStateBits.push("0"); // Reset
+        else if (j === "1" && k === "0") nextStateBits.push("1"); // Set
+        else if (j === "1" && k === "1") nextStateBits.push(currentStateBits[i] === "1" ? "0" : "1"); // Toggle
+  
+      } else {
+        flipFlopKey = `${flipFlopType}${i + 1}`;
+        const terms = excitationAnswers[flipFlopKey]?.terms || [];
+        const isMinterm = excitationAnswers[flipFlopKey]?.isMinterm;
+  
+        if (flipFlopType === "D") {
+          const dValue = isMinterm
+            ? terms.includes(rowIndex) ? "1" : "0"
+            : terms.includes(rowIndex) ? "0" : "1";
+          nextStateBits.push(dValue);
+        } else if (flipFlopType === "T") {
+          const tValue = isMinterm
+            ? terms.includes(rowIndex) ? "1" : "0"
+            : terms.includes(rowIndex) ? "0" : "1";
+          nextStateBits.push(
+            tValue === "1" ? (currentStateBits[i] === "1" ? "0" : "1") : currentStateBits[i]
+          );
+        }
       }
     }
+  
+    console.log("Row:", rowIndex, "Current State:", currentState, "Next State Bits:", nextStateBits.join(""));
     return nextStateBits.join("");
   };
-
+  
   // Helper: Generate binary states for the number of flip-flops or inputs
   const generateBinaryStates = (numBits) => {
     const totalStates = Math.pow(2, numBits);
@@ -153,54 +178,15 @@ const CircuitToState = () => {
     return array;
   };
 
-  // Helper: Generate unique minterms
-  const generateUniqueMinterms = (limit, maxValue) => {
-    const possibleMinterms = Array.from({ length: maxValue }, (_, index) => index);
-    const shuffledMinterms = shuffleArray(possibleMinterms);
-    return shuffledMinterms.slice(0, limit).sort((a, b) => a - b);
-  };
-
-  const generateRandomMintermsForFlipFlop = (
-    flipFlopName, state, targetStates, flipFlopType, minMinterms, maxMinterms, maxValue, numFlipFlops
-  ) => {
-    let minterms = generateUniqueMinterms(getRandomNumber(minMinterms, maxMinterms), maxValue);
-
-    // Ensure the first row does not result in all zeros
-    if ((numFlipFlops === "2" && state === "00") || (numFlipFlops === "3" && state === "000")) {
-      const resetStateIndex = parseInt(state, 2); // Current reset state
-      const otherStatesIndexes = targetStates.map((s) => parseInt(s, 2)); // Convert target states to indexes
-
-      // Ensure at least one outgoing transition exists
-      let outgoingTransitions = minterms.filter((minterm) => minterm !== resetStateIndex);
-
-      if (outgoingTransitions.length === 0) {
-        const validTarget = otherStatesIndexes.find((target) => !minterms.includes(target));
-        if (validTarget !== undefined) {
-          outgoingTransitions.push(validTarget); // Add one valid outgoing transition
-        }
-      }
-
-      // Remove the reset state from minterms for the first row
-      minterms = outgoingTransitions.filter((minterm) => minterm !== resetStateIndex);
-
-      // Add a valid non-zero state for the first row
-      if (minterms.length === 0) {
-        const validNonZeroState = otherStatesIndexes.find((state) => state !== resetStateIndex);
-        if (validNonZeroState !== undefined) {
-          minterms.push(validNonZeroState);
-        }
-      }
-    }
-
-    // Ensure minterms include the first minterm as 0
-    if (!minterms.includes(0)) {minterms.unshift(0);}
-
-    return minterms.slice(0, maxMinterms); // Ensure within max constraints
-    
+  // Helper: Generate unique minterms and maxterms
+  const generateUniqueTerms = (limit, maxValue) => {
+    const possibleTerms = Array.from({ length: maxValue }, (_, index) => index);
+    const shuffledTerms = shuffleArray(possibleTerms);
+    return shuffledTerms.slice(0, limit).sort((a, b) => a - b);
   };
 
   // Generate minterms, hidden correct answers and populate tables 
-  const generateMinterms = () => {
+  const generateMinMaxterms = () => {
     const { numInputs, flipFlopType, numFlipFlops } = dropdownState;
 
     setShowExcitationTable(true); 
@@ -215,84 +201,69 @@ const CircuitToState = () => {
     setShowStateDiagram(false);
 
     setGenerateState({ ...dropdownState }); // Finalize the dropdown selections
-    let maxValue, minMinterms, maxMinterms;
+    let maxValue, minMinMaxterms, maxMinMaxterms;
 
     if (numFlipFlops === "2" && numInputs === "1") {
       maxValue = 8; // 0 to 7
-      minMinterms = 2;
-      maxMinterms = 4;
+      minMinMaxterms = 2;
+      maxMinMaxterms = 4;
     } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
       maxValue = 16; // 0 to 15
-      minMinterms = 4;
-      maxMinterms = 8;
+      minMinMaxterms = 4;
+      maxMinMaxterms = 8;
     }
 
-    const generatedMinterms = [];
+    const generatedTerms = [];
     const excitationCorrectAnswers = {};
+    const allFlipFlops = [];
 
-    // Generate minterms for D or T Flip-Flops
+    // Generate minterms or maxterms for D or T Flip-Flops
     if (flipFlopType === "D" || flipFlopType === "T") {
       for (let i = 1; i <= parseInt(numFlipFlops); i++) {
-        const mintermsDT = generateRandomMintermsForFlipFlop(
-          `${flipFlopType}${i}`,
-          "00",
-          numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
-          flipFlopType,
-          minMinterms,
-          maxMinterms,
-          maxValue,
-          numFlipFlops
-        );
-        generatedMinterms.push({
-          flipFlop: `${flipFlopType}${i}`,
-          minterms: mintermsDT,
-        });
-        excitationCorrectAnswers[`${flipFlopType}${i}`] = mintermsDT;
+        allFlipFlops.push(`${flipFlopType}${i}`);
       }
     }
 
-    // Generate minterms for JK Flip-Flops
-    if (flipFlopType === "JK") {
+    // Generate minterms or maxterms for JK Flip-Flops
+    else if (flipFlopType === "JK") {
       for (let i = 1; i <= parseInt(numFlipFlops); i++) {
-        const mintermsJ = generateRandomMintermsForFlipFlop(
-          `J${i}`,
-          "00",
-          numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
-          flipFlopType,
-          minMinterms,
-          maxMinterms,
-          maxValue,
-          numFlipFlops
-        );
-        const mintermsK = generateRandomMintermsForFlipFlop(
-          `K${i}`,
-          "00",
-          numFlipFlops === "2" ? ["01", "10", "11"] : ["001", "010", "011", "100", "101", "110", "111"],
-          flipFlopType,
-          minMinterms,
-          maxMinterms,
-          maxValue,
-          numFlipFlops
-        );
-        generatedMinterms.push(
-          { flipFlop: `J${i}`, minterms: mintermsJ },
-          { flipFlop: `K${i}`, minterms: mintermsK }
-        );
-        excitationCorrectAnswers[`J${i}`] = mintermsJ;
-        excitationCorrectAnswers[`K${i}`] = mintermsK;
+        allFlipFlops.push(`J${i}`, `K${i}`);
       }
     }
 
-    // Generate Output Z
-    const outputMinterms = generateUniqueMinterms(
-      getRandomNumber(minMinterms, maxMinterms),
+    allFlipFlops.forEach((flipFlop) => {
+      const isMinterm = Math.random() < 0.5; // Randomly assign minterm or maxterm
+      const terms = generateUniqueTerms(
+        getRandomNumber(minMinMaxterms, maxMinMaxterms),
+        maxValue
+      );
+      const formattedTerms = isMinterm
+        ? `Σm(${terms.join(",\u00A0")})`
+        : `ΠM(${terms.join(",\u00A0")})`;
+  
+      // Add to the generated terms
+      generatedTerms.push({ flipFlop, terms, isMinterm, formattedTerms });
+  
+      // Store correct answers in the excitationCorrectAnswers object
+      excitationCorrectAnswers[flipFlop] = {
+        terms,
+        isMinterm,
+      };
+    });
+
+    // Generate random minterms or maxterms for Output Z
+    const isOutputMinterm = Math.random() < 0.5; // Randomly decide Σm or ΠM
+    const outputTerms = generateUniqueTerms(
+      getRandomNumber(minMinMaxterms, maxMinMaxterms),
       maxValue
     );
-    const outputZMinterms = `∑m(${outputMinterms.join(", ")})`;
+    const outputZFormattedTerms = isOutputMinterm
+    ? `Σm(${outputTerms.join(", ")})`
+    : `ΠM(${outputTerms.join(", ")})`;
 
     // Update states
-    setMinterms(generatedMinterms);
-    setMintermOutputZ(outputZMinterms);
+    setMinMaxterms(generatedTerms);
+    setMinMaxtermOutputZ(outputZFormattedTerms);
     setHiddenExcitationCorrectAnswers(excitationCorrectAnswers);
     setIsGenerated(true);
 
@@ -314,7 +285,7 @@ const CircuitToState = () => {
           flipFlopInputs: {},
         };
 
-        // Compute the next state
+        // Compute the next state using the flip-flop rules
         const nextState = computeNextState(
           flipFlopType,
           currentState,
@@ -328,12 +299,16 @@ const CircuitToState = () => {
           currentState,
           input,
           nextState,
-          output: outputMinterms.includes(rowIndex) ? "1" : "0",
+          output: isOutputMinterm
+          ? outputTerms.includes(rowIndex) ? "1" : "0" // Minterms
+          : outputTerms.includes(rowIndex) ? "0" : "1", // Maxterms
         };
 
-        // Populate flip-flop inputs based on minterms
-        generatedMinterms.forEach(({ flipFlop, minterms }) => {
-          excitationRow.flipFlopInputs[flipFlop] = minterms.includes(rowIndex) ? "1" : "0";
+        // Populate the excitation table
+        generatedTerms.forEach(({ flipFlop, terms, isMinterm }) => {
+          excitationRow.flipFlopInputs[flipFlop] = isMinterm
+            ? terms.includes(rowIndex) ? "1" : "0" // Minterms
+            : terms.includes(rowIndex) ? "0" : "1"; // Maxterms
         });
 
         newExcitationTable.push(excitationRow);
@@ -436,23 +411,30 @@ const CircuitToState = () => {
     const updatedInputs = userExcitationInputs.map((row, index) => {
       const updatedRow = { ...row };
       Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
-        const correctExcitationValue =
-          hiddenExcitationCorrectAnswers[flipFlop]?.includes(index) ? "1" : "0";
+
+        const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
+
+        const correctExcitationValue = isMinterm
+        ? terms.includes(index) ? "1" : "0" // Minterms expect "1"
+        : terms.includes(index) ? "0" : "1"; // Maxterms expect "0"
+
+        // Check if the current input matches the expected value
         if (row.flipFlopInputs[flipFlop].value === correctExcitationValue) {
-          updatedRow.flipFlopInputs[flipFlop] = {
-            value: correctExcitationValue,
-            status: "correct",
-          };
-        } else {
-            allCorrect = false;
-            updatedRow.flipFlopInputs[flipFlop] = {
-              value: row.flipFlopInputs[flipFlop].value,
-              status: "incorrect",
-            };
-          }
-      });
+        updatedRow.flipFlopInputs[flipFlop] = {
+          ...row.flipFlopInputs[flipFlop],
+          status: "correct", // Mark as correct
+        };
+      } else {
+        allCorrect = false; // Mark as incorrect if validation fails
+        updatedRow.flipFlopInputs[flipFlop] = {
+          ...row.flipFlopInputs[flipFlop],
+          status: "incorrect", // Mark as incorrect
+        };
+      }
+    });
       return updatedRow;
     });
+
     setUserExcitationInputs(updatedInputs);
     setIsExcitationTableComplete(allCorrect);
 
@@ -487,7 +469,7 @@ const CircuitToState = () => {
         };
       }
 
-      // Validate output
+      // Validate output Z
       const correctOutput = hiddenStateTransitionCorrectAnswers.output[index];
       if (row.output.value === correctOutput) {
         updatedRow.output = {
@@ -627,10 +609,10 @@ const CircuitToState = () => {
         {/* Generate Button */}
         <button 
           className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
-          onClick={generateMinterms} 
+          onClick={generateMinMaxterms} 
           disabled={!isFormComplete}
         >
-          Generate Circuit & Minterms
+          Generate Circuit & Flip-Flop Inputs
         </button>
       </div>
               
@@ -643,24 +625,24 @@ const CircuitToState = () => {
         isGenerated={isGenerated}
       />
 
-      {/* Display Generated Minterms */}
-      <div className="minterms-section">
+      {/* Display Generated Minterms & Maxterms */}
+      <div className="minMaxterms-section">
         {!isGenerated ? (
-          <h3 style = {{color: "#aaa"}}>Generated Minterms</h3>
+          <h3 style = {{color: "#aaa"}}>Generated Flip-Flop Inputs</h3>
         ) : (
           <>
             <p>
-              {minterms.map(
-                ({ flipFlop, minterms }) => (
+              {minMaxterms.map(
+                ({ flipFlop, formattedTerms }) => (
                   <span key={flipFlop}>
-                    <strong>{flipFlop}&nbsp;=&nbsp;</strong>∑m({minterms.join(",\u00A0")})&nbsp;
+                    <strong>{flipFlop}&nbsp;=&nbsp;</strong>{formattedTerms}&nbsp;
                   </span>
                 )
               )
               .reduce((prev, curr) => [prev, ", ", curr])}
             </p>
             <p>
-              <strong>Z = </strong>{mintermOutputZ}
+              <strong>Z = </strong>{minMaxtermOutputZ}
             </p>
           </>
         )}
