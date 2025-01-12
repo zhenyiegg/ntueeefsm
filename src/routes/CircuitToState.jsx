@@ -179,10 +179,51 @@ const CircuitToState = () => {
   };
 
   // Helper: Generate unique minterms and maxterms
-  const generateUniqueTerms = (limit, maxValue) => {
+  const generateUniqueTerms = (limit, maxValue, ensureRowZeroHasOne = false, isMinterm = true) => {
     const possibleTerms = Array.from({ length: maxValue }, (_, index) => index);
     const shuffledTerms = shuffleArray(possibleTerms);
-    return shuffledTerms.slice(0, limit).sort((a, b) => a - b);
+  
+    // Use a Set to ensure uniqueness
+    const uniqueTermsSet = new Set(shuffledTerms.slice(0, limit));
+    let terms = Array.from(uniqueTermsSet).sort((a, b) => a - b);
+  
+    // Enforce Row Zero Constraint for Minterms or Maxterms
+    if (ensureRowZeroHasOne) {
+      if (isMinterm && !terms.includes(0)) {
+        // Ensure rowIndex 0 is included for minterms
+        terms[0] = 0; // Replace the first term with 0
+        terms = Array.from(new Set(terms)).sort((a, b) => a - b); // Re-sort and remove duplicates
+      } else if (!isMinterm && terms.includes(0)) {
+        // Ensure rowIndex 0 is excluded for maxterms
+        terms = terms.filter((term) => term !== 0);
+        if (terms.length < limit) {
+          // Add another valid term to maintain size
+          for (let i = 1; i < maxValue; i++) {
+            if (!terms.includes(i)) {
+              terms.push(i);
+              break;
+            }
+          }
+          terms = Array.from(new Set(terms)).sort((a, b) => a - b); // Re-sort and remove duplicates
+        }
+      }
+    }
+  
+    // Ensure we meet the limit constraint after enforcing uniqueness
+    while (terms.length > limit) {
+      terms.pop(); // Remove excess terms
+    }
+    while (terms.length < limit) {
+      for (let i = 0; i < maxValue; i++) {
+        if (!terms.includes(i)) {
+          terms.push(i); // Add missing terms
+          break;
+        }
+      }
+      terms = Array.from(new Set(terms)).sort((a, b) => a - b); // Re-sort and remove duplicates
+    }
+  
+    return terms;
   };
 
   // Generate minterms, hidden correct answers and populate tables 
@@ -231,12 +272,18 @@ const CircuitToState = () => {
       }
     }
 
-    allFlipFlops.forEach((flipFlop) => {
+    allFlipFlops.forEach((flipFlop, index) => {
       const isMinterm = Math.random() < 0.5; // Randomly assign minterm or maxterm
+
+      const ensureRowZeroHasOne = index === 0; //Only enforce for the first row (current state 00/000)
+
       const terms = generateUniqueTerms(
         getRandomNumber(minMinMaxterms, maxMinMaxterms),
-        maxValue
+        maxValue,
+        ensureRowZeroHasOne,
+        isMinterm
       );
+
       const formattedTerms = isMinterm
         ? `Σm(${terms.join(",\u00A0")})`
         : `ΠM(${terms.join(",\u00A0")})`;
