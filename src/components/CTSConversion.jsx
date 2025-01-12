@@ -51,11 +51,11 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     });
 
     // Define reset states explicitly
-    const resetStates = ["00", "000"]; 
+    const resetState = numFlipFlops === 2 ? "00" : "000";
 
     const unusedStates = states.filter(state => {
       // Skip reset states from being considered unused
-      if (resetStates.includes(state)) {
+      if (resetState.includes(state)) {
         return false;
       }
       // Count incoming, outgoing transitions and detect self-loop
@@ -112,13 +112,23 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       stateElements[state] = circle;
     });
 
+    // Check if the reset state has no incoming transitions
+    const resetStateHasIncoming = stateTransitionTable.some(row => row.nextState === resetState);
+
     // Display FSM information
-    const explanation = unusedStates.length
-      ? `State${unusedStates.length > 1 ? "s" : ""} ${unusedStates.join(", ")} ${unusedStates.length > 1 ? "are" : "is"} unused state${unusedStates.length > 1 ? "s" : ""} because no other state transitions into ${unusedStates.length > 1 ? "them" : "it"}.`
-      : "All states are reachable.";
-
-    setDiagramInfo(`${fsmType} State Diagram\nAssume State ${numFlipFlops === 2 ? "00" : "000"} is a reset state.\n${states.length - unusedStates.length} active states, ${unusedStates.length} unused states\n${explanation}`);
-
+    let explanation;
+    if (unusedStates.length > 0 && !resetStateHasIncoming) {
+      explanation = `State${unusedStates.length > 1 ? "s" : ""} ${unusedStates.join(", ")} ${unusedStates.length > 1 ? "are" : "is"} unused state${unusedStates.length > 1 ? "s" : ""} because no other state transitions into ${unusedStates.length > 1 ? "them" : "it"}.\nReset state is not an unused state because it is the FSM's starting point explicitly entered during initialization.`;
+    } else if (unusedStates.length > 0) {
+      explanation = `State${unusedStates.length > 1 ? "s" : ""} ${unusedStates.join(", ")} ${unusedStates.length > 1 ? "are" : "is"} unused state${unusedStates.length > 1 ? "s" : ""} because no other state transitions into ${unusedStates.length > 1 ? "them" : "it"}.`;
+    } else if (unusedStates.length === 0 && !resetStateHasIncoming) {
+      explanation = `All states are reachable except reset state ${resetState}.\nReset state is not an unused state because it is the FSM's starting point explicitly entered during initialization.`;
+    } else {
+      explanation = "All states are reachable.";
+    }
+    
+    setDiagramInfo(`${fsmType} State Diagram\nAssume State ${resetState} is a reset state.\n${states.length - unusedStates.length} active states, ${unusedStates.length} unused states\n${explanation}`);
+    
     // Add grouped transitions
     Object.entries(groupedTransitions).forEach(([key, transitions]) => {
       const [from, to] = key.split("->");
