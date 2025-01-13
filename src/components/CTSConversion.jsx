@@ -395,9 +395,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           <div className="popup-contentTransition">
             <button className="close-button" onClick={closePopup}>✖</button>
             <h3>State Transition</h3>
-            <p>Q1{numFlipFlops === 2 ? "Q2" : "Q2Q3"} ➔ Q1'{numFlipFlops === 2 ? "Q2'" : "Q2'Q3'"}</p>
+            <p>Q0{numFlipFlops === 2 ? "Q1" : "Q1Q2"} ➔ Q0'{numFlipFlops === 2 ? "Q1'" : "Q1'Q2'"}</p>
             <p>{popupData.from} ➔ {popupData.to}</p>
-            <p>X{numInputs === 2 ? "1X2" : "1"}: {popupData.transitions.map(t => t.input).join(", ")}</p>
+            <p>X{numInputs === 2 ? "0X1" : "0"}: {popupData.transitions.map(t => t.input).join(", ")}</p>
             <p>Z: {popupData.transitions.map(t => t.output).join(", ")}</p>
           </div>
         </div>
