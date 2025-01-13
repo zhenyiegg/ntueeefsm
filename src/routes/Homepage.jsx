@@ -12,36 +12,37 @@ export default function HomePage() {
     };
 
     return (
-        <div className="page-container">
-            <div className="title-container">
-                <h1 className="main-title">Finite State Machines</h1>
-                <h2 className="sub-title">Circuit to State Diagram</h2>
-            </div>
+        <div className="zoom-container">
+            <div className="page-container">
+                <div className="title-container">
+                    <h1 className="main-title">Finite State Machines</h1>
+                </div>
 
-            <div className="divider-container">
-                <div className="divider"></div>
-                <div className="divider"></div>
-                <div className="divider"></div>
-            </div>
+                <div className="divider-container">
+                    <div className="divider"></div>
+                    <div className="divider"></div>
+                    <div className="divider"></div>
+                </div>
 
-            <div className="buttons-container">
-                <button
-                    className="custom-button"
-                    onClick={() => navigate("/circuit-to-state")}
-                >
-                    Circuit to State Diagram
-                </button>
+                <div className="buttons-container">
+                    <button
+                        className="custom-button"
+                        onClick={() => navigate("/circuit-to-state")}
+                    >
+                        Circuit to State Diagram
+                    </button>
 
-                <button
-                    className="custom-button"
-                    onClick={() => navigate("/state-to-circuit")}
-                >
-                    State to Circuit Diagram
-                </button>
+                    <button
+                        className="custom-button"
+                        onClick={() => navigate("/state-to-circuit")}
+                    >
+                        State to Circuit Diagram
+                    </button>
 
-                <button className="custom-button" onClick={handleAnyClick}>
-                    Any
-                </button>
+                    <button className="custom-button" onClick={handleAnyClick}>
+                        Any
+                    </button>
+                </div>
             </div>
         </div>
     );

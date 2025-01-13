@@ -5,31 +5,3 @@ body {
   margin: 0;
 }
 
-.navbar {
-  background-color: #333;
-  padding: 10px;
-  display: flex;
-  justify-content: center;
-}
-
-.nav-btn {
-  margin: 0 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  text-decoration: none; 
-}
-
-.nav-btn.state-to-circuit {
-  background-color: #84a9ff;
-}
-
-.nav-btn.circuit-to-state {
-  background-color: #b084cc; 
-}
-
-.nav-btn {
-  color: white;
-}
