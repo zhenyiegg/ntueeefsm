@@ -83,6 +83,17 @@ canvas {
   text-align: center;
 }
 
+.minterm {
+  font-weight: 500;
+}
+
+.maxterm {
+  font-family: 'Courier New', monospace;
+  font-size: 1.25em;
+  font-weight: bold;
+  color: #333; 
+}
+
 .content-box {
   border: 1px solid black;
   padding: 40px 20px;
@@ -229,7 +240,6 @@ table td input {
   color: red;
 }
 
-
 /* Responsive layout */
 @media (max-width: 1064px) {
   .dropdown-container {
@@ -253,5 +263,4 @@ table td input {
   .minterms-section {
       margin: 0 auto;
   }
-  
 }
