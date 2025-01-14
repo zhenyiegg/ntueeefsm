@@ -97,6 +97,12 @@ html, body, #root, .App {
   background-color: #45a049; /* Darker green on hover */
 }
 
+/* Button group styles */
+.button-group {
+  display: flex;
+  gap: 10px; /* Add spacing between the buttons */
+}
+
 .generate-button {
 background-color: red; /* Green background */
 color: white; /* White text */
@@ -129,3 +135,4 @@ transition: background-color 0.3s ease;
 .auto-generate-button:hover {
 background-color: #45a049; /* Darker green on hover */
 }
+
