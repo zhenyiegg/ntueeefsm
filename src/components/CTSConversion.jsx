@@ -122,7 +122,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     } else if (unusedStates.length > 0) {
       explanation = `State${unusedStates.length > 1 ? "s" : ""} ${unusedStates.join(", ")} ${unusedStates.length > 1 ? "are" : "is"} unused state${unusedStates.length > 1 ? "s" : ""} because no other state transitions into ${unusedStates.length > 1 ? "them" : "it"}.`;
     } else if (unusedStates.length === 0 && !resetStateHasIncoming) {
-      explanation = `All states are reachable except reset state ${resetState}.\nReset state is not an unused state because it is the FSM's starting point explicitly entered during initialization.`;
+      explanation = `All states are reachable except reset state.\nReset state is not an unused state because it is the FSM's starting point explicitly entered during initialization.`;
     } else {
       explanation = "All states are reachable.";
     }
@@ -395,9 +395,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           <div className="popup-contentTransition">
             <button className="close-button" onClick={closePopup}>✖</button>
             <h3>State Transition</h3>
-            <p>Q0{numFlipFlops === 2 ? "Q1" : "Q1Q2"} ➔ Q0'{numFlipFlops === 2 ? "Q1'" : "Q1'Q2'"}</p>
+            <p>Q{numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q{numFlipFlops === 2 ? "1'Q0'" : "2'Q1'Q0'"}</p>
             <p>{popupData.from} ➔ {popupData.to}</p>
-            <p>X{numInputs === 2 ? "0X1" : "0"}: {popupData.transitions.map(t => t.input).join(", ")}</p>
+            <p>X{numInputs === 2 ? "1X0" : "0"}: {popupData.transitions.map(t => t.input).join(", ")}</p>
             <p>Z: {popupData.transitions.map(t => t.output).join(", ")}</p>
           </div>
         </div>

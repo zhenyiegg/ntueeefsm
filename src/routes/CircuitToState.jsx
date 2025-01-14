@@ -107,11 +107,12 @@ const CircuitToState = () => {
     const nextStateBits = [];
   
     for (let i = 0; i < numFlipFlops; i++) {
+      const flipFlopIndex = numFlipFlops - 1 - i; // Reverse the order
       let flipFlopKey;
   
       if (flipFlopType === "JK") {
-        const jKey = `J${i}`;
-        const kKey = `K${i}`;
+        const jKey = `J${flipFlopIndex}`;
+        const kKey = `K${flipFlopIndex}`;
         const jTerms = excitationAnswers[jKey]?.terms || [];
         const kTerms = excitationAnswers[kKey]?.terms || [];
         const isJMinterm = excitationAnswers[jKey]?.isMinterm;
@@ -131,7 +132,7 @@ const CircuitToState = () => {
         else if (j === "1" && k === "1") nextStateBits.push(currentStateBits[i] === "1" ? "0" : "1"); // Toggle
   
       } else {
-        flipFlopKey = `${flipFlopType}${i}`;
+        flipFlopKey = `${flipFlopType}${flipFlopIndex}`;
         const terms = excitationAnswers[flipFlopKey]?.terms || [];
         const isMinterm = excitationAnswers[flipFlopKey]?.isMinterm;
   
@@ -260,49 +261,26 @@ const CircuitToState = () => {
 
     // Helper to format keys for display
     const formatKeyForDisplay = (key, numInputs, numFlipFlops) => {
-      if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T")) {
-        //const index = key.slice(1); // Extract the number after J/K
+      if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T") || key === "Z") {
         if (numInputs === "1" && numFlipFlops === "2") {
-          return `${key}(Q0,\u00A0Q1,\u00A0X0)`;
+          return `${key}(Q1,\u00A0Q0,\u00A0X0)`;
         } else if (numInputs === "2" && numFlipFlops === "2") {
-          return `${key}(Q0,\u00A0Q1,\u00A0X0,\u00A0X1)`;
+          return `${key}(Q1,\u00A0Q0,\u00A0X1,\u00A0X0)`;
         } else if (numInputs === "1" && numFlipFlops === "3") {
-          return `${key}(Q0,\u00A0Q1,\u00A0Q2,\u00A0X0)`;
+          return `${key}(Q2,\u00A0Q1,\u00A0Q0,\u00A0X0)`;
         }
       }
       return key; 
     };
 
-    const formatOutputZForDisplay = (key, numInputs, numFlipFlops, fsmType) => {
-      if (key === "Z") {
-        if (fsmType === "Mealy") {
-          if (numInputs === "1" && numFlipFlops === "2") {
-            return `${key}(Q0',\u00A0Q1',\u00A0X0)`;
-          } else if (numInputs === "2" && numFlipFlops === "2") {
-            return `${key}(Q0',\u00A0Q1',\u00A0X0,\u00A0X1)`;
-          } else if (numInputs === "1" && numFlipFlops === "3") {
-            return `${key}(Q0',\u00A0Q1',\u00A0Q2',\u00A0X0)`;
-          }
-        }
-        else if (fsmType === "Moore") {
-          if (numFlipFlops === "2") {
-            return `${key}(Q0',\u00A0Q1')`;
-          } else if (numFlipFlops === "3") {
-            return `${key}(Q0',\u00A0Q1',\u00A0Q2')`;
-          }
-        }
-      }
-      return key;
-    };
-
     // Generate minterms or maxterms for Flip-Flops
     if (flipFlopType === "D" || flipFlopType === "T") {
-      for (let i = 0; i < parseInt(numFlipFlops); i++) {
+      for (let i = parseInt(numFlipFlops) - 1; i >= 0; i--) {
         allFlipFlops.push(`${flipFlopType}${i}`);
       }
     }
     else if (flipFlopType === "JK") {
-      for (let i = 0; i < parseInt(numFlipFlops); i++) {
+      for (let i = parseInt(numFlipFlops) - 1; i >= 0; i--) {
         allFlipFlops.push(`J${i}`, `K${i}`);
       }
     }
@@ -346,15 +324,15 @@ const CircuitToState = () => {
       maxValue
     );
     
-    const formattedOutputZKey = formatOutputZForDisplay("Z", numInputs, numFlipFlops, dropdownState.fsmType);
+    const formattedOutputKey = formatKeyForDisplay("Z", numInputs, numFlipFlops);
 
     const outputZFormattedTerms = isOutputMinterm ? (
       <>
-        <strong>{formattedOutputZKey}&nbsp;=&nbsp;</strong>
+        <strong>{formattedOutputKey}&nbsp;=&nbsp;</strong>
         <span className="minterm">Σ</span>m({outputTerms.join(",\u00A0")})</>
     ) : (
       <>
-        <strong>{formattedOutputZKey}&nbsp;=&nbsp;</strong>
+        <strong>{formattedOutputKey}&nbsp;=&nbsp;</strong>
         <span className="maxterm">Π</span>M({outputTerms.join(",\u00A0")})
       </>
     );
@@ -596,18 +574,23 @@ const CircuitToState = () => {
     }
   };
 
+  // Helper to generate descending labels
+  const generateDescendingLabels = (prefix, count, suffix = "") => {
+    return Array.from({ length: count }, (_, i) => `${prefix}${count - i - 1}${suffix}`);
+  };
+
   // Excitation Table Headers
   const generateExcitationTableHeaders = () => {
     const { flipFlopType, numFlipFlops, numInputs } = generateState;
     const headers = [
       <>
-        Current State<br />{Array.from({ length: numFlipFlops }, (_, i) => `Q${i}`).join("")}
+        Current State<br />{generateDescendingLabels("Q", numFlipFlops).join("")}
       </>,
       <>
-        Input<br />{Array.from({ length: numInputs }, (_, i) => `X${i}`).join("")}
+       Input<br />{generateDescendingLabels("X", numInputs).join("")}
       </>,
     ];
-    for (let i = 0; i < parseInt(numFlipFlops); i++) {
+    for (let i = numFlipFlops - 1; i >= 0; i--) {
       if (flipFlopType === "D" || flipFlopType === "T") {
         headers.push(`${flipFlopType}${i}`);
       } else if (flipFlopType === "JK") {
@@ -622,13 +605,13 @@ const CircuitToState = () => {
     const { numFlipFlops, numInputs } = generateState;
     const headers = [
       <>
-      Current State<br />{Array.from({ length: numFlipFlops }, (_, i) => `Q${i}`).join("")}
+        Current State<br />{generateDescendingLabels("Q", numFlipFlops).join("")}
       </>,
       <>
-        Input<br />{Array.from({ length: numInputs }, (_, i) => `X${i}`).join("")}
+        Input<br />{generateDescendingLabels("X", numInputs).join("")}
       </>,
       <>
-        Next State<br />{Array.from({ length: numFlipFlops }, (_, i) => `Q${i}'`).join("")}
+        Next State<br />{generateDescendingLabels("Q", numFlipFlops, "'").join("")}
       </>,
       <>
         Output<br />Z
@@ -669,7 +652,7 @@ const CircuitToState = () => {
         >
           <option value="">Number of Inputs</option>
           <option value="1">1 Input X0</option>
-          <option value="2">2 Inputs X0, X1</option>
+          <option value="2">2 Inputs X1, X0</option>
         </select>
       
         <select
