@@ -1,7 +1,11 @@
+//StateToCircuit.jsx
+
 import React, { useState } from "react";
 import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons"; // FontAwesome Arrow
 
 const StateToCircuit = () => {
     const [diagramType, setDiagramType] = useState("Mealy");
@@ -62,7 +66,12 @@ const StateToCircuit = () => {
 
     return (
         <div className="state-to-circuit-container">
-            <h1>{diagramType} State Diagram ➡️ Circuit</h1>
+            <header>
+                <h1>
+                    State <FontAwesomeIcon icon={faArrowRight} /> Circuit
+                    Diagram
+                </h1>
+            </header>
 
             <div className="control-panel">
                 <div>
