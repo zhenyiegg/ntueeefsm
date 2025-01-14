@@ -226,16 +226,19 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
           p.fill(0);
           p.text("Output Logic", outputX + 28, outputY + 35);
 
-          // Line from middle to Output Logic 
-          for (let i = 0; i < numFlipFlops; i++) {
-            p.line(outputX, outputY + boxHeight / 2, outputX - 80, outputY + boxHeight / 2); // middle to output
-          
-            // Arrowhead to Output Logic
-            const arrowX = outputX - 10; 
-            const arrowY = outputY + boxHeight / 2; 
-            p.triangle(arrowX, arrowY - 5, arrowX, arrowY + 5, arrowX + 10, arrowY); 
-          }
+          p.push();
+          p.strokeWeight(6.5); // stroke thickness for line to output
 
+          // Line from middle to Output Logic 
+          p.line(outputX - 10, outputY + boxHeight / 2, outputX - 78, outputY + boxHeight / 2); // middle to output
+
+          p.pop();
+          
+          // Arrowhead to Output Logic
+          const arrowXZ = outputX - 10; 
+          const arrowYZ = outputY + boxHeight / 2; 
+            p.triangle(arrowXZ, arrowYZ - 5, arrowXZ, arrowYZ + 5, arrowXZ + 10, arrowYZ); 
+          
           // Line from Output Logic to nowhere
           p.line(outputX + boxWidth, outputY + boxHeight / 2, outputX + boxWidth + 100, outputY + boxHeight / 2);
           p.text('Z', outputX + boxWidth + 70, outputY + (boxHeight / 2) - 8); 
