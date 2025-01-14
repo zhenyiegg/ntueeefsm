@@ -263,11 +263,11 @@ const CircuitToState = () => {
       if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T")) {
         //const index = key.slice(1); // Extract the number after J/K
         if (numInputs === "1" && numFlipFlops === "2") {
-          return `${key}(X0,\u00A0Q0,\u00A0Q1)`;
+          return `${key}(Q0,\u00A0Q1,\u00A0X0)`;
         } else if (numInputs === "2" && numFlipFlops === "2") {
-          return `${key}(X0,\u00A0X1,\u00A0Q0,\u00A0Q1)`;
+          return `${key}(Q0,\u00A0Q1,\u00A0X0,\u00A0X1)`;
         } else if (numInputs === "1" && numFlipFlops === "3") {
-          return `${key}(X0,\u00A0Q0,\u00A0Q1,\u00A0Q2)`;
+          return `${key}(Q0,\u00A0Q1,\u00A0Q2,\u00A0X0)`;
         }
       }
       return key; 
@@ -277,11 +277,11 @@ const CircuitToState = () => {
       if (key === "Z") {
         if (fsmType === "Mealy") {
           if (numInputs === "1" && numFlipFlops === "2") {
-            return `${key}(X0,\u00A0Q0',\u00A0Q1')`;
+            return `${key}(Q0',\u00A0Q1',\u00A0X0)`;
           } else if (numInputs === "2" && numFlipFlops === "2") {
-            return `${key}(X0,\u00A0X1,\u00A0Q0',\u00A0Q1')`;
+            return `${key}(Q0',\u00A0Q1',\u00A0X0,\u00A0X1)`;
           } else if (numInputs === "1" && numFlipFlops === "3") {
-            return `${key}(X0,\u00A0Q0',\u00A0Q1',\u00A0Q2')`;
+            return `${key}(Q0',\u00A0Q1',\u00A0Q2',\u00A0X0)`;
           }
         }
         else if (fsmType === "Moore") {
