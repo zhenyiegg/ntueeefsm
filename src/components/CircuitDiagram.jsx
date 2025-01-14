@@ -43,7 +43,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
 
           // Draw Inputs (X1, X2)
           for (let i = 0; i < numInputs; i++) {
-            if (i === 0) {
+            if (i === 1) {
               // X1 connects to Next State Logic
               p.line(startX - 100, startY + boxHeight + 110, startX, startY + boxHeight + 110); 
               p.text(`X${i}`, startX - 100, startY + boxHeight + 110 - 10); 
@@ -53,20 +53,21 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               const arrowY1 = startY + boxHeight + 110; 
               p.triangle(arrowX1, arrowY1 - 5, arrowX1, arrowY1 + 5, arrowX1 + 10, arrowY1); 
 
-            } else if (i === 1) {
+            } else if (i === 0) {
               // X2 connects to Next State Logic
               p.line(startX - 100, startY + boxHeight + 160, startX, startY + boxHeight + 160);
               p.text(`X${i}`, startX - 100, startY + boxHeight + 160 - 10); 
 
-              // Arrowhead X2
-              const arrowX2 = startX - 10; 
-              const arrowY2 = startY + boxHeight + 160; 
-              p.triangle(arrowX2, arrowY2 - 5, arrowX2, arrowY2 + 5, arrowX2 + 10, arrowY2); 
+              // Arrowhead X0
+              const arrowX0 = startX - 10; 
+              const arrowY0 = startY + boxHeight + 160; 
+              p.triangle(arrowX0, arrowY0 - 5, arrowX0, arrowY0 + 5, arrowX0 + 10, arrowY0); 
             }
           }
 
           // Draw Flip-Flops and connections
           for (let i = 0; i < numFlipFlops; i++) {
+            const flipFlopIndex = numFlipFlops - 1 - i;
             const flipFlopX = startX + 320;
             const flipFlopY = startY + i * flipFlopSpacing;
             const flipFlopWidth = boxWidth - 35;
@@ -95,12 +96,12 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
 
               // J input (top line) 
               p.line(flipFlopX, topLabelY - 6, startX + boxWidth, topLabelY - 6); 
-              p.text(`J${i}`, startX + boxWidth + 10, topLabelY - 15); 
+              p.text(`J${flipFlopIndex}`, startX + boxWidth + 10, topLabelY - 15); 
       
 
               // K input (bottom line)
               p.line(flipFlopX, bottomLabelY - 6, startX + boxWidth, bottomLabelY - 6);
-              p.text(`K${i}`, startX + boxWidth + 10, bottomLabelY - 15); 
+              p.text(`K${flipFlopIndex}`, startX + boxWidth + 10, bottomLabelY - 15); 
 
               p.push(); // Save current style settings
               p.fill(0) // fill for J and K arrowhead
@@ -140,7 +141,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               p.text(`${flipFlopType}`, flipFlopLabelX, topLabelY);
               p.text(`Q`, topLabelX, topLabelY);
               p.text(`Q'`, bottomLabelX, bottomLabelY);
-              p.text(`${flipFlopType}${i}`, startX + boxWidth + 10, topLabelY - 15);
+              p.text(`${flipFlopType}${flipFlopIndex}`, startX + boxWidth + 10, topLabelY - 15);
 
               // Single line for D or T flip-flop
               p.line(startX + boxWidth, topLabelY - 6, flipFlopX, topLabelY - 6); 
@@ -201,10 +202,15 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
             // Route the line ABOVE the diagram to avoid overlap
             p.line(flipFlopX + flipFlopWidth, flipFlopY + boxHeight / 2, flipFlopX + flipFlopWidth + 90, flipFlopY + boxHeight / 2); // Q Horizontal FF to middle vertical line
             p.line(flipFlopX + flipFlopWidth, bottomLabelY - 6, flipFlopX + flipFlopWidth + 90, bottomLabelY - 6); // Q' Horizontal FF to middle vertical line
-            p.line(flipFlopX + flipFlopWidth + 90, flipFlopY + 94, flipFlopX + flipFlopWidth + 90, 25); // Vertical upwards
-            p.line(flipFlopX + boxWidth + 55, 25, startX + boxWidth / 2, 25); // Horizontal above diagram
-            p.line(startX + boxWidth / 2, 25, startX + boxWidth / 2, startY); // Vertical down to Next State Logic
 
+            p.push();
+            p.strokeWeight(6); // stroke thickness for line to nest state logic
+
+            p.line(flipFlopX + flipFlopWidth + 90, flipFlopY + 92, flipFlopX + flipFlopWidth + 90, 25); // Vertical upwards
+            p.line(flipFlopX + boxWidth + 55, 25, startX + boxWidth / 2, 25); // Horizontal above diagram
+            p.line(startX + boxWidth / 2, 25, startX + boxWidth / 2, startY - 10); // Vertical down to Next State Logic
+
+            p.pop();
             p.push(); 
             p.fill(0); // fill for J arrowhead
             
@@ -214,8 +220,8 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
             p.triangle(arrowX - 5, arrowY - 10, arrowX + 5, arrowY - 10, arrowX, arrowY); // Draw arrowhead
 
             // Label for Flip-Flop Outputs Q#
-            p.text(`Q${i}`, flipFlopX + flipFlopWidth + 60, topLabelY - 15);
-            p.text(`Q${i}'`, flipFlopX + flipFlopWidth + 60, bottomLabelY - 15);
+            p.text(`Q${flipFlopIndex}`, flipFlopX + flipFlopWidth + 56, topLabelY - 15);
+            p.text(`Q${flipFlopIndex}'`, flipFlopX + flipFlopWidth + 56, bottomLabelY - 15);
           } 
 
           // Draw Output Logic Box
@@ -227,7 +233,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
           p.text("Output Logic", outputX + 28, outputY + 35);
 
           p.push();
-          p.strokeWeight(6.5); // stroke thickness for line to output
+          p.strokeWeight(6); // stroke thickness for line to output
 
           // Line from middle to Output Logic 
           p.line(outputX - 10, outputY + boxHeight / 2, outputX - 78, outputY + boxHeight / 2); // middle to output
@@ -257,11 +263,16 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
 
             if (numFlipFlops === '3') {
               // Draw X going under the diagram to avoid overlap (orthogonal)
-              p.line(startX - 40, startY + boxHeight + 110, startX - 40, startY + boxHeight + 370); // Go down 
+              p.line(startX - 40, startY + boxHeight + 160, startX - 40, startY + boxHeight + 370); // Go down
               p.line(startX - 40, startY + boxHeight + 370, outputX + boxWidth / 2 , startY + boxHeight + 370); // Go right
               p.line(outputX + boxWidth / 2, outputY + boxHeight, outputX + boxWidth / 2, outputY + boxHeight + 270); // Connect to output logic
             } else {
-              p.line(startX - 40, startY + boxHeight + 110, startX - 40, startY + boxHeight + 240); // Go down 
+              if (numInputs === '1') {
+                p.line(startX - 40, startY + boxHeight + 160, startX - 40, startY + boxHeight + 240); // Go down
+              }
+              else if (numInputs === '2') {
+                p.line(startX - 40, startY + boxHeight + 110, startX - 40, startY + boxHeight + 240); // Go down
+              }
               p.line(startX - 40, startY + boxHeight + 240, outputX + boxWidth / 2 , startY + boxHeight + 240); // Go right
               p.line(outputX + boxWidth / 2, outputY + boxHeight, outputX + boxWidth / 2, outputY + boxHeight + 140); // Connect to output logic
             }
