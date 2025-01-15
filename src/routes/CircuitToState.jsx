@@ -48,6 +48,61 @@ const CircuitToState = () => {
     fsmType: "",
   });
 
+  // Helper: Check if all dropdowns are selected
+  const isFormComplete =
+    dropdownState.numInputs &&
+    dropdownState.flipFlopType &&
+    dropdownState.numFlipFlops &&
+    dropdownState.fsmType;
+  
+  // Handle dropdown changes with dependent resets
+  const handleDropdownChange = (key, value) => {
+    const updatedState = { ...dropdownState, [key]: value };
+
+    // Reset number of flip-flops if inputs change to 2
+    if (key === "numInputs" && value === "2") {
+      if (dropdownState.numFlipFlops === "3") {
+        updatedState.numFlipFlops = ""; 
+      }
+    }
+    setDropdownState(updatedState);
+  };
+
+  // Trigger generation manually on button click
+  const handleGenerateButtonClick = () => {
+    if (isFormComplete) {
+      setGenerateState({ ...dropdownState }); // Finalize dropdown selections
+      generateMinMaxterms({ ...dropdownState }); // Generate circuit diagram and flip-flop inputs
+      setIsGenerated(true);
+    }
+  };
+
+  // Helper: Randomly select a dropdown value
+  const getRandomDropdownValue = (options) => {
+    const randomIndex = Math.floor(Math.random() * options.length);
+    return options[randomIndex];
+  };
+
+  // Helper: Auto-generate 
+  const handleAutoGenerate = () => {
+    const randomDropdownState = {
+      numInputs: getRandomDropdownValue(["1", "2"]),
+      flipFlopType: getRandomDropdownValue(["D", "T", "JK"]),
+      numFlipFlops: getRandomDropdownValue(["2", "3"]),
+      fsmType: getRandomDropdownValue(["Mealy", "Moore"]),
+    };
+  
+    // Valid combination (disable 3 flip-flops for 2 inputs)
+    if (randomDropdownState.numInputs === "2" && randomDropdownState.numFlipFlops === "3") {
+      randomDropdownState.numFlipFlops = "2";
+    }
+  
+    setDropdownState(randomDropdownState); // Update dropdown state
+    setGenerateState(randomDropdownState); // Update finalized state
+    generateMinMaxterms(randomDropdownState); // Generate circuit diagram and flip-flop inputs
+    setIsGenerated(true); 
+  };
+
   // Helper to check if all input fields are filled
   const areAllExcitationInputsFilled = useCallback(() => {
     return userExcitationInputs.every((row) =>
@@ -79,27 +134,6 @@ const CircuitToState = () => {
   useEffect(() => {
     setisGenerateStateDiagramButtonEnabled(areAllStateTransitionInputsFilled());
   }, [areAllStateTransitionInputsFilled]);
-
-  // Helper: Check if all dropdowns are selected
-  const isFormComplete =
-    dropdownState.numInputs &&
-    dropdownState.flipFlopType &&
-    dropdownState.numFlipFlops &&
-    dropdownState.fsmType;
-  
-  // Handle dropdown changes with dependent resets
-  const handleDropdownChange = (key, value) => {
-    const updatedState = { ...dropdownState, [key]: value };
-
-    // Reset number of flip-flops if inputs change to 2
-    if (key === "numInputs" && value === "2") {
-      if (dropdownState.numFlipFlops === "3") {
-        updatedState.numFlipFlops = ""; 
-      }
-    }
-
-    setDropdownState(updatedState);
-  };
 
   // Compute the next state based on flip-flop type and inputs
   const computeNextState = (flipFlopType, currentState, excitationAnswers, rowIndex, numFlipFlops) => {
@@ -184,16 +218,14 @@ const CircuitToState = () => {
     const possibleTerms = Array.from({ length: maxValue }, (_, index) => index);
     const shuffledTerms = shuffleArray(possibleTerms);
   
-    // Uniqueness
     const uniqueTermsSet = new Set(shuffledTerms.slice(0, limit));
     let terms = Array.from(uniqueTermsSet).sort((a, b) => a - b);
   
-    // Enforce Row Zero Constraint for Minterms or Maxterms
     if (ensureRowZeroHasOne) {
       if (isMinterm && !terms.includes(0)) {
         // Ensure rowIndex 0 is included for minterms
-        terms[0] = 0; // Replace the first term with 0
-        terms = Array.from(new Set(terms)).sort((a, b) => a - b); // Re-sort and remove duplicates
+        terms[0] = 0; 
+        terms = Array.from(new Set(terms)).sort((a, b) => a - b); 
       } else if (!isMinterm && terms.includes(0)) {
         // Ensure rowIndex 0 is excluded for maxterms
         terms = terms.filter((term) => term !== 0);
@@ -205,31 +237,36 @@ const CircuitToState = () => {
               break;
             }
           }
-          terms = Array.from(new Set(terms)).sort((a, b) => a - b); // Re-sort and remove duplicates
+          terms = Array.from(new Set(terms)).sort((a, b) => a - b); 
         }
       }
     }
   
     // Meet the limit constraint after enforcing uniqueness
     while (terms.length > limit) {
-      terms.pop(); // Remove excess terms
+      terms.pop();
     }
     while (terms.length < limit) {
       for (let i = 0; i < maxValue; i++) {
         if (!terms.includes(i)) {
-          terms.push(i); // Add missing terms
+          terms.push(i); 
           break;
         }
       }
-      terms = Array.from(new Set(terms)).sort((a, b) => a - b); // Re-sort and remove duplicates
+      terms = Array.from(new Set(terms)).sort((a, b) => a - b); 
     }
   
     return terms;
   };
 
   // Generate minterms, hidden correct answers and populate tables 
-  const generateMinMaxterms = () => {
-    const { numInputs, flipFlopType, numFlipFlops } = dropdownState;
+  const generateMinMaxterms = (state) => {
+    const { numInputs, flipFlopType, numFlipFlops, fsmType } = state || dropdownState;
+
+    if (!numInputs || !flipFlopType || !numFlipFlops || !fsmType) {
+      // Safety check if dropdowns are incomplete
+      return;
+    }
 
     setShowExcitationTable(true); 
     setExcitationSubheader('Complete the Excitation Table with only binary "0" and "1" values.');
@@ -242,7 +279,8 @@ const CircuitToState = () => {
     setShowStateTransitionTable(false); 
     setShowStateDiagram(false);
 
-    setGenerateState({ ...dropdownState }); // Finalize the dropdown selections
+    setGenerateState(state || dropdownState); // Finalize the dropdown selections
+
     let maxValue, minMinMaxterms, maxMinMaxterms;
 
     if (numFlipFlops === "2" && numInputs === "1") {
@@ -286,7 +324,7 @@ const CircuitToState = () => {
     }
 
     allFlipFlops.forEach((flipFlop, index) => {
-      const isMinterm = Math.random() < 0.5; // Randomly assign minterm or maxterm
+      const isMinterm = Math.random() < 0.5; // Randomly decide Σm or ΠM
       const ensureRowZeroHasOne = index === 0; //Only enforce for the first row (current state 00/000)
 
       const terms = generateUniqueTerms(
@@ -343,7 +381,7 @@ const CircuitToState = () => {
     setHiddenExcitationCorrectAnswers(excitationCorrectAnswers);
     setIsGenerated(true);
 
-    // Generate  table
+    // Generate tables
     const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
     const binaryInputs = generateBinaryStates(parseInt(numInputs));
 
@@ -380,7 +418,7 @@ const CircuitToState = () => {
           : outputTerms.includes(rowIndex) ? "0" : "1", // Maxterms
         };
 
-        // Populate the excitation table
+        // Populate excitation table
         allFlipFlops.forEach((flipFlop) => {
           const terms = excitationCorrectAnswers[flipFlop]?.terms || [];
           const isMinterm = excitationCorrectAnswers[flipFlop]?.isMinterm;
@@ -500,13 +538,13 @@ const CircuitToState = () => {
         if (row.flipFlopInputs[flipFlop].value === correctExcitationValue) {
         updatedRow.flipFlopInputs[flipFlop] = {
           ...row.flipFlopInputs[flipFlop],
-          status: "correct", // Mark as correct
+          status: "correct", 
         };
       } else {
         allCorrect = false; // Mark as incorrect if validation fails
         updatedRow.flipFlopInputs[flipFlop] = {
           ...row.flipFlopInputs[flipFlop],
-          status: "incorrect", // Mark as incorrect
+          status: "incorrect", 
         };
       }
     });
@@ -689,13 +727,20 @@ const CircuitToState = () => {
           <option value="Moore">Moore</option>
         </select>
 
-        {/* Generate Button */}
-        <button 
+        {/* Generate & Auto-Generate Buttons*/}
+        <button
           className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
-          onClick={generateMinMaxterms} 
+          onClick={handleGenerateButtonClick}
           disabled={!isFormComplete}
         >
           Generate Circuit & Flip-Flop Inputs
+        </button>
+
+        <button
+          className="auto-generate-btn"
+          onClick={handleAutoGenerate}
+        >
+          Auto Generate
         </button>
       </div>
               
@@ -717,12 +762,11 @@ const CircuitToState = () => {
             <p>
               {minMaxterms.map(
                 ({ flipFlop, formattedTerms }) => (
-                  <span key={flipFlop}>
+                  <span key={flipFlop} className="minMaxterm-item">
                     <strong>{flipFlop}&nbsp;=&nbsp;</strong>{formattedTerms}
                   </span>
                 )
-              )
-              .reduce((prev, curr) => [prev, " \u00A0\u00A0\u00A0", curr])}
+              )}
             </p>
             <p>
               {minMaxtermOutputZ}

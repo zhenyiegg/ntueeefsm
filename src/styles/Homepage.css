@@ -68,9 +68,10 @@
   }
   
   
-  .custom-button {
-    width: 14rem;              
-    height: 4rem;      
+  .custom-button, .any-button {
+    /*width: 14rem;              
+    height: 4rem;  */  
+    padding: 0.5rem 1.5rem;
     font-size: 1.25rem;
     font-family: monospace;           
     border-radius: 9999px;      
@@ -83,8 +84,13 @@
     border: none;
     transition: background-color 0.2s ease-in-out;
   }
+
+  .any-button {
+    width: 14rem;              
+    height: 4rem;
+  }
   
-  .custom-button:hover {
+  .custom-button:hover, .any-button:hover {
     background-color: #374151;
   }
   
