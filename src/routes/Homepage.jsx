@@ -39,7 +39,7 @@ export default function HomePage() {
                         State to Circuit Diagram
                     </button>
 
-                    <button className="custom-button" onClick={handleAnyClick}>
+                    <button className="any-button" onClick={handleAnyClick}>
                         Any
                     </button>
                 </div>

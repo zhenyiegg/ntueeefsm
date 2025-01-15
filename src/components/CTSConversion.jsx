@@ -112,8 +112,10 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       stateElements[state] = circle;
     });
 
-    // Check if the reset state has no incoming transitions
-    const resetStateHasIncoming = stateTransitionTable.some(row => row.nextState === resetState);
+    // Check if the reset state has no incoming transitions except itself
+    const resetStateHasIncoming = stateTransitionTable.some(
+      (row) => row.nextState === resetState && row.currentState !== resetState
+    );
 
     // Display FSM information
     let explanation;
