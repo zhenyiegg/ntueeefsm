@@ -183,8 +183,8 @@ const StateDiagram = ({
                 state.set("stateNumber", stateNumber);
 
                 // Adjust font size
-                const minFontSize = 12; // [Modified]
-                const maxFontSize = 16; // [Modified]
+                const minFontSize = 22; // [Modified]
+                const maxFontSize = 26; // [Modified]
                 const fontSize =
                     maxFontSize - (numStates - 3) > minFontSize // [Modified]
                         ? maxFontSize - (numStates - 3)

@@ -60,7 +60,28 @@ const StateToCircuit = () => {
     };
 
     const handleDiagramGenerated = (table) => {
-        setTransitionTable(table);
+        // Make a copy of the table and sort by the numeric portion of the "S#"
+        const sortedTable = [...table].sort((a, b) => {
+            // Extract the state numbers from something like "S3 (11)"
+            const aPresentStateNum = parseInt(
+                a.presentState.match(/S(\d+)/)[1],
+                10
+            );
+            const bPresentStateNum = parseInt(
+                b.presentState.match(/S(\d+)/)[1],
+                10
+            );
+
+            if (aPresentStateNum !== bPresentStateNum) {
+                return aPresentStateNum - bPresentStateNum;
+            }
+            // (Optional) Secondary sort by input in numeric order (binary -> decimal)
+            const aInputNum = parseInt(a.input, 2);
+            const bInputNum = parseInt(b.input, 2);
+            return aInputNum - bInputNum;
+        });
+
+        setTransitionTable(sortedTable);
         setShouldGenerate(false); // Reset the generation flag after generating
     };
 
