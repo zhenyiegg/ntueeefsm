@@ -1,7 +1,9 @@
 // kmap.jsx
 
-function simplifyBooleanFunction(minterms, numVariables) {
-    // Extend variables to support more bits
+export function simplifyBooleanFunction(minterms, numVariables, validIndices) {
+    // If caller does not supply a validIndices set, we default to the old behavior
+    const hasDontCares = !!validIndices;
+
     const variables = [
         "A",
         "B",
@@ -17,122 +19,121 @@ function simplifyBooleanFunction(minterms, numVariables) {
         "L",
     ].slice(0, numVariables);
 
-    // Generate all possible minterms
+    // Build a list of all possible combos 0..(2^numVariables -1)
     const allMinterms = [];
-    for (let i = 0; i < Math.pow(2, numVariables); i++) {
+    for (let i = 0; i < 1 << numVariables; i++) {
         const binary = i.toString(2).padStart(numVariables, "0");
-        allMinterms.push({
-            binary,
-            value: minterms.includes(i) ? 1 : 0,
-            used: false,
-        });
+
+        // Decide if it's a 1, 0, or don't‐care
+        let val = 0;
+        if (minterms.includes(i)) {
+            val = 1; // definitely 1
+        } else if (hasDontCares && !validIndices.has(i)) {
+            val = 2; // treat as don't‐care
+        } else {
+            val = 0; // forced 0
+        }
+        allMinterms.push({ binary, value: val, used: false });
     }
 
-    // Group minterms by the number of ones
+    // Now group all items that are 1 or 2 (don't‐care can be grouped with 1)
     let groups = {};
-    allMinterms.forEach((minterm) => {
-        if (minterm.value === 1) {
-            const ones = minterm.binary
-                .split("")
-                .filter((b) => b === "1").length;
+    allMinterms.forEach((m) => {
+        if (m.value === 1 || m.value === 2) {
+            const ones = m.binary.split("").filter((x) => x === "1").length;
             if (!groups[ones]) groups[ones] = [];
-            groups[ones].push(minterm);
+            groups[ones].push(m);
         }
     });
 
-    const mergedGroups = [];
+    const primeImplicants = [];
     let canCombine = true;
 
     while (canCombine) {
-        let canCombineThisIteration = false; // Use a local variable
+        canCombine = false;
         const newGroups = {};
 
-        const groupKeys = Object.keys(groups)
-            .map((key) => parseInt(key))
+        const sortedKeys = Object.keys(groups)
+            .map(Number)
             .sort((a, b) => a - b);
 
-        for (let i = 0; i < groupKeys.length - 1; i++) {
-            const groupA = groups[groupKeys[i]];
-            const groupB = groups[groupKeys[i + 1]];
+        for (let idx = 0; idx < sortedKeys.length - 1; idx++) {
+            const groupA = groups[sortedKeys[idx]];
+            const groupB = groups[sortedKeys[idx + 1]];
 
-            for (let a = 0; a < groupA.length; a++) {
-                const mintermA = groupA[a];
-
-                for (let b = 0; b < groupB.length; b++) {
-                    const mintermB = groupB[b];
-
-                    const diff = diffBits(mintermA.binary, mintermB.binary);
-                    if (diff.count === 1) {
-                        canCombineThisIteration = true;
-                        const combinedBinary = replaceBit(
-                            mintermA.binary,
-                            diff.index,
-                            "-"
-                        );
-                        const key = combinedBinary;
-
-                        if (!newGroups[key]) {
-                            newGroups[key] = {
-                                binary: combinedBinary,
-                                minterms: [
-                                    ...(mintermA.minterms || [
-                                        parseInt(mintermA.binary, 2),
-                                    ]),
-                                    ...(mintermB.minterms || [
-                                        parseInt(mintermB.binary, 2),
-                                    ]),
-                                ],
-                                used: false,
-                            };
+            for (const mA of groupA) {
+                for (const mB of groupB) {
+                    const d = diffBits(mA.binary, mB.binary);
+                    // We can combine if they differ by 1 bit AND neither is purely 0 (they're 1 or 2 or both)
+                    if (d.count === 1) {
+                        canCombine = true;
+                        const combined = replaceBit(mA.binary, d.index, "-");
+                        if (!newGroups[sortedKeys[idx]]) {
+                            newGroups[sortedKeys[idx]] = [];
                         }
-                        mintermA.used = true;
-                        mintermB.used = true;
+                        newGroups[sortedKeys[idx]].push({
+                            binary: combined,
+                            // union of minterm sets
+                            minterms: [
+                                ...(mA.minterms || [parseInt(mA.binary, 2)]),
+                                ...(mB.minterms || [parseInt(mB.binary, 2)]),
+                            ],
+                            value: mA.value === 2 || mB.value === 2 ? 2 : 1, // if either is don't-care, result is don't-care
+                            used: false,
+                        });
+                        mA.used = true;
+                        mB.used = true;
                     }
                 }
             }
         }
 
-        // Add unused minterms to mergedGroups
-        Object.values(groups).forEach((group) => {
-            for (const minterm of group) {
-                if (!minterm.used && minterm.value === 1) {
-                    mergedGroups.push({
-                        binary: minterm.binary,
-                        minterms: [parseInt(minterm.binary, 2)],
+        // Move all uncombined 1/don't-care items into primeImplicants
+        Object.values(groups)
+            .flat()
+            .forEach((m) => {
+                if (!m.used && (m.value === 1 || m.value === 2)) {
+                    primeImplicants.push({
+                        binary: m.binary,
+                        minterms: m.minterms || [parseInt(m.binary, 2)],
+                        value: m.value,
                     });
                 }
-            }
-        });
+            });
 
-        // Prepare groups for next iteration
+        // Rebuild next iteration groups
         groups = {};
-        for (const item of Object.values(newGroups)) {
-            const ones = item.binary.split("").filter((b) => b === "1").length;
-            if (!groups[ones]) groups[ones] = [];
-            groups[ones].push(item);
-        }
-
-        canCombine = canCombineThisIteration; // Update canCombine at the end of the loop
+        Object.keys(newGroups).forEach((k) => {
+            if (!groups[k]) groups[k] = [];
+            groups[k].push(...newGroups[k]);
+        });
     }
 
-    // Remove duplicate terms from mergedGroups
-    const uniqueGroups = mergedGroups.filter(
-        (group, index, self) =>
-            index ===
-            self.findIndex(
-                (g) =>
-                    g.binary === group.binary &&
-                    g.minterms.toString() === group.minterms.toString()
+    // Remove duplicates
+    const uniquePrimes = [];
+    for (const imp of primeImplicants) {
+        if (
+            !uniquePrimes.some(
+                (u) =>
+                    u.binary === imp.binary &&
+                    u.minterms.toString() === imp.minterms.toString()
             )
-    );
+        ) {
+            uniquePrimes.push(imp);
+        }
+    }
 
-    // Now, convert uniqueGroups to expressions
-    const expressions = uniqueGroups.map((group) => {
-        return binaryToExpression(group.binary, variables);
-    });
+    // Convert each prime implicant to an expression
+    const expressions = uniquePrimes
+        // We only keep those that are actually 1 or 2 in at least one minterm
+        .filter((imp) => imp.value !== 0)
+        .map((imp) => binaryToExpression(imp.binary, variables));
 
-    // Combine expressions using OR
-    const finalExpression = expressions.join(" + ") || "0";
+    // If everything was don't-care or we have no expressions, it might be "0" or "1"
+    // Usually, if we had actual minterms, we OR them
+    const finalExpression =
+        expressions.length > 0 ? expressions.join(" + ") : "0";
+
     return finalExpression;
 }
 
@@ -165,4 +166,32 @@ function binaryToExpression(binary, variables) {
     return term || "1"; // If term is empty, it's a tautology
 }
 
-export { simplifyBooleanFunction };
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/**
+ * Given a list of minterm decimal indices, return a canonical
+ * sum-of-minterms string: "Σm(1,3,5,...)"
+ */
+export function getCanonicalSumOfMinterms(mintermIndices, numVars) {
+    // Sort for nicer display
+    const sorted = [...mintermIndices].sort((a, b) => a - b);
+
+    // Example: F = Σm(1,3,5,...)
+    return `Σm(${sorted.join(",")})`;
+}
+
+/**
+ * Given a list of minterm decimal indices (where F=1) and total
+ * number of variables, return the complementary maxterm indices
+ * and produce a canonical product-of-maxterms string: "ΠM(0,2,4,...)"
+ */
+export function getCanonicalProductOfMaxterms(mintermIndices, numVars) {
+    const allIndices = Array.from({ length: 2 ** numVars }, (_, i) => i);
+    const maxtermIndices = allIndices.filter(
+        (i) => !mintermIndices.includes(i)
+    );
+    const sorted = maxtermIndices.sort((a, b) => a - b);
+
+    // Example: F = ΠM(0,2,4,7,...)
+    return `ΠM(${sorted.join(",")})`;
+}

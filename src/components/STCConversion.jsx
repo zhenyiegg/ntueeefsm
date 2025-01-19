@@ -1,7 +1,11 @@
 /* STCConversion.jsx */
 
 import React, { useEffect, useState } from "react";
-import { simplifyBooleanFunction } from "./kmap"; // K-map solver
+import {
+    simplifyBooleanFunction,
+    getCanonicalSumOfMinterms,
+    getCanonicalProductOfMaxterms,
+} from "./kmap"; // K-map solver
 import CircuitDiagram from "./CircuitDiagram"; // <-- Reuse your P5 circuit component
 
 const STCConversion = ({
@@ -37,6 +41,7 @@ const STCConversion = ({
          *    We parse each row of the transition table to figure out the encoded bits for each state.
          */
         const states = {};
+        const validIndices = new Set();
         transitionTable.forEach((row) => {
             // Example row.presentState might be "S1 (01)", nextState might be "S2 (10)"
             // So let's parse out the 2nd capturing group which is the binary code in parentheses
@@ -76,9 +81,14 @@ const STCConversion = ({
             const presentCode = states[presentStateId].padStart(maxBits, "0");
             const nextCode = states[nextStateId].padStart(maxBits, "0");
 
+            // For the solver: mark this combination of (presentCode + inputVal) as "valid"
+            const varsForThisRow = presentCode + inputVal;
+            const decimalIndex = parseInt(varsForThisRow, 2);
+            validIndices.add(decimalIndex);
+
             for (let i = 0; i < maxBits; i++) {
-                const currentBit = presentCode[i];
-                const nextBit = nextCode[i];
+                const currentBit = presentCode[maxBits - 1 - i];
+                const nextBit = nextCode[maxBits - 1 - i];
 
                 // handle D or T
                 if (flipFlopType === "D" || flipFlopType === "T") {
@@ -123,23 +133,22 @@ const STCConversion = ({
 
         setExcitationTable(flipFlopInputs);
 
-        /**
-         * 3) SIMPLIFY THE EXCITATION EQUATIONS (OPTIONAL)
-         *    Use your KMap or Quine–McCluskey solver to get minimal logic.
-         */
+        // 3) BUILD MINTERM ARRAYS & PRODUCE EQUATIONS
+        //    For D/T: we have a single output function for each Q-bit
+        //    For JK: we have two (J and K) for each Q-bit
         const eqns = {};
 
         Object.keys(flipFlopInputs).forEach((ffKey) => {
             const table = flipFlopInputs[ffKey];
             if (!table.length) return;
 
-            if (flipFlopType === "D" || flipFlopType === "T") {
-                // Build minterms for 1’s
-                const minterms = [];
-                // # of variables = (#bits in presentState) + (#bits in input).
-                const numVariables =
-                    table[0].presentStateCode.length + table[0].input.length;
+            // # of variables = (#bits in presentState) + (#bits in input).
+            const numVariables =
+                table[0].presentStateCode.length + table[0].input.length;
 
+            if (flipFlopType === "D" || flipFlopType === "T") {
+                // Collect minterm indices
+                const minterms = [];
                 table.forEach((entry) => {
                     const vars = entry.presentStateCode + entry.input; // e.g. '0101'
                     if (entry.flipFlopInputValue === 1) {
@@ -148,14 +157,28 @@ const STCConversion = ({
                     }
                 });
 
-                eqns[ffKey] = simplifyBooleanFunction(minterms, numVariables);
+                // Build object with all forms
+                eqns[ffKey] = {
+                    mintermIndices: minterms,
+                    minimalSoP: simplifyBooleanFunction(
+                        minterms,
+                        numVariables,
+                        validIndices
+                    ),
+                    canonicalSoM: getCanonicalSumOfMinterms(
+                        minterms,
+                        numVariables
+                    ),
+                    canonicalPoM: getCanonicalProductOfMaxterms(
+                        minterms,
+                        numVariables
+                    ),
+                };
             } else if (flipFlopType === "JK") {
-                // We handle J and K separately
-                const numVariables =
-                    table[0].presentStateCode.length + table[0].input.length;
-
-                // For J
+                // We'll do J and K separately
                 const mintermsJ = [];
+                const mintermsK = [];
+
                 table.forEach((entry) => {
                     if (entry.J === 1) {
                         const index = parseInt(
@@ -164,15 +187,6 @@ const STCConversion = ({
                         );
                         mintermsJ.push(index);
                     }
-                });
-                eqns[`${ffKey}_J`] = simplifyBooleanFunction(
-                    mintermsJ,
-                    numVariables
-                );
-
-                // For K
-                const mintermsK = [];
-                table.forEach((entry) => {
                     if (entry.K === 1) {
                         const index = parseInt(
                             entry.presentStateCode + entry.input,
@@ -181,16 +195,43 @@ const STCConversion = ({
                         mintermsK.push(index);
                     }
                 });
-                eqns[`${ffKey}_K`] = simplifyBooleanFunction(
-                    mintermsK,
-                    numVariables
-                );
+
+                eqns[`${ffKey}_J`] = {
+                    mintermIndices: mintermsJ,
+                    minimalSoP: simplifyBooleanFunction(
+                        mintermsJ,
+                        numVariables,
+                        validIndices
+                    ),
+                    canonicalSoM: getCanonicalSumOfMinterms(
+                        mintermsJ,
+                        numVariables
+                    ),
+                    canonicalPoM: getCanonicalProductOfMaxterms(
+                        mintermsJ,
+                        numVariables
+                    ),
+                };
+                eqns[`${ffKey}_K`] = {
+                    mintermIndices: mintermsK,
+                    minimalSoP: simplifyBooleanFunction(
+                        mintermsK,
+                        numVariables,
+                        validIndices
+                    ),
+                    canonicalSoM: getCanonicalSumOfMinterms(
+                        mintermsK,
+                        numVariables
+                    ),
+                    canonicalPoM: getCanonicalProductOfMaxterms(
+                        mintermsK,
+                        numVariables
+                    ),
+                };
             }
         });
 
         setSimplifiedEquations(eqns);
-
-        // Once we finish all calculations, set isGenerated to true so we can render the circuit
         setIsGenerated(true);
     }, [transitionTable, flipFlopType, numInputs]);
 
@@ -304,25 +345,39 @@ const STCConversion = ({
     };
 
     /**
-     * Finally, render the simplified equations if you wish:
+     * Render the minterm / maxterm / minimal SoP for each equation
      */
-    // const renderSimplifiedEquations = () => {
-    //     return Object.keys(simplifiedEquations).map((key) => (
-    //         <p key={key}>
-    //             <strong>{key} = </strong>
-    //             {simplifiedEquations[key]}
-    //         </p>
-    //     ));
-    // };
+    const renderEquations = () => {
+        return Object.keys(simplifiedEquations).map((key) => {
+            const eqn = simplifiedEquations[key];
+            return (
+                <div key={key} style={{ marginBottom: "1rem" }}>
+                    <h4>Equations for {key}</h4>
+                    <p>
+                        <strong>Canonical Sum of Minterms:</strong>{" "}
+                        {eqn.canonicalSoM}
+                    </p>
+                    <p>
+                        <strong>Canonical Product of Maxterms:</strong>{" "}
+                        {eqn.canonicalPoM}
+                    </p>
+                    <p>
+                        <strong>Minimal SOP (via Quine–McCluskey):</strong>{" "}
+                        {eqn.minimalSoP}
+                    </p>
+                </div>
+            );
+        });
+    };
 
     return (
         <div>
             {/* 1) Display Excitation Table */}
             {renderExcitationTable()}
 
-            {/* 2) Display (optional) simplified equations
-            <h3>Simplified Excitation Equations</h3>
-            {renderSimplifiedEquations()} */}
+            {/* 2) Display Minterm/Maxterm equations and minimal SoP */}
+            <h3>Minterm / Maxterm Equations</h3>
+            {renderEquations()}
 
             <h2>Generated Circuit Diagram</h2>
 
