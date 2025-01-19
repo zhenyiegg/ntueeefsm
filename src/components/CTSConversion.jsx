@@ -39,6 +39,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     const incomingTransitions = {};
     const outgoingTransitions = {};
 
+    // Initialize counts for incoming and outgoing transitions
     states.forEach(state => {
       incomingTransitions[state] = 0;
       outgoingTransitions[state] = 0;
@@ -50,14 +51,14 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       outgoingTransitions[row.currentState] += 1;
     });
 
-    // Define reset states explicitly
     const resetState = numFlipFlops === 2 ? "00" : "000";
 
-    const unusedStates = states.filter(state => {
+    let primaryUnusedStates = states.filter(state => {
       // Skip reset states from being considered unused
-      if (resetState.includes(state)) {
-        return false;
+      if (state === resetState) {
+        return false; 
       }
+
       // Count incoming, outgoing transitions and detect self-loop
       let hasSelfLoop = false;
       let hasOutgoing = false;
@@ -82,6 +83,44 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         (hasSelfLoop && hasOutgoing && !hasIncoming)    // Self-loop with outgoing transitions, no incoming
       );
     });
+
+    const isReachedOnlyByUnused = (state, unusedStates) => {
+      if (state === resetState) {
+        return false;
+      }
+    
+      const incomingStates = stateTransitionTable
+        .filter(row => row.nextState === state)
+        .map(row => row.currentState);
+    
+      return incomingStates.every(currentState => unusedStates.includes(currentState));
+    };
+    
+    // Identify secondary unused states iteratively
+    let unusedStates = [...primaryUnusedStates];
+    let newlyIdentifiedUnusedStates;
+    
+    do {
+      const currentUnusedStates = [...unusedStates];
+    
+      newlyIdentifiedUnusedStates = states.filter(state =>
+        !currentUnusedStates.includes(state) &&
+        isReachedOnlyByUnused(state, currentUnusedStates) &&
+        (
+          (stateTransitionTable.some(row => row.currentState === state && row.nextState === state)) || // Self-loop
+          (stateTransitionTable.some(row => row.currentState === state && row.nextState !== state)) || // Outgoing transitions
+          (
+            stateTransitionTable.some(row => row.currentState === state && row.nextState === state) &&
+            stateTransitionTable.some(row => row.currentState === state && row.nextState !== state) // Both self-loop and outgoing transitions
+          )
+        )
+      );
+    
+      unusedStates = [...unusedStates, ...newlyIdentifiedUnusedStates];
+    } while (newlyIdentifiedUnusedStates.length > 0);
+    
+    // Ensure reset state is not marked as unused
+    unusedStates = unusedStates.filter(state => state !== resetState);
     
     // Create state circles
     states.forEach((state) => {
@@ -226,7 +265,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
               ry: 2, 
               refWidth: 6, // Scale relative to the text
               refHeight: 2, 
-              refX: -2.5, // Padding on the left
+              refX: -2.5, // left padding
               width: "auto", 
               height: "auto", 
             },
@@ -238,20 +277,36 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         line: {
           stroke: "#000",
           strokeWidth: 2,
-          targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" },
+          targetMarker: {
+            type: "path",
+            fill: "#000",
+            d: "M 10 -5 0 0 10 5 Z", 
+          },
         },
       });
 
       // Hover and click events handled through Paper
       paper.on("link:mouseenter", (linkView) => {
         if (linkView.model === link) {
-          linkView.model.attr("line/stroke", "#b084cc");
+          linkView.model.attr({
+            line: {
+            stroke: "purple", 
+            strokeWidth: 3.6,   
+            targetMarker: { type: "path", fill: "purple", d: "M 14 -7 0 0 14 7 Z" }, 
+            },
+          });
         }
       });
 
       paper.on("link:mouseleave", (linkView) => {
         if (linkView.model === link) {
-          linkView.model.attr("line/stroke", "#000");
+          linkView.model.attr({
+            line: {
+              stroke: "#000",  
+              strokeWidth: 2,  
+              targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" }, 
+            },
+          });
         }
       });
 
