@@ -26,7 +26,7 @@ const STCConversion = ({
     //     Q1: ...
     //   }
     const [excitationTable, setExcitationTable] = useState(null);
-
+    const [mergedExcitationTable, setMergedExcitationTable] = useState(null);
     // We’ll track how many bits we need for each state,
     // the simplified equations, and whether we should display the circuit.
     const [numStateBits, setNumStateBits] = useState(0);
@@ -71,6 +71,8 @@ const STCConversion = ({
             flipFlopInputs[`Q${i}`] = [];
         }
 
+        const mergedTable = []; // For the combined excitation table
+
         transitionTable.forEach((row) => {
             // parse the current row
             const inputVal = row.input;
@@ -86,40 +88,45 @@ const STCConversion = ({
             const decimalIndex = parseInt(varsForThisRow, 2);
             validIndices.add(decimalIndex);
 
+            const rowExcitations = [];
+
             for (let i = 0; i < maxBits; i++) {
                 const currentBit = presentCode[maxBits - 1 - i];
                 const nextBit = nextCode[maxBits - 1 - i];
+                let ffInputVal;
 
-                // handle D or T
-                if (flipFlopType === "D" || flipFlopType === "T") {
-                    let ffInputVal = 0;
-                    if (flipFlopType === "D") {
-                        // D input = next bit
-                        ffInputVal = nextBit === "1" ? 1 : 0;
-                    } else if (flipFlopType === "T") {
-                        // T is 1 if nextBit != currentBit
-                        ffInputVal = currentBit === nextBit ? 0 : 1;
-                    }
+                if (flipFlopType === "D") {
+                    ffInputVal = nextBit === "1" ? 1 : 0;
                     flipFlopInputs[`Q${i}`].push({
                         presentStateCode: presentCode,
                         input: inputVal,
                         flipFlopInputValue: ffInputVal,
                     });
+                    // We'll store e.g. "1" or "0"
+                    rowExcitations.push(ffInputVal.toString());
+                } else if (flipFlopType === "T") {
+                    ffInputVal = currentBit === nextBit ? 0 : 1;
+                    flipFlopInputs[`Q${i}`].push({
+                        presentStateCode: presentCode,
+                        input: inputVal,
+                        flipFlopInputValue: ffInputVal,
+                    });
+                    rowExcitations.push(ffInputVal.toString());
                 } else if (flipFlopType === "JK") {
+                    // J-K calculation
                     let J, K;
-                    // standard JK logic
                     if (currentBit === "0" && nextBit === "0") {
                         J = 0;
-                        K = "X"; // hold
+                        K = "X";
                     } else if (currentBit === "0" && nextBit === "1") {
                         J = 1;
-                        K = "X"; // set
+                        K = "X";
                     } else if (currentBit === "1" && nextBit === "0") {
                         J = "X";
-                        K = 1; // reset
+                        K = 1;
                     } else {
                         J = "X";
-                        K = 0; // hold
+                        K = 0;
                     }
                     flipFlopInputs[`Q${i}`].push({
                         presentStateCode: presentCode,
@@ -127,11 +134,34 @@ const STCConversion = ({
                         J,
                         K,
                     });
+                    // We'll store e.g. "1X" or "X1"
+                    rowExcitations.push(`${J}${K}`);
                 }
             }
+
+            // Now that we have all bit excitations for this row,
+            // build a single string for that row’s "D1D0" or "T1T0" or "J1K1 J0K0".
+            // Remember rowExcitations currently holds them in LSB->MSB order,
+            // so we can reverse if you need MSB->LSB, or just keep consistent:
+            const reversed = [...rowExcitations].reverse();
+            const excitationString =
+                flipFlopType === "JK"
+                    ? // for JK, you might want a space to separate pairs
+                      reversed.join(" ")
+                    : reversed.join("");
+
+            // Finally push one row into mergedTable
+            mergedTable.push({
+                presentState: presentCode,
+                input: inputVal,
+                nextState: nextCode,
+                excitation: excitationString,
+                output: row.output,
+            });
         });
 
         setExcitationTable(flipFlopInputs);
+        setMergedExcitationTable(mergedTable);
 
         // 3) BUILD MINTERM ARRAYS & PRODUCE EQUATIONS
         //    For D/T: we have a single output function for each Q-bit
@@ -240,108 +270,55 @@ const STCConversion = ({
      * (so they can verify how the Flip-Flop inputs are determined).
      */
     const renderExcitationTable = () => {
-        if (!excitationTable) return null;
-        return Object.keys(excitationTable).map((ffKey) => {
-            const rows = excitationTable[ffKey];
-            return (
-                <div key={ffKey} style={{ marginBottom: "1rem" }}>
-                    <h3>Excitation Table for {ffKey}</h3>
-                    <table
-                        style={{
-                            borderCollapse: "collapse",
-                            border: "1px solid black",
-                            width: "100%",
-                        }}
-                    >
-                        <thead>
-                            <tr>
-                                <th style={{ border: "1px solid black" }}>
-                                    Present State
-                                </th>
-                                <th style={{ border: "1px solid black" }}>
-                                    Input
-                                </th>
-                                {flipFlopType === "D" ||
-                                flipFlopType === "T" ? (
-                                    <th style={{ border: "1px solid black" }}>
-                                        {flipFlopType} Input
-                                    </th>
-                                ) : (
-                                    <>
-                                        <th
-                                            style={{
-                                                border: "1px solid black",
-                                            }}
-                                        >
-                                            J
-                                        </th>
-                                        <th
-                                            style={{
-                                                border: "1px solid black",
-                                            }}
-                                        >
-                                            K
-                                        </th>
-                                    </>
-                                )}
+        if (!mergedExcitationTable) return null;
+
+        // Determine the excitation column header
+        let excitationHeader;
+        const bitIndices = Array.from(
+            { length: numStateBits },
+            (_, i) => numStateBits - 1 - i
+        );
+        if (flipFlopType === "D") {
+            excitationHeader = bitIndices.map((i) => `D${i}`).join("");
+        } else if (flipFlopType === "T") {
+            excitationHeader = bitIndices.map((i) => `T${i}`).join("");
+        } else if (flipFlopType === "JK") {
+            excitationHeader = bitIndices.map((i) => `J${i}K${i}`).join(" ");
+        }
+
+        return (
+            <div style={{ marginBottom: "1rem" }}>
+                <h3>Combined Excitation Table</h3>
+                <table
+                    style={{
+                        borderCollapse: "collapse",
+                        border: "1px solid black",
+                        width: "100%",
+                    }}
+                >
+                    <thead>
+                        <tr>
+                            <th>Present State</th>
+                            <th>Input</th>
+                            <th>Next State</th>
+                            <th>{excitationHeader}</th>
+                            <th>Output (Z)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {mergedExcitationTable.map((row, idx) => (
+                            <tr key={idx}>
+                                <td>{row.presentState}</td>
+                                <td>{row.input}</td>
+                                <td>{row.nextState}</td>
+                                <td>{row.excitation}</td>
+                                <td>{row.output}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((entry, idx) => (
-                                <tr key={idx}>
-                                    <td
-                                        style={{
-                                            border: "1px solid black",
-                                            textAlign: "center",
-                                        }}
-                                    >
-                                        {entry.presentStateCode}
-                                    </td>
-                                    <td
-                                        style={{
-                                            border: "1px solid black",
-                                            textAlign: "center",
-                                        }}
-                                    >
-                                        {entry.input}
-                                    </td>
-                                    {flipFlopType === "D" ||
-                                    flipFlopType === "T" ? (
-                                        <td
-                                            style={{
-                                                border: "1px solid black",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            {entry.flipFlopInputValue}
-                                        </td>
-                                    ) : (
-                                        <>
-                                            <td
-                                                style={{
-                                                    border: "1px solid black",
-                                                    textAlign: "center",
-                                                }}
-                                            >
-                                                {entry.J}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    border: "1px solid black",
-                                                    textAlign: "center",
-                                                }}
-                                            >
-                                                {entry.K}
-                                            </td>
-                                        </>
-                                    )}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
-        });
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
     };
 
     /**
@@ -354,16 +331,13 @@ const STCConversion = ({
                 <div key={key} style={{ marginBottom: "1rem" }}>
                     <h4>Equations for {key}</h4>
                     <p>
-                        <strong>Canonical Sum of Minterms:</strong>{" "}
-                        {eqn.canonicalSoM}
+                        <strong>Sum of Minterms:</strong> {eqn.canonicalSoM}
                     </p>
                     <p>
-                        <strong>Canonical Product of Maxterms:</strong>{" "}
-                        {eqn.canonicalPoM}
+                        <strong>Product of Maxterms:</strong> {eqn.canonicalPoM}
                     </p>
                     <p>
-                        <strong>Minimal SOP (via Quine–McCluskey):</strong>{" "}
-                        {eqn.minimalSoP}
+                        <strong>Minimal SOP:</strong> {eqn.minimalSoP}
                     </p>
                 </div>
             );
