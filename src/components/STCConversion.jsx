@@ -272,12 +272,30 @@ const STCConversion = ({
     const renderExcitationTable = () => {
         if (!mergedExcitationTable) return null;
 
-        // Determine the excitation column header
-        let excitationHeader;
         const bitIndices = Array.from(
             { length: numStateBits },
             (_, i) => numStateBits - 1 - i
         );
+
+        // State bits, e.g. Q1Q0
+        const presentStateBits = bitIndices.map((i) => `Q${i}`).join("");
+        const nextStateBits = bitIndices.map((i) => `Q${i}*`).join("");
+
+        // Input bits, e.g. X0 or X1X0 for multiple inputs
+        const inputBitIndices = Array.from(
+            { length: numInputs },
+            (_, i) => numInputs - 1 - i
+        );
+        const inputBits = inputBitIndices.map((i) => `X${i}`).join("");
+
+        // Final bracketed headers
+        const presentStateHeader = `Present State (${presentStateBits})`;
+        const nextStateHeader = `Next State (${nextStateBits})`;
+        const inputHeader = `Input (${inputBits || "X"})`; // fallback if numInputs=1
+
+        // 4.2) Build the flip-flop "excitation" header
+        let excitationHeader;
+
         if (flipFlopType === "D") {
             excitationHeader = bitIndices.map((i) => `D${i}`).join("");
         } else if (flipFlopType === "T") {
@@ -298,9 +316,9 @@ const STCConversion = ({
                 >
                     <thead>
                         <tr>
-                            <th>Present State</th>
-                            <th>Input</th>
-                            <th>Next State</th>
+                            <th>{presentStateHeader}</th>
+                            <th>{inputHeader}</th>
+                            <th>{nextStateHeader}</th>
                             <th>{excitationHeader}</th>
                             <th>Output (Z)</th>
                         </tr>

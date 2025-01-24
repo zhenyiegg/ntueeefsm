@@ -286,7 +286,7 @@ const StateDiagram = ({
 
                     const outputValue =
                         diagramType === "Mealy"
-                            ? nextStateNumber
+                            ? nextStateNumber % 2
                             : currentStateNumber % 2;
 
                     const output =
