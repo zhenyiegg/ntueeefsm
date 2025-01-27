@@ -285,8 +285,8 @@ const CircuitToState = () => {
 
     if (numFlipFlops === "2" && numInputs === "1") {
       maxValue = 8; // 0 to 7
-      minMinMaxterms = 2;
-      maxMinMaxterms = 4;
+      minMinMaxterms = 3;
+      maxMinMaxterms = 5;
     } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
       maxValue = 16; // 0 to 15
       minMinMaxterms = 4;
@@ -325,7 +325,7 @@ const CircuitToState = () => {
 
     allFlipFlops.forEach((flipFlop, index) => {
       const isMinterm = Math.random() < 0.5; // Randomly decide Σm or ΠM
-      const ensureRowZeroHasOne = index === 0; //Only enforce for the first row (current state 00/000)
+      const ensureRowZeroHasOne = index === 0; // Only enforce for the first row (current state 00/000)
 
       const terms = generateUniqueTerms(
         getRandomNumber(minMinMaxterms, maxMinMaxterms),
@@ -461,7 +461,7 @@ const CircuitToState = () => {
     );
   };
 
-  // Helper to show the popup
+  // Handle popup display
   const showPopupMessage = (message) => {
     setPopupMessage(message);
     setShowPopup(true);
