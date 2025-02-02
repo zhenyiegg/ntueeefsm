@@ -476,76 +476,35 @@ const StateDiagram = ({
                 });
             });
 
-            // Adjust the view to fit all content
-            const fitToContent = () => {
+            // Replace the existing fitToContent function with this new cropToContent function
+            const cropToContent = () => {
                 if (paperInstance.current) {
-                    paperInstance.current.scaleContentToFit({
-                        minScaleX: 0.3,
-                        minScaleY: 0.3,
-                        maxScaleX: 0.7,
-                        maxScaleY: 0.7,
-                        padding: 100,
-                    });
+                    // Get the bounding box of all diagram elements
+                    const bbox = paperInstance.current.getContentBBox();
+                    const padding = 80; // Adjust padding as needed
 
-                    // Apply centering adjustment only for D and T flip-flops
-                    if (flipFlopType === "D" || flipFlopType === "T") {
-                        // Center the content manually
-                        const paperWidth = paperInstance.current.options.width;
-                        const paperHeight =
-                            paperInstance.current.options.height;
-                        const contentBBox =
-                            paperInstance.current.getContentBBox();
-                        const contentCenterX =
-                            contentBBox.x + contentBBox.width / 2;
-                        const contentCenterY =
-                            contentBBox.y + contentBBox.height / 2;
+                    // Translate the paper so the content appears at (padding, padding)
+                    paperInstance.current.translate(
+                        -bbox.x + padding,
+                        -bbox.y + padding
+                    );
 
-                        const paperCenterX = paperWidth / 2;
-                        const paperCenterY = paperHeight / 2;
-
-                        // Add offsets to deltaX and deltaY
-                        const offsetX = -135; // Positive value moves diagram right
-                        const offsetY = -20; // Negative value moves diagram up
-
-                        const deltaX = paperCenterX - contentCenterX + offsetX;
-                        const deltaY = paperCenterY - contentCenterY + offsetY;
-
-                        paperInstance.current.translate(deltaX, deltaY);
-                    }
-
-                    // Apply centering adjustment only for D and T flip-flops
-                    if (flipFlopType === "JK") {
-                        // Center the content manually
-                        const paperWidth = paperInstance.current.options.width;
-                        const paperHeight =
-                            paperInstance.current.options.height;
-                        const contentBBox =
-                            paperInstance.current.getContentBBox();
-                        const contentCenterX =
-                            contentBBox.x + contentBBox.width / 2;
-                        const contentCenterY =
-                            contentBBox.y + contentBBox.height / 2;
-
-                        const paperCenterX = paperWidth / 2;
-                        const paperCenterY = paperHeight / 2;
-
-                        // Add offsets to deltaX and deltaY
-                        const offsetX = -75; // Positive value moves diagram right
-                        const offsetY = 50; // Negative value moves diagram up
-
-                        const deltaX = paperCenterX - contentCenterX + offsetX;
-                        const deltaY = paperCenterY - contentCenterY + offsetY;
-
-                        paperInstance.current.translate(deltaX, deltaY);
+                    // Optional: Update container size to match content
+                    if (paperRef.current) {
+                        paperRef.current.style.width =
+                            bbox.width + padding * 2 + "px";
+                        paperRef.current.style.height =
+                            bbox.height + padding * 2 + "px";
                     }
                 }
             };
 
-            fitToContent();
-            window.addEventListener("resize", fitToContent);
+            // Call cropToContent instead of fitToContent
+            cropToContent();
+            window.addEventListener("resize", cropToContent);
 
             return () => {
-                window.removeEventListener("resize", fitToContent);
+                window.removeEventListener("resize", cropToContent);
             };
         }
     }, [
@@ -568,7 +527,7 @@ const StateDiagram = ({
 
     return (
         <>
-            <div ref={paperRef} className="paper-container"></div>
+            <div ref={paperRef} className="initial-paper-container"></div>
 
             {tooltip.visible && (
                 <div
