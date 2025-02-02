@@ -17,7 +17,6 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
       const flipFlopSpacing = 140;
 
       p.setup = () => {
-        // Attach the canvas to the existing canvas container
         if (numFlipFlops === '3') {
           p.createCanvas(1200, 530).parent(canvasRef.current);
         } else {
@@ -198,8 +197,9 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               p.pop();
             }
 
-            // Connection from Flip-Flop outputs (Q') back to Next State Logic
-            // Route the line ABOVE the diagram to avoid overlap
+            /* Connection from Flip-Flop outputs (Q') back to Next State Logic
+             * Route the line ABOVE the diagram to avoid overlap
+             */
             p.line(flipFlopX + flipFlopWidth, flipFlopY + boxHeight / 2, flipFlopX + flipFlopWidth + 90, flipFlopY + boxHeight / 2); // Q Horizontal FF to middle vertical line
             p.line(flipFlopX + flipFlopWidth, bottomLabelY - 6, flipFlopX + flipFlopWidth + 90, bottomLabelY - 6); // Q' Horizontal FF to middle vertical line
 

@@ -4,7 +4,7 @@ import CircuitDiagram from '../components/CircuitDiagram';
 import CTSConversion from '../components/CTSConversion'; 
 import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; // FontAwesome Arrow
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; 
 
 const CircuitToState = () => {
   // States for generated data and user inputs
@@ -59,7 +59,6 @@ const CircuitToState = () => {
   const handleDropdownChange = (key, value) => {
     const updatedState = { ...dropdownState, [key]: value };
 
-    // Reset number of flip-flops if inputs change to 2
     if (key === "numInputs" && value === "2") {
       if (dropdownState.numFlipFlops === "3") {
         updatedState.numFlipFlops = ""; 
@@ -71,8 +70,8 @@ const CircuitToState = () => {
   // Trigger generation manually on button click
   const handleGenerateButtonClick = () => {
     if (isFormComplete) {
-      setGenerateState({ ...dropdownState }); // Finalize dropdown selections
-      generateMinMaxterms({ ...dropdownState }); // Generate circuit diagram and flip-flop inputs
+      setGenerateState({ ...dropdownState }); 
+      generateMinMaxterms({ ...dropdownState }); 
       setIsGenerated(true);
     }
   };
@@ -97,10 +96,12 @@ const CircuitToState = () => {
       randomDropdownState.numFlipFlops = "2";
     }
   
-    setDropdownState(randomDropdownState); // Update dropdown state
-    setGenerateState(randomDropdownState); // Update finalized state
-    generateMinMaxterms(randomDropdownState); // Generate circuit diagram and flip-flop inputs
+    setDropdownState(randomDropdownState); 
+    setGenerateState(randomDropdownState); 
+    generateMinMaxterms(randomDropdownState); 
     setIsGenerated(true); 
+
+    verifyGeneratedTables();
   };
 
   // Helper to check if all input fields are filled
@@ -186,7 +187,6 @@ const CircuitToState = () => {
       }
     }
   
-    console.log("Row:", rowIndex, "Current State:", currentState, "Next State Bits:", nextStateBits.join(""));
     return nextStateBits.join("");
   };
   
@@ -259,6 +259,86 @@ const CircuitToState = () => {
     return terms;
   };
 
+  /*  Automated Verification:
+   *  Checking Excitation Table
+   *  Checking State Transition Table
+   */
+  
+  const verifyGeneratedTables = useCallback(() => {
+    console.log("🔍 Running verifyGeneratedTables() to validate correctness...");
+
+    let excitationTableValid = true;
+    let stateTransitionTableValid = true;
+  
+    // Verify Excitation Table Logic
+    excitationTable.forEach((row, rowIndex) => {
+      Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
+        const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
+  
+        const expectedValue = isMinterm
+          ? terms.includes(rowIndex) ? "1" : "0" // Minterms expect "1"
+          : terms.includes(rowIndex) ? "0" : "1"; // Maxterms expect "0"
+
+        console.log("➡️ [Excitation Table] Row", rowIndex, "Flip-Flop", flipFlop);
+        console.log(`   - Stored F/F Input: ${row.flipFlopInputs[flipFlop]}, Expected: ${expectedValue}`);
+        console.log(`   - ${isMinterm ? "Σm" : "ΠM"} Flip-Flop Object:`, row.flipFlopInputs);
+          
+        if (row.flipFlopInputs[flipFlop] !== expectedValue) {
+          console.error(
+            `Excitation Table Error: Flip-Flop ${flipFlop} at row ${rowIndex} should be ${expectedValue}.`
+          );
+          excitationTableValid = false;
+        }
+      });
+    });
+  
+    // Verify State Transition Table Logic
+    stateTransitionTable.forEach((row, rowIndex) => {
+      const expectedNextState = computeNextState(
+        generateState.flipFlopType,
+        row.currentState,
+        hiddenExcitationCorrectAnswers,
+        rowIndex,
+        parseInt(generateState.numFlipFlops)
+      );
+
+      console.log("➡️ [State Transition Table] Row", rowIndex, "Current State:", row.currentState);
+      console.log(`   - Stored Next State: ${row.nextState}, Expected: ${expectedNextState}`);
+  
+      if (row.nextState !== expectedNextState) {
+        console.error(
+          `State Transition Table Error: Next State at row ${rowIndex} should be ${expectedNextState}.`
+        );
+        stateTransitionTableValid = false;
+      }
+
+      // Verify Output Z
+      const expectedOutput = hiddenStateTransitionCorrectAnswers.output[rowIndex];
+
+      console.log(`   - Stored Output: ${row.output}, Expected: ${expectedOutput}`);
+  
+      if (row.output !== expectedOutput) {
+        console.error(
+          `State Transition Table Error: Output Z at row ${rowIndex} should be ${expectedOutput}.`
+        );
+        stateTransitionTableValid = false;
+      }
+    });
+  
+    if (excitationTableValid && stateTransitionTableValid) {
+      console.log("✅ Verification Passed: All logic in the tables is correct!\n");
+    } else {
+      console.log("❌ Verification Failed: Errors detected. See logs for details.\n");
+    }
+  }, [excitationTable, stateTransitionTable, hiddenExcitationCorrectAnswers, hiddenStateTransitionCorrectAnswers, generateState]);
+
+  // Runs verification after stateTransitionTable and excitationTable are updated
+  useEffect(() => {
+    if (isGenerated && excitationTable.length > 0 && stateTransitionTable.length > 0) {
+      verifyGeneratedTables();
+    }
+  }, [isGenerated, excitationTable, stateTransitionTable, verifyGeneratedTables]);
+
   // Generate minterms, hidden correct answers and populate tables 
   const generateMinMaxterms = (state) => {
     const { numInputs, flipFlopType, numFlipFlops, fsmType } = state || dropdownState;
@@ -272,12 +352,11 @@ const CircuitToState = () => {
     setExcitationSubheader('Complete the Excitation Table with only binary "0" and "1" values.');
     setShowStateTransitionTable(false); 
     setStateTransitionSubheader("Exercise 2");
+    setShowStateDiagram(false);
 
-    // Reset completion states and hide the state transition table
+    // Reset completion states
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
-    setShowStateTransitionTable(false); 
-    setShowStateDiagram(false);
 
     setGenerateState(state || dropdownState); // Finalize the dropdown selections
 
@@ -345,10 +424,8 @@ const CircuitToState = () => {
         </>
       );
   
-      // Add to the generated terms
       generatedTerms.push({ flipFlop: formattedKey, terms, isMinterm, formattedTerms });
   
-      // Store correct answers in the excitationCorrectAnswers object
       excitationCorrectAnswers[flipFlop] = {
         terms,
         isMinterm,
@@ -440,6 +517,8 @@ const CircuitToState = () => {
 
     setExcitationTable(newExcitationTable);
     setStateTransitionTable(newStateTransitionTable);
+
+    verifyGeneratedTables();
     
     // Initialize user inputs
     setUserExcitationInputs(
@@ -482,7 +561,6 @@ const CircuitToState = () => {
         return updatedInputs;
       });
     } else {
-      // Alert on invalid input
       showPopupMessage("Flip-Flop inputs must be single binary values (0 as False and 1 as True).");
     }
   };
