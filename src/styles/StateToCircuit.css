@@ -11,12 +11,15 @@ html, body, #root, .App {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 100vh;
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px 40px; /* Increase horizontal padding */
   box-sizing: border-box;
-
+  padding-top: 40px;
+  max-width: 1800px; /* Add max-width */
+  width: 95%; /* Take up most of the viewport width */
+  margin: 0 auto; /* Center the container */
 }
 
 /* Heading styles */
@@ -36,6 +39,8 @@ html, body, #root, .App {
   border-radius: 12px;
   border: 3px solid #6FC3DF;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .control-panel label {
@@ -77,61 +82,150 @@ html, body, #root, .App {
   background-color: #e3f2fd;
 }
 
-/* Paper container styles */
-.paper-container {
-  width: 100%;
-  max-width: 1200px;
-  height: 1000px;
+/* Initial paper container */
+.initial-paper-container {
+  width: 100%; /* Match control panel width */
+  height: auto; /* Let height adjust to content */
+  min-height: 200px; /* Minimum height */
   box-sizing: border-box;
-  margin: 1rem 0;
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 3px solid #6FC3DF;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 20px; /* Match control panel margin */
+}
+
+/* State diagram container styles - for when states are shown */
+.state-diagram-container {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Update the flex container for diagram and table */
+.diagram-table-container {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
+  margin: 0;
+  justify-content: center;
+  transform: scale(0.8);
+  transform-origin: top center;
+  margin-bottom: -250px; /* Compensate for the scaled space */
+}
+
+.diagram-section {
+  flex: 0 0 auto;
+}
+
+/* Table section styles */
+.table-section {
+  flex: 1;
+  min-width: 500px; /* Increased from 400px */
+  max-width: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 3px solid #6FC3DF;
+}
+
+/* Table section header */
+.table-section h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #2980b9;
+  font-size: 1.5rem;
 }
 
 /* State Transition Table styles */
 .state-transition-table {
-  margin-top: 20px;
+  margin: 0;
   width: 100%;
-  max-width: 800px;
-  border-collapse: collapse;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 1.1rem;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
+/* Table header styles */
+.state-transition-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #6FC3DF;
+  color: white;
+  padding: 12px;
+  z-index: 1;
+}
+
+/* Table cell styles */
 .state-transition-table th,
 .state-transition-table td {
   padding: 12px;
-  text-align: center;
+  word-wrap: break-word;
   border: 1px solid #e3f2fd;
+  text-align: center;
 }
 
-.state-transition-table th {
-  background-color: #6FC3DF;
-  color: white;
-  font-weight: 600;
+/* Set specific widths for each column */
+.state-transition-table th:nth-child(1),
+.state-transition-table td:nth-child(1) {
+  width: 25%; /* Present State column */
 }
 
-.state-transition-table td {
-  background-color: #ffffff;
+.state-transition-table th:nth-child(2),
+.state-transition-table td:nth-child(2) {
+  width: 20%; /* Input column */
 }
 
-.state-transition-table tr:hover td {
+.state-transition-table th:nth-child(3),
+.state-transition-table td:nth-child(3) {
+  width: 35%; /* Next State column */
+}
+
+.state-transition-table th:nth-child(4),
+.state-transition-table td:nth-child(4) {
+  width: 20%; /* Output column */
+}
+
+/* First cell in each row */
+.state-transition-table td:first-child {
+  font-weight: 500;
+}
+
+/* Hover effect on table rows */
+.state-transition-table tbody tr:hover {
   background-color: #f5f9ff;
 }
 
+/* Convert button container */
+.convert-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e3f2fd;
+}
+
 .convert-button {
-  background-color: red; /* Green background */
-  color: white; /* White text */
-  padding: 15px 40px; /* Larger padding for bigger size */
-  font-size: 1.5rem; /* Larger font size */
+  background-color: red;
+  color: white;
+  padding: 12px 30px;
+  font-size: 1.2rem;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  margin-top: 20px;
   transition: background-color 0.3s ease;
 }
 
 .convert-button:hover {
-  background-color: #45a049; /* Darker green on hover */
+  background-color: #45a049;
 }
 
 /* Button group styles */
@@ -174,8 +268,8 @@ html, body, #root, .App {
     background: #ffffff;
     padding: 1.5rem;
     border-radius: 12px;
-    margin: 1rem 0;
     border: 3px solid #b084cc;
+    margin-top: 20px; /* Reduced from 1rem */
 }
 
 .equation-block {
@@ -217,5 +311,110 @@ html, body, #root, .App {
     border-radius: 8px;
     border: 1.5px solid #b084cc;
     color: #333;
+}
+
+/* Input container for tooltip positioning */
+.input-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Update tooltip styles */
+.input-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 5px;
+    pointer-events: none; /* Prevent tooltip from interfering with clicks */
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 5px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+/* Update table input styles */
+.table-input {
+    width: 100%;
+    min-width: 45px; /* Slightly increased */
+    height: 30px;
+    text-align: center;
+    border: 2px solid #6FC3DF;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    background: white;
+    box-sizing: border-box;
+    padding: 0 4px;
+}
+
+/* Adjust nextState input width */
+td:nth-child(3) .table-input {
+    width: 140px; /* Increased from 120px to accommodate longer state format */
+}
+
+.table-input:focus {
+    outline: none;
+    border-color: #2980b9;
+    box-shadow: 0 0 5px rgba(111, 195, 223, 0.3);
+}
+
+.table-input.correct {
+    background-color: #e6ffe6;
+    border-color: #4CAF50;
+}
+
+.table-input.incorrect {
+    background-color: #ffe6e6;
+    border-color: #ff4444;
+}
+
+/* Update table input styles for disabled state */
+.table-input:disabled {
+    background-color: #e6ffe6; /* Keep the green background */
+    border-color: #4CAF50;
+    color: #333; /* Keep text readable */
+    cursor: not-allowed;
+    opacity: 1; /* Override default disabled opacity */
+}
+
+.table-input:disabled:hover {
+    border-color: #4CAF50; /* Keep border color consistent */
+}
+
+/* Remove focus styles for disabled inputs */
+.table-input:disabled:focus {
+    box-shadow: none;
+    border-color: #4CAF50;
+}
+
+/* Confirm button styles */
+.confirm-button {
+    background-color: #2980b9;
+    color: white;
+    padding: 12px 30px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.confirm-button:hover {
+    background-color: #2171a6;
 }
 

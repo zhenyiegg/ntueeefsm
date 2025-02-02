@@ -89,12 +89,13 @@
 }
 
 /* Paper container styles */
-.paper-container {
+.state-diagram-container {
     background: #ffffff;
     padding: 1.5rem;
     border-radius: 12px;
     border: 3px solid #6FC3DF;
-    margin: 1rem 0;
+    overflow: hidden;
+    position: relative;
 }
 
 /* Tooltip styling */
