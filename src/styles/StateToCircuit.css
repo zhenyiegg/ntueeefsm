@@ -31,29 +31,59 @@ html, body, #root, .App {
   margin-bottom: 20px;
   display: flex;
   gap: 20px;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 3px solid #6FC3DF;
+  align-items: center;
 }
 
 .control-panel label {
   font-weight: bold;
   margin-right: 10px;
+  color: #2980b9;
 }
 
 .control-panel select {
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border: 2px solid #6FC3DF;
+  border-radius: 6px;
+  background-color: white;
+  color: #333;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-panel select:hover {
+  border-color: #5aaabf;
+  box-shadow: 0 0 5px rgba(111, 195, 223, 0.3);
+}
+
+.control-panel select:focus {
+  outline: none;
+  border-color: #2980b9;
+  box-shadow: 0 0 8px rgba(111, 195, 223, 0.5);
+}
+
+/* Style the dropdown options */
+.control-panel select option {
+  padding: 8px;
+  background-color: white;
+  color: #333;
+}
+
+.control-panel select option:hover {
+  background-color: #e3f2fd;
 }
 
 /* Paper container styles */
 .paper-container {
   width: 100%;
-  max-width: 1200px; /* Max width for the diagram container */
-  height: 1000px; /* Increase height */
-  border: 1px solid black;
-  padding: 20px;
-  overflow: hidden; /* Set to hidden to prevent unnecessary scrollbars */
+  max-width: 1200px;
+  height: 1000px;
   box-sizing: border-box;
-  background-color: white;
+  margin: 1rem 0;
 }
 
 /* State Transition Table styles */
@@ -62,24 +92,31 @@ html, body, #root, .App {
   width: 100%;
   max-width: 800px;
   border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .state-transition-table th,
 .state-transition-table td {
-  padding: 10px;
+  padding: 12px;
   text-align: center;
-  border: 1px solid #ccc;
+  border: 1px solid #e3f2fd;
 }
 
 .state-transition-table th {
   background-color: #6FC3DF;
   color: white;
+  font-weight: 600;
 }
 
 .state-transition-table td {
-  background-color: #f9f9f9;
+  background-color: #ffffff;
 }
 
+.state-transition-table tr:hover td {
+  background-color: #f5f9ff;
+}
 
 .convert-button {
   background-color: red; /* Green background */
@@ -100,40 +137,37 @@ html, body, #root, .App {
 /* Button group styles */
 .button-group {
   display: flex;
-  gap: 10px; /* Add spacing between the buttons */
+  gap: 10px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.generate-button,
+.auto-generate-button {
+  color: white;
+  padding: 8px 16px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin: 0;
 }
 
 .generate-button {
-background-color: red; /* Green background */
-color: white; /* White text */
-padding: 10px 20px; /* Larger padding for bigger size */
-font-size: 1.5rem; /* Larger font size */
-border: none;
-border-radius: 10px;
-cursor: pointer;
-margin-top: -10px;
-transition: background-color 0.3s ease;
-}
-
-
-.generate-button:hover {
-background-color: #45a049; /* Darker green on hover */
+  background-color: #4CAF50; /* Green color */
 }
 
 .auto-generate-button {
-background-color: purple; /* Green background */
-color: white; /* White text */
-padding: 10px 20px; /* Larger padding for bigger size */
-font-size: 1.5rem; /* Larger font size */
-border: none;
-border-radius: 10px;
-cursor: pointer;
-margin-top: -10px;
-transition: background-color 0.3s ease;
+  background-color: #2980b9; /* Keep blue */
+}
+
+.generate-button:hover {
+  background-color: #45a049; /* Darker green */
 }
 
 .auto-generate-button:hover {
-background-color: #45a049; /* Darker green on hover */
+  background-color: #2171a6; /* Keep darker blue */
 }
 
 .equations-container {

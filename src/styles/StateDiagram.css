@@ -1,19 +1,19 @@
 /* StateDiagram.css */
 
 .transition-modal {
-    position: absolute;
-    top: 50%;
+    position: fixed;
+    top: 50vh;
     left: 50%;
-    right: auto;
-    bottom: auto;
-    margin-right: -50%;
     transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 3px solid #6FC3DF;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     max-width: 500px;
     width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .transition-modal-overlay {
@@ -26,10 +26,14 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 1000;
 }
 
 .transition-modal h2 {
-    margin-top: 0;
+    color: #2980b9;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #e3f2fd;
+    padding-bottom: 0.5rem;
 }
 
 .transition-modal button {
@@ -37,27 +41,75 @@
     padding: 10px 20px;
     background-color: #6fc3df;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     color: white;
     cursor: pointer;
     font-size: 16px;
+    transition: background-color 0.3s ease;
 }
 
 .transition-modal button:hover {
     background-color: #5aaabf;
 }
 
+.transition-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+    padding: 0.75rem;
+    background: #f5f9ff;
+    border-radius: 8px;
+}
+
+.transition-item {
+    padding: 10px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1.5px solid #6FC3DF;
+    margin-bottom: 10px;
+}
+
+.transition-item:last-child {
+    margin-bottom: 0;
+}
+
+.transition-item p {
+    margin: 5px 0;
+    color: #333;
+}
+
+.transition-item strong {
+    color: #2980b9;
+}
+
+.transition-item hr {
+    border: none;
+    border-top: 1px solid #e3f2fd;
+    margin: 10px 0;
+}
+
+/* Paper container styles */
+.paper-container {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 3px solid #6FC3DF;
+    margin: 1rem 0;
+}
+
 /* Tooltip styling */
 .tooltip {
     position: fixed;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(41, 128, 185, 0.95);
     color: white;
-    padding: 10px;
-    border-radius: 5px;
+    padding: 12px;
+    border-radius: 8px;
     z-index: 1000;
     pointer-events: none;
     max-width: 300px;
     line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
 }
 
 .tooltip.visible {
@@ -66,27 +118,7 @@
 
 /* Highlighted transition arrow */
 .link-hovered {
-    stroke: green;
+    stroke: #2980b9;
     stroke-width: 3;
-}
-
-.transition-list {
-    max-height: 300px;
-    overflow-y: auto;
-    margin: 15px 0;
-}
-
-.transition-item {
-    padding: 10px 0;
-}
-
-.transition-item hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 10px 0;
-}
-
-.transition-item p {
-    margin: 5px 0;
 }
 

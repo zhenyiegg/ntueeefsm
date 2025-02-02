@@ -558,7 +558,11 @@ const StateDiagram = ({
         getLoopVertices,
     ]);
 
-    const closeModal = () => {
+    const closeModal = (e) => {
+        // Prevent any default behavior that might cause scrolling
+        if (e) {
+            e.preventDefault();
+        }
         setSelectedTransition(null);
     };
 
@@ -585,6 +589,9 @@ const StateDiagram = ({
                 contentLabel="Transition Details"
                 className="transition-modal"
                 overlayClassName="transition-modal-overlay"
+                shouldCloseOnOverlayClick={true}
+                shouldReturnFocusAfterClose={false}
+                preventScroll={true}
             >
                 {selectedTransition && (
                     <div>
