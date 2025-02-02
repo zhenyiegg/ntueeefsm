@@ -320,7 +320,8 @@ const StateDiagram = ({
             const transitionGroups = {};
 
             transitionDataList.forEach((data) => {
-                const key = `${data.fromState}->${data.toState}`;
+                // Change the key to be directional - only combine transitions going the same direction
+                const key = `${data.fromStateNumber}->${data.toStateNumber}`;
                 if (!transitionGroups[key]) {
                     transitionGroups[key] = [];
                 }
@@ -329,98 +330,91 @@ const StateDiagram = ({
 
             Object.values(transitionGroups).forEach((group) => {
                 const totalTransitions = group.length;
+                const firstTransition = group[0];
 
-                group.forEach((transitionData, index) => {
-                    const { fromState, toState, input, output } =
-                        transitionData;
+                // All transitions in this group have the same from/to states
+                const state = activeStates.find(
+                    (s) =>
+                        s.get("stateNumber") === firstTransition.fromStateNumber
+                );
+                const nextState = activeStates.find(
+                    (s) =>
+                        s.get("stateNumber") === firstTransition.toStateNumber
+                );
 
-                    const state = activeStates.find(
-                        (s) => s.get("stateId") === fromState
+                // Create single transition link for this direction
+                const transition = new shapes.standard.Link();
+                transition.source(state);
+                transition.target(nextState);
+
+                if (firstTransition.fromState !== firstTransition.toState) {
+                    // Single curve for transitions between different states
+                    const curvatureFactor =
+                        flipFlopType === "JK" || flipFlopType === "T" ? 40 : 20;
+                    const curveOffset = curvatureFactor;
+
+                    const midPoint = {
+                        x: (state.position().x + nextState.position().x) / 2,
+                        y: (state.position().y + nextState.position().y) / 2,
+                    };
+
+                    const dx = nextState.position().x - state.position().x;
+                    const dy = nextState.position().y - state.position().y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const normal = {
+                        x: -dy / distance,
+                        y: dx / distance,
+                    };
+
+                    const offsetX = midPoint.x + normal.x * curveOffset;
+                    const offsetY = midPoint.y + normal.y * curveOffset;
+
+                    transition.vertices([{ x: offsetX, y: offsetY }]);
+                    transition.connector("smooth");
+                } else {
+                    // Self-loops still need individual positioning
+                    const loopVertices = getLoopVertices(
+                        state,
+                        state.get("stateNumber"),
+                        0,
+                        1 // Only one loop per direction now
                     );
-                    const nextState = activeStates.find(
-                        (s) => s.get("stateId") === toState
-                    );
+                    transition.vertices(loopVertices);
+                    transition.connector("smooth");
+                }
 
-                    // Create transition link
-                    const transition = new shapes.standard.Link();
-                    transition.source(state);
-                    transition.target(nextState);
+                // Combine all input/output pairs into one label
+                const labelText = group
+                    .map(
+                        (t) =>
+                            `${t.input}${
+                                diagramType === "Mealy" ? `/${t.output}` : ""
+                            }`
+                    )
+                    .join(", ");
 
-                    if (fromState !== toState) {
-                        // Adjust curvature for transitions between different states
-                        const curvatureFactor =
-                            flipFlopType === "JK" || flipFlopType === "T"
-                                ? 40
-                                : 20;
-                        const transitionIndex = index;
-                        const curveOffset =
-                            (transitionIndex - (totalTransitions - 1) / 2) *
-                            curvatureFactor;
-
-                        const midPoint = {
-                            x:
-                                (state.position().x + nextState.position().x) /
-                                2,
-                            y:
-                                (state.position().y + nextState.position().y) /
-                                2,
-                        };
-
-                        const dx = nextState.position().x - state.position().x;
-                        const dy = nextState.position().y - state.position().y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        const normal = {
-                            x: -dy / distance,
-                            y: dx / distance,
-                        };
-
-                        const offsetX = midPoint.x + normal.x * curveOffset;
-                        const offsetY = midPoint.y + normal.y * curveOffset;
-
-                        transition.vertices([{ x: offsetX, y: offsetY }]);
-                        transition.connector("smooth");
-                    } else {
-                        // Adjust loop vertices for self-loops
-                        const transitionIndex = index;
-                        const loopVertices = getLoopVertices(
-                            state,
-                            state.get("stateNumber"),
-                            transitionIndex,
-                            totalTransitions
-                        );
-                        transition.vertices(loopVertices);
-                        transition.connector("smooth");
-                    }
-
-                    // Add label to transition
-                    transition.appendLabel({
-                        attrs: {
-                            text: {
-                                text: `${input}${
-                                    diagramType === "Mealy" ? `/${output}` : ""
-                                }`,
-                                fill: "black",
-                                fontSize: 28,
-                            },
-                            rect: {
-                                fill: "white",
-                                stroke: "black",
-                                "stroke-width": 1,
-                                rx: 5,
-                                ry: 5,
-                            },
+                // Add combined label to transition
+                transition.appendLabel({
+                    attrs: {
+                        text: {
+                            text: labelText,
+                            fill: "black",
+                            fontSize: 28,
                         },
-                    });
-
-                    transition.set("transitionData", {
-                        fromState,
-                        toState,
-                        input,
-                        output,
-                    });
-
-                    transition.addTo(graph);
+                        rect: {
+                            fill: "white",
+                            stroke: "black",
+                            "stroke-width": 1,
+                            rx: 5,
+                            ry: 5,
+                        },
+                    },
                 });
+
+                // Store all transition data for this arrow
+                transition.set("transitionData", group);
+
+                transition.addTo(graph);
             });
 
             onDiagramGenerated(newTransitionTable);
@@ -434,13 +428,20 @@ const StateDiagram = ({
             });
 
             paperInstance.current.on("link:mouseenter", (linkView, evt) => {
-                // Start a 0.5s timer to show the tooltip
                 tooltipTimeout.current = setTimeout(() => {
-                    const transitionData = linkView.model.get("transitionData");
-                    if (transitionData) {
+                    const transitionGroup =
+                        linkView.model.get("transitionData");
+                    if (transitionGroup) {
+                        // Create a list of all transitions in this group
+                        const transitionsText = transitionGroup
+                            .map(
+                                (t) => `Input: ${t.input}, Output: ${t.output}`
+                            )
+                            .join("\n");
+
                         setTooltip({
                             visible: true,
-                            content: `Input: ${transitionData.input}, Output: ${transitionData.output}`,
+                            content: transitionsText,
                             position: {
                                 x: evt.clientX + 10,
                                 y: evt.clientY + 10,
@@ -571,6 +572,7 @@ const StateDiagram = ({
                     style={{
                         top: tooltip.position.y,
                         left: tooltip.position.x,
+                        whiteSpace: "pre-line", // Allow line breaks in tooltip
                     }}
                 >
                     {tooltip.content}
@@ -589,17 +591,27 @@ const StateDiagram = ({
                         <h2>Transition Details</h2>
                         <p>
                             <strong>
-                                {selectedTransition.fromState}
-                                {"➡️"}
-                                {selectedTransition.toState}
+                                {selectedTransition[0].fromState} ➡️{" "}
+                                {selectedTransition[0].toState}
                             </strong>
                         </p>
-                        <p>
-                            <strong>Input:</strong> {selectedTransition.input}
-                        </p>
-                        <p>
-                            <strong>Output:</strong> {selectedTransition.output}
-                        </p>
+                        <div className="transition-list">
+                            {selectedTransition.map((transition, index) => (
+                                <div key={index} className="transition-item">
+                                    <p>
+                                        <strong>Input:</strong>{" "}
+                                        {transition.input}
+                                    </p>
+                                    <p>
+                                        <strong>Output:</strong>{" "}
+                                        {transition.output}
+                                    </p>
+                                    {index < selectedTransition.length - 1 && (
+                                        <hr />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                         <button onClick={closeModal}>Close</button>
                     </div>
                 )}

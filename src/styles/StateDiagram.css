@@ -12,7 +12,7 @@
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    max-width: 400px;
+    max-width: 500px;
     width: 90%;
 }
 
@@ -22,10 +22,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
 }
 
 .transition-modal h2 {
@@ -49,15 +49,15 @@
 
 /* Tooltip styling */
 .tooltip {
-    position: fixed; /* Positioned relative to the viewport */
-    background-color: rgba(0, 0, 0, 0.75);
+    position: fixed;
+    background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 1000;
     pointer-events: none;
-    transition: opacity 0.2s ease-in-out;
-    opacity: 0;
-    z-index: 1000; /* Ensure it appears above other elements */
+    max-width: 300px;
+    line-height: 1.4;
 }
 
 .tooltip.visible {
@@ -68,5 +68,25 @@
 .link-hovered {
     stroke: green;
     stroke-width: 3;
+}
+
+.transition-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+}
+
+.transition-item {
+    padding: 10px 0;
+}
+
+.transition-item hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 10px 0;
+}
+
+.transition-item p {
+    margin: 5px 0;
 }
 
