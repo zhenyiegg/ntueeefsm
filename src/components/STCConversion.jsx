@@ -14,24 +14,12 @@ const STCConversion = ({
     transitionTable, // array of { presentState, input, nextState, output }, etc.
     numInputs, // pass this down from the parent (if you need it)
 }) => {
-    // Data about our computed excitation. Example structure:
-    //   {
-    //     Q0: [ { presentStateCode, input, flipFlopInputValue }, ... ],
-    //     Q1: [ { ... }, ... ],
-    //     ...
-    //   }
-    // or for JK:
-    //   {
-    //     Q0: [ { presentStateCode, input, J, K }, ... ],
-    //     Q1: ...
-    //   }
-    const [excitationTable, setExcitationTable] = useState(null);
-    const [mergedExcitationTable, setMergedExcitationTable] = useState(null);
-    // We’ll track how many bits we need for each state,
+    // We'll track how many bits we need for each state,
     // the simplified equations, and whether we should display the circuit.
     const [numStateBits, setNumStateBits] = useState(0);
     const [simplifiedEquations, setSimplifiedEquations] = useState({});
     const [isGenerated, setIsGenerated] = useState(false);
+    const [mergedExcitationTable, setMergedExcitationTable] = useState(null);
 
     useEffect(() => {
         if (transitionTable.length === 0) return;
@@ -140,7 +128,7 @@ const STCConversion = ({
             }
 
             // Now that we have all bit excitations for this row,
-            // build a single string for that row’s "D1D0" or "T1T0" or "J1K1 J0K0".
+            // build a single string for that row's "D1D0" or "T1T0" or "J1K1 J0K0".
             // Remember rowExcitations currently holds them in LSB->MSB order,
             // so we can reverse if you need MSB->LSB, or just keep consistent:
             const reversed = [...rowExcitations].reverse();
@@ -160,7 +148,6 @@ const STCConversion = ({
             });
         });
 
-        setExcitationTable(flipFlopInputs);
         setMergedExcitationTable(mergedTable);
 
         // 3) BUILD MINTERM ARRAYS & PRODUCE EQUATIONS
@@ -343,23 +330,57 @@ const STCConversion = ({
      * Render the minterm / maxterm / minimal SoP for each equation
      */
     const renderEquations = () => {
-        return Object.keys(simplifiedEquations).map((key) => {
-            const eqn = simplifiedEquations[key];
-            return (
-                <div key={key} style={{ marginBottom: "1rem" }}>
-                    <h4>Equations for {key}</h4>
-                    <p>
-                        <strong>Sum of Minterms:</strong> {eqn.canonicalSoM}
-                    </p>
-                    <p>
-                        <strong>Product of Maxterms:</strong> {eqn.canonicalPoM}
-                    </p>
-                    <p>
-                        <strong>Minimal SOP:</strong> {eqn.minimalSoP}
-                    </p>
-                </div>
-            );
-        });
+        return (
+            <div className="equations-container">
+                {Object.keys(simplifiedEquations).map((key) => {
+                    const eqn = simplifiedEquations[key];
+                    const variableName = key.includes("_")
+                        ? key.replace("_", "") // For JK flip-flops
+                        : key;
+
+                    return (
+                        <div key={key} className="equation-block">
+                            <h4>{variableName} Equation</h4>
+                            <div className="equation-forms">
+                                <div className="equation-form">
+                                    <span className="equation-label">
+                                        Canonical Form (Σm):
+                                    </span>
+                                    <span className="equation-value">
+                                        {variableName} = Σm(
+                                        {eqn.mintermIndices.join(", ")})
+                                    </span>
+                                </div>
+                                <div className="equation-form">
+                                    <span className="equation-label">
+                                        Sum of Minterms:
+                                    </span>
+                                    <span className="equation-value">
+                                        {eqn.canonicalSoM}
+                                    </span>
+                                </div>
+                                <div className="equation-form">
+                                    <span className="equation-label">
+                                        Product of Maxterms:
+                                    </span>
+                                    <span className="equation-value">
+                                        {eqn.canonicalPoM}
+                                    </span>
+                                </div>
+                                <div className="equation-form">
+                                    <span className="equation-label">
+                                        Simplified Expression:
+                                    </span>
+                                    <span className="equation-value">
+                                        {eqn.minimalSoP}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     return (
