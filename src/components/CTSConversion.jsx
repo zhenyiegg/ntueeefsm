@@ -607,11 +607,33 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         <div className="popup-container">
           <div className="popup-contentTransition">
             <button className="close-button" onClick={closePopup}>✖</button>
-            <h3>State Transition</h3>
-            <p>Q{numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q{numFlipFlops === 2 ? "1'Q0'" : "2'Q1'Q0'"}</p>
-            <p>{popupData.from} ➔ {popupData.to}</p>
-            <p>X{numInputs === 2 ? "1X0" : "0"}: {popupData.transitions.map(t => t.input).join(", ")}</p>
-            <p>Z: {popupData.transitions.map(t => t.output).join(", ")}</p>
+            <h3 className="popup-title">State Transition</h3>
+
+            {/* State transition header */}
+            <div className="state-transition-header">
+              <p className="state-mapping">
+                <strong>Q{numFlipFlops === 2 ? "1Q0" : "2Q1Q0"}</strong> ➔
+                <strong> Q{numFlipFlops === 2 ? "1'Q0'" : "2'Q1'Q0'"}</strong>
+              </p>
+              <p className="state-mapping">
+                <span className="state">{popupData.from}</span> ➔ 
+                <span className="state"> {popupData.to}</span>
+              </p>
+            </div>
+
+            {/* Display transitions in a structured format */}
+            <div className="transition-table">
+              <div className="transition-header">
+                <span><strong>Input (X{numInputs === 2 ? "1X0" : "0"})</strong></span>
+                <span><strong>Output (Z)</strong></span>
+              </div>
+              {popupData.transitions.map((t, index) => (
+                <div key={index} className="transition-row">
+                  <span className="input-value">{t.input}</span>
+                  <span className="output-value">{t.output}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
