@@ -982,7 +982,7 @@ const CircuitToState = () => {
       </div>
 
       {/* State Diagram Section */}
-      <div className={`content-box ${showStateDiagram ? "active" : ""}`}>
+      <div className={`content-box stateDiagram-box ${showStateDiagram ? "active" : ""}`}>
         <h2>State Diagram</h2>
         {showStateDiagram ? (
           <div className="state-diagram-placeholder">
