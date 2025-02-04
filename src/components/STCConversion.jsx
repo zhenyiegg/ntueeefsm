@@ -7,6 +7,8 @@ import {
     getCanonicalProductOfMaxterms,
 } from "./kmap"; // K-map solver
 import CircuitDiagram from "./CircuitDiagram"; // <-- Reuse your P5 circuit component
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const STCConversion = ({
     diagramType, // e.g. "Mealy" or "Moore"
@@ -20,6 +22,17 @@ const STCConversion = ({
     const [simplifiedEquations, setSimplifiedEquations] = useState({});
     const [isGenerated, setIsGenerated] = useState(false);
     const [mergedExcitationTable, setMergedExcitationTable] = useState(null);
+
+    // Add new states for excitation table
+    const [excitationAnswers, setExcitationAnswers] = useState({});
+    const [excitationValidation, setExcitationValidation] = useState({});
+    const [isExcitationComplete, setIsExcitationComplete] = useState(false);
+    const [excitationTooltip, setExcitationTooltip] = useState({});
+    const [excitationBlankCells, setExcitationBlankCells] = useState(new Set());
+    const [focusedExcitationCell, setFocusedExcitationCell] = useState(null);
+
+    // Add state for info tooltip
+    const [showExcitationInfo, setShowExcitationInfo] = useState(false);
 
     useEffect(() => {
         if (transitionTable.length === 0) return;
@@ -122,7 +135,6 @@ const STCConversion = ({
                         J,
                         K,
                     });
-                    // We'll store e.g. "1X" or "X1"
                     rowExcitations.push(`${J}${K}`);
                 }
             }
@@ -252,6 +264,205 @@ const STCConversion = ({
         setIsGenerated(true);
     }, [transitionTable, flipFlopType, numInputs]);
 
+    // Update validation function for excitation table
+    const validateExcitationInput = (value, column) => {
+        if (value === "") return true;
+
+        switch (column) {
+            case "input":
+            case "output":
+            case "nextState":
+                // Allow single (0,1) or double (00,01,10,11) binary digits
+                return /^[01]$|^[01]{2}$/.test(value);
+
+            case "excitation":
+                if (flipFlopType === "JK") {
+                    // Always return true to allow free typing for JK
+                    return true;
+                } else if (flipFlopType === "T" || flipFlopType === "D") {
+                    // For T and D flip-flops, allow single or double binary digits
+                    return /^[01]$|^[01]{2}$/.test(value);
+                }
+                return false;
+
+            default:
+                return false;
+        }
+    };
+
+    // Update handler for excitation cell changes
+    const handleExcitationCellChange = (rowIndex, column, value) => {
+        const key = `${rowIndex}-${column}`;
+
+        const capitalizedValue =
+            column === "excitation" ? value.toUpperCase() : value;
+
+        if (validateExcitationInput(value, column)) {
+            setExcitationAnswers((prev) => ({
+                ...prev,
+                [key]: capitalizedValue,
+            }));
+        }
+
+        // Always set a tooltip message
+        let message;
+        switch (column) {
+            case "input":
+            case "output":
+            case "nextState":
+                message = "Enter 0, 1, 00, 01, 10, or 11";
+                break;
+            case "excitation":
+                if (flipFlopType === "JK") {
+                    message =
+                        "Format should be: XY XY where X,Y can be 0, 1, or X (e.g., 0X 1X)";
+                } else {
+                    message = `Enter 0, 1, 00, 01, 10, or 11 for ${flipFlopType} flip-flop`;
+                }
+                break;
+            default:
+                message = "Invalid input";
+        }
+        setExcitationTooltip((prev) => ({
+            ...prev,
+            [key]: message,
+        }));
+    };
+
+    // Add excitation focus handler
+    const handleExcitationFocus = (rowIndex, column) => {
+        const key = `${rowIndex}-${column}`;
+        setFocusedExcitationCell(key);
+
+        // Set initial tooltip message
+        let message;
+        switch (column) {
+            case "input":
+            case "output":
+            case "nextState":
+                message = "Enter 0, 1, 00, 01, 10, or 11";
+                break;
+            case "excitation":
+                if (flipFlopType === "JK") {
+                    message =
+                        "Format should be: XY XY where X,Y can be 0, 1, or X (e.g., 0X 1X)";
+                } else {
+                    message = `Enter 0, 1, 00, 01, 10, or 11 for ${flipFlopType} flip-flop`;
+                }
+                break;
+            default:
+                message = "Invalid input";
+        }
+        setExcitationTooltip((prev) => ({
+            ...prev,
+            [key]: message,
+        }));
+    };
+
+    // Add confirm handler for excitation table
+    const handleExcitationConfirm = () => {
+        const newValidation = {};
+        let allCorrect = true;
+
+        excitationBlankCells.forEach((key) => {
+            const [rowIndex, column] = key.split("-");
+            const correctValue = mergedExcitationTable[rowIndex][column];
+            const userAnswer = excitationAnswers[key];
+
+            const isCorrect = userAnswer && userAnswer === correctValue;
+            newValidation[key] = isCorrect;
+
+            if (!isCorrect) {
+                allCorrect = false;
+            }
+        });
+
+        setExcitationValidation(newValidation);
+        setIsExcitationComplete(allCorrect);
+    };
+
+    // Update useEffect to initialize blank cells for excitation table
+    useEffect(() => {
+        if (mergedExcitationTable) {
+            const newBlankCells = new Set();
+            mergedExcitationTable.forEach((_, rowIndex) => {
+                let blanksInRow = 0;
+                const columns = [
+                    "input",
+                    "nextState",
+                    "excitation",
+                    "output",
+                ].sort(() => Math.random() - 0.5);
+
+                for (const column of columns) {
+                    if (blanksInRow >= 2) break;
+                    if (Math.random() < 0.3) {
+                        newBlankCells.add(`${rowIndex}-${column}`);
+                        blanksInRow++;
+                    }
+                }
+            });
+            setExcitationBlankCells(newBlankCells);
+        }
+    }, [mergedExcitationTable]);
+
+    // Update renderExcitationCell to adjust maxLength based on column and flip-flop type
+    const renderExcitationCell = (row, rowIndex, column, value) => {
+        const key = `${rowIndex}-${column}`;
+        const isBlank = excitationBlankCells.has(key);
+        const isCorrect = excitationValidation[key];
+
+        if (!isBlank) return value;
+
+        let maxLength;
+        switch (column) {
+            case "input":
+            case "output":
+                maxLength = 2;
+                break;
+            case "nextState":
+                maxLength = 8; // For format "S# (###)"
+                break;
+            case "excitation":
+                maxLength = flipFlopType === "JK" ? 7 : 2; // JK: "XX XX", D/T: "##"
+                break;
+            default:
+                maxLength = 1;
+        }
+
+        return (
+            <div className="input-container">
+                <input
+                    type="text"
+                    maxLength={maxLength}
+                    value={excitationAnswers[key] || ""}
+                    onChange={(e) =>
+                        handleExcitationCellChange(
+                            rowIndex,
+                            column,
+                            e.target.value
+                        )
+                    }
+                    onFocus={() => handleExcitationFocus(rowIndex, column)}
+                    onBlur={() => setFocusedExcitationCell(null)}
+                    className={`table-input ${
+                        excitationValidation[key]
+                            ? "correct"
+                            : excitationValidation.hasOwnProperty(key)
+                            ? "incorrect"
+                            : ""
+                    }`}
+                    disabled={isCorrect}
+                />
+                {focusedExcitationCell === key && (
+                    <div className="input-tooltip">
+                        {excitationTooltip[key]}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     /**
      * Renders Excitation Table for the user to see
      * (so they can verify how the Flip-Flop inputs are determined).
@@ -278,11 +489,10 @@ const STCConversion = ({
         // Final bracketed headers
         const presentStateHeader = `Present State (${presentStateBits})`;
         const nextStateHeader = `Next State (${nextStateBits})`;
-        const inputHeader = `Input (${inputBits || "X"})`; // fallback if numInputs=1
+        const inputHeader = `Input (${inputBits || "X"})`;
 
-        // 4.2) Build the flip-flop "excitation" header
+        // Build the flip-flop "excitation" header
         let excitationHeader;
-
         if (flipFlopType === "D") {
             excitationHeader = bitIndices.map((i) => `D${i}`).join("");
         } else if (flipFlopType === "T") {
@@ -292,15 +502,53 @@ const STCConversion = ({
         }
 
         return (
-            <div style={{ marginBottom: "1rem" }}>
+            <div className="excitation-table-container">
                 <h3>Combined Excitation Table</h3>
-                <table
-                    style={{
-                        borderCollapse: "collapse",
-                        border: "1px solid black",
-                        width: "100%",
-                    }}
+                <button
+                    className="info-button"
+                    onClick={() => setShowExcitationInfo(!showExcitationInfo)}
+                    aria-label="Excitation Table Information"
                 >
+                    <FontAwesomeIcon icon={faCircleInfo} />
+                </button>
+                {showExcitationInfo && (
+                    <div className="info-tooltip">
+                        <h3>Excitation Table Information</h3>
+                        <p>
+                            This table shows the flip-flop input calculations:
+                        </p>
+                        <ul>
+                            <li>
+                                Present State: Binary encoding of current state
+                                ({numStateBits} bits)
+                            </li>
+                            <li>
+                                Next State: Binary encoding of next state (
+                                {numStateBits} bits)
+                            </li>
+                            {flipFlopType === "JK" ? (
+                                <li>
+                                    JK Inputs: Format is "J1K1 J0K0" where each
+                                    JK pair can be 0X, X0, 1X, or X1
+                                </li>
+                            ) : (
+                                <li>
+                                    {flipFlopType} Inputs: Binary values for
+                                    each flip-flop
+                                </li>
+                            )}
+                        </ul>
+                        <p>Number of state bits needed: {numStateBits}</p>
+                        <p>
+                            State variables:{" "}
+                            {Array.from(
+                                { length: numStateBits },
+                                (_, i) => `Q${numStateBits - 1 - i}`
+                            ).join(", ")}
+                        </p>
+                    </div>
+                )}
+                <table className="excitation-table">
                     <thead>
                         <tr>
                             <th>{presentStateHeader}</th>
@@ -314,14 +562,54 @@ const STCConversion = ({
                         {mergedExcitationTable.map((row, idx) => (
                             <tr key={idx}>
                                 <td>{row.presentState}</td>
-                                <td>{row.input}</td>
-                                <td>{row.nextState}</td>
-                                <td>{row.excitation}</td>
-                                <td>{row.output}</td>
+                                <td>
+                                    {renderExcitationCell(
+                                        row,
+                                        idx,
+                                        "input",
+                                        row.input
+                                    )}
+                                </td>
+                                <td>
+                                    {renderExcitationCell(
+                                        row,
+                                        idx,
+                                        "nextState",
+                                        row.nextState
+                                    )}
+                                </td>
+                                <td>
+                                    {renderExcitationCell(
+                                        row,
+                                        idx,
+                                        "excitation",
+                                        row.excitation
+                                    )}
+                                </td>
+                                <td>
+                                    {renderExcitationCell(
+                                        row,
+                                        idx,
+                                        "output",
+                                        row.output
+                                    )}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+                <div className="convert-button-container">
+                    {isExcitationComplete ? (
+                        <button className="convert-button">Next</button>
+                    ) : (
+                        <button
+                            onClick={handleExcitationConfirm}
+                            className="confirm-button"
+                        >
+                            Confirm
+                        </button>
+                    )}
+                </div>
             </div>
         );
     };

@@ -5,7 +5,7 @@ import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons"; // FontAwesome Arrow
+import { faArrowRight, faCircleInfo } from "@fortawesome/free-solid-svg-icons"; // FontAwesome Arrow and Info
 
 const StateToCircuit = () => {
     const [diagramType, setDiagramType] = useState("Mealy");
@@ -21,6 +21,7 @@ const StateToCircuit = () => {
     const [tooltipMessage, setTooltipMessage] = useState({});
     const [blankCells, setBlankCells] = useState(new Set());
     const [focusedCell, setFocusedCell] = useState(null);
+    const [showTableInfo, setShowTableInfo] = useState(false);
 
     const handleGenerate = () => {
         setShouldGenerate(true); // Trigger the generation
@@ -138,44 +139,26 @@ const StateToCircuit = () => {
     const handleCellChange = (rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
 
-        // For nextState, show tooltip if format is wrong but allow typing
-        if (column === "nextState") {
+        // Capitalize any letters in the input for nextState
+        const capitalizedValue =
+            column === "nextState" ? value.toUpperCase() : value;
+
+        if (validateInput(capitalizedValue, column)) {
             setUserAnswers((prev) => ({
                 ...prev,
-                [key]: value,
+                [key]: capitalizedValue,
             }));
-
-            // Check format and show/hide tooltip
-            const statePattern = /^S[0-7]\s\([01]{2,3}\)$/;
-            if (value !== "" && !statePattern.test(value)) {
-                setTooltipMessage((prev) => ({
-                    ...prev,
-                    [key]: "Format should be: S# (##) or S# (###) - e.g., S0 (00) or S0 (001)",
-                }));
-            } else {
-                setTooltipMessage((prev) => ({
-                    ...prev,
-                    [key]: "",
-                }));
-            }
-        } else {
-            // For input/output
-            if (validateInput(value, column)) {
-                setUserAnswers((prev) => ({
-                    ...prev,
-                    [key]: value,
-                }));
-                setTooltipMessage((prev) => ({
-                    ...prev,
-                    [key]: "",
-                }));
-            } else if (value !== "") {
-                setTooltipMessage((prev) => ({
-                    ...prev,
-                    [key]: "Only 0, 1, 00, 01, 10, or 11 allowed",
-                }));
-            }
         }
+
+        // Always set a tooltip message based on the column type
+        const message =
+            column === "nextState"
+                ? "Format should be: S# (##) or S# (###) - e.g., S0 (00) or S0 (001)"
+                : "Enter 0, 1, 00, 01, 10, or 11";
+        setTooltipMessage((prev) => ({
+            ...prev,
+            [key]: message,
+        }));
     };
 
     // Update handleConfirm function
@@ -203,31 +186,26 @@ const StateToCircuit = () => {
         setIsTableComplete(allCorrect);
     };
 
-    // Update shouldBeBlank function to use the stored positions
-    const shouldBeBlank = (rowIndex, column) => {
-        return blankCells.has(`${rowIndex}-${column}`);
-    };
-
-    // Helper function to get cell className based on validation
-    const getCellClassName = (rowIndex, column) => {
-        const key = `${rowIndex}-${column}`;
-        if (!cellValidation.hasOwnProperty(key)) return "table-input";
-        return `table-input ${cellValidation[key] ? "correct" : "incorrect"}`;
-    };
-
-    // Add handlers for focus and blur
+    // Add focus handler
     const handleInputFocus = (rowIndex, column) => {
-        setFocusedCell(`${rowIndex}-${column}`);
+        const key = `${rowIndex}-${column}`;
+        setFocusedCell(key);
+
+        // Set initial tooltip message when focusing
+        const message =
+            column === "nextState"
+                ? "Format should be: S# (##) or S# (###) - e.g., S0 (00) or S0 (001)"
+                : "Enter 0, 1, 00, 01, 10, or 11";
+        setTooltipMessage((prev) => ({
+            ...prev,
+            [key]: message,
+        }));
     };
 
-    const handleInputBlur = () => {
-        setFocusedCell(null);
-    };
-
-    // Update renderCell to disable correct inputs
+    // Update renderCell to include the new focus behavior
     const renderCell = (row, rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
-        const isBlank = shouldBeBlank(rowIndex, column);
+        const isBlank = blankCells.has(`${rowIndex}-${column}`);
         const isCorrect = cellValidation[key];
 
         if (!isBlank) return value;
@@ -242,11 +220,17 @@ const StateToCircuit = () => {
                         handleCellChange(rowIndex, column, e.target.value)
                     }
                     onFocus={() => handleInputFocus(rowIndex, column)}
-                    onBlur={handleInputBlur}
-                    className={getCellClassName(rowIndex, column)}
-                    disabled={isCorrect} // Disable input if correct
+                    onBlur={() => setFocusedCell(null)}
+                    className={`table-input ${
+                        cellValidation[key]
+                            ? "correct"
+                            : cellValidation.hasOwnProperty(key)
+                            ? "incorrect"
+                            : ""
+                    }`}
+                    disabled={isCorrect}
                 />
-                {tooltipMessage[key] && focusedCell === key && (
+                {focusedCell === key && (
                     <div className="input-tooltip">{tooltipMessage[key]}</div>
                 )}
             </div>
@@ -345,6 +329,45 @@ const StateToCircuit = () => {
                 {transitionTable.length > 0 && (
                     <div className="table-section">
                         <h2>State Transition Table</h2>
+                        <button
+                            className="info-button"
+                            onClick={() => setShowTableInfo(!showTableInfo)}
+                            aria-label="State Table Information"
+                        >
+                            <FontAwesomeIcon icon={faCircleInfo} />
+                        </button>
+                        {showTableInfo && (
+                            <div className="info-tooltip">
+                                <h2>State Encoding Information</h2>
+                                <p>States are encoded in binary format:</p>
+                                <ul>
+                                    <li>
+                                        S0 to S{numStates - 1} are represented
+                                        using {Math.ceil(Math.log2(numStates))}{" "}
+                                        bits
+                                    </li>
+                                    <li>
+                                        Format: S# (binary) - e.g., S0 (00), S1
+                                        (01), etc.
+                                    </li>
+                                    <li>
+                                        Binary values increase sequentially with
+                                        state numbers
+                                    </li>
+                                </ul>
+                                <p>Fill in the blanks using:</p>
+                                <ul>
+                                    <li>
+                                        Input/Output: Binary digits (0,1) or
+                                        pairs (00,01,10,11)
+                                    </li>
+                                    <li>
+                                        Next State: State format S# (##) - e.g.,
+                                        S0 (00)
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
                         <table className="state-transition-table">
                             <thead>
                                 <tr>

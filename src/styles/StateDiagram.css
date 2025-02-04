@@ -100,7 +100,7 @@
 
 /* Tooltip styling */
 .tooltip {
-    position: fixed;
+    position: absolute;
     background: rgba(41, 128, 185, 0.95);
     color: white;
     padding: 12px;

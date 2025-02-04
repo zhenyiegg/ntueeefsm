@@ -134,6 +134,7 @@ html, body, #root, .App {
   padding: 1.5rem;
   border-radius: 12px;
   border: 3px solid #6FC3DF;
+  position: relative;
 }
 
 /* Table section header */
@@ -142,6 +143,8 @@ html, body, #root, .App {
   margin-bottom: 1rem;
   color: #2980b9;
   font-size: 1.5rem;
+  border-bottom: 2px solid #e3f2fd;
+  padding-bottom: 0.5rem;
 }
 
 /* State Transition Table styles */
@@ -201,7 +204,7 @@ html, body, #root, .App {
 
 /* Hover effect on table rows */
 .state-transition-table tbody tr:hover {
-  background-color: #f5f9ff;
+  background-color: #e3f2fd;
 }
 
 /* Convert button container */
@@ -416,5 +419,156 @@ td:nth-child(3) .table-input {
 
 .confirm-button:hover {
     background-color: #2171a6;
+}
+
+/* Add styles for excitation table container */
+.excitation-table-container {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 3px solid #b084cc;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.excitation-table-container h3 {
+    color: #572b94;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #f9eeff;
+    padding-bottom: 0.5rem;
+}
+
+/* Style the excitation table */
+.excitation-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+}
+
+.excitation-table th {
+    background-color: #b084cc;
+    color: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.excitation-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #f9eeff;
+}
+
+.excitation-table tr:hover {
+    background-color: #f9eeff;
+}
+
+/* Add styles for info button and tooltip */
+.info-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #6FC3DF;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    transition: color 0.3s ease;
+    z-index: 1001; /* Ensure button stays above tooltip */
+}
+
+.info-button:hover {
+    color: #2980b9;
+}
+
+/* Update info tooltip positioning */
+.info-tooltip {
+    position: absolute;
+    top: 3rem; /* Changed from top: calc(100% + 5px) */
+    right: 0;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 2px solid #6FC3DF;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    z-index: 1000;
+    font-size: 0.9rem;
+    color: #333;
+    animation: fadeInTooltip 0.2s ease-in-out;
+}
+
+/* Add animation for smooth appearance */
+@keyframes fadeInTooltip {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.info-tooltip h3 {
+    color: #2980b9;
+    margin: 0 0 0.5rem 0;
+    border-bottom: 2px solid #e3f2fd;
+}
+
+.info-tooltip p {
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
+.info-tooltip ul {
+    margin: 0.5rem 0;
+    padding-left: 1.2rem;
+}
+
+.info-tooltip li {
+    margin: 0.3rem 0;
+}
+
+/* State transition table tooltip styles (blue theme) */
+.table-section .info-tooltip {
+    border: 2px solid #6FC3DF;
+}
+
+.table-section .info-tooltip h2 {
+    color: #2980b9;
+    margin: 0 0 0.5rem 0;
+    border-bottom: 2px solid #e3f2fd;
+}
+
+/* Excitation table tooltip styles (purple theme) */
+.excitation-table-container .info-tooltip {
+    border: 2px solid #b084cc;
+}
+
+.excitation-table-container .info-tooltip h3 {
+    color: #572b94;
+    margin: 0 0 0.5rem 0;
+    border-bottom: 2px solid #f9eeff;
+}
+
+/* Common tooltip styles */
+.info-tooltip {
+    position: absolute;
+    top: 3rem;
+    right: 0;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    z-index: 1000;
+    font-size: 0.9rem;
+    color: #333;
+    animation: fadeInTooltip 0.2s ease-in-out;
 }
 
