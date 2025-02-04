@@ -432,22 +432,27 @@ const StateDiagram = ({
                     const transitionGroup =
                         linkView.model.get("transitionData");
                     if (transitionGroup) {
-                        // Create a list of all transitions in this group
                         const transitionsText = transitionGroup
                             .map(
                                 (t) => `Input: ${t.input}, Output: ${t.output}`
                             )
                             .join("\n");
 
+                        // Get the bounding rectangle of the container
+                        const containerRect =
+                            paperRef.current.getBoundingClientRect();
+
                         setTooltip({
                             visible: true,
                             content: transitionsText,
                             position: {
-                                x: evt.clientX + 10,
-                                y: evt.clientY + 10,
+                                // Adjust mouse position relative to the container
+                                x: evt.clientX - containerRect.left + 10,
+                                y: evt.clientY - containerRect.top + 10,
                             },
                         });
-                        // Highlight the transition arrow in green
+
+                        // Highlight the arrow in green
                         linkView.model.attr({
                             line: {
                                 stroke: "green",
