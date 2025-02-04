@@ -28,7 +28,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
         // Draw diagram only if `isGenerated` is true
         if (isGenerated) {
           // Next State Logic Box
-          p.fill(230, 230, 250); // Light purple
+          p.fill(209, 179, 255, 104); // Light purple
 
           if (numFlipFlops === '2') {
             p.rect(startX, startY, boxWidth, boxHeight + 200);
@@ -81,7 +81,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
             const bottomLabelY = flipFlopY + 100;
 
             // Draw Flip-Flop Box
-            p.fill(214, 181, 235);
+            p.fill("#AD86E6");
             p.rect(flipFlopX, flipFlopY, flipFlopWidth, flipFlopHeight);
             p.fill(0);
 
@@ -227,7 +227,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
           // Draw Output Logic Box
           const outputX = startX + 600;
           const outputY = startY + flipFlopSpacing - 40;
-          p.fill(230, 230, 250);
+          p.fill(209, 179, 255, 104);
           p.rect(outputX, outputY, boxWidth, boxHeight);
           p.fill(0);
           p.text("Output Logic", outputX + 28, outputY + 35);

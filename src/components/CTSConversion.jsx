@@ -13,7 +13,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     const paper = new dia.Paper({
       el: document.getElementById("stateDiagram-container"),
       model: graph,
-      width: 1200,
+      width: 980,
       height: 900,
       gridSize: 1,
       interactive: false,
@@ -299,7 +299,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       circle.resize(80, 80);
       circle.attr({
         body: {  
-          fill: unusedStates.includes(state) ? "#cccccc" : "#e6d7f3", // Gray for unused states 
+          fill: unusedStates.includes(state) ? "#b1b1b179" : "#d1b3ff91", // Gray for unused states 
           stroke: "#333", 
           strokeWidth: 2 
         },
@@ -435,7 +435,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           strokeWidth: 2,
           targetMarker: {
             type: "path",
-            fill: "#000",
+            fill: "black",
             d: "M 10 -5 0 0 10 5 Z", 
           },
         },
@@ -446,9 +446,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         if (linkView.model === link) {
           linkView.model.attr({
             line: {
-            stroke: "purple", 
+            stroke: "#5e35b1", 
             strokeWidth: 4,   
-            targetMarker: { type: "path", fill: "purple", d: "M 14 -8 -2 0 14 8 Z" }, 
+            targetMarker: { type: "path", fill: "#5e35b1", d: "M 14 -8 -2 0 14 8 Z" }, 
             },
           });
         }
@@ -484,7 +484,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
   // Calculate positions for states
   const calculateStatePositions = (states, numFlipFlops, numInputs) => {
     const positions = {};
-    const canvasWidth = 800; 
+    const canvasWidth = 700; 
     const canvasHeight = 800; 
     const centerX = canvasWidth - 250 ; 
     const centerY = canvasHeight / 2; 
