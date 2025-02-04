@@ -572,3 +572,12 @@ td:nth-child(3) .table-input {
     animation: fadeInTooltip 0.2s ease-in-out;
 }
 
+/* Add purple button style */
+.purple-button {
+    background-color: #b084cc !important;  /* Use !important to override default confirm-button style */
+}
+
+.purple-button:hover {
+    background-color: #9370b8 !important;  /* Darker purple on hover */
+}
+

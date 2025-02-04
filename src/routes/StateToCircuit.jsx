@@ -1,6 +1,6 @@
 //StateToCircuit.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
@@ -22,6 +22,23 @@ const StateToCircuit = () => {
     const [blankCells, setBlankCells] = useState(new Set());
     const [focusedCell, setFocusedCell] = useState(null);
     const [showTableInfo, setShowTableInfo] = useState(false);
+
+    // Add click-outside handler
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                !event.target.closest(".info-button") &&
+                !event.target.closest(".info-tooltip")
+            ) {
+                setShowTableInfo(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const handleGenerate = () => {
         setShouldGenerate(true); // Trigger the generation

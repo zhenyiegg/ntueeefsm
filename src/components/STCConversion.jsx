@@ -604,7 +604,7 @@ const STCConversion = ({
                     ) : (
                         <button
                             onClick={handleExcitationConfirm}
-                            className="confirm-button"
+                            className="confirm-button purple-button"
                         >
                             Confirm
                         </button>
@@ -670,6 +670,23 @@ const STCConversion = ({
             </div>
         );
     };
+
+    // Add click-outside handler
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                !event.target.closest(".info-button") &&
+                !event.target.closest(".info-tooltip")
+            ) {
+                setShowExcitationInfo(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     return (
         <div>
