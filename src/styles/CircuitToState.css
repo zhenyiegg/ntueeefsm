@@ -68,7 +68,7 @@ select:focus {
 }
 
 .generate-btn.disabled {
-  background-color: #cccccc;
+  background-color: #c0bdbd;
   cursor: not-allowed;
 }
 
@@ -138,6 +138,10 @@ canvas {
   border-radius: 12px;
   border: 2px solid #f9eeff;
   text-align: center;
+}
+
+.stateDiagram-box {
+  margin-bottom: 80px;
 }
 
 .content-box h2 {
