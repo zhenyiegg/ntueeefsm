@@ -4,16 +4,7 @@
     height: 100%;
     margin: auto;
     background-color: white;
-    border: 3px solid #b084cc; 
     border-radius: 12px;
-}
-
-.popup-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
 }
   
 #stateDiagram-info {
@@ -25,19 +16,35 @@
 }
 
 /* Pop Up Display Styling */
+.popup-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(12, 1, 31, 0.297);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
 .popup-contentTransition {
-    background: #f7ebff;
+    background: #fff;
     padding: 22px;
     border-radius: 12px;
     box-shadow: 0px 4px 10px rgba(152, 105, 190, 0.3);
     text-align: center;
     width: 320px;
     border: 2px solid #d1b3ff;
-    font-family: 'Poppins', sans-serif;
+    position: relative;
 }
   
 .popup-title {
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #d1b3ff;
     font-size: 22px;
     font-weight: bold;
     color: #5e35b1;
@@ -49,10 +56,10 @@
     right: 10px;
     background: #c6a4eb; 
     border: none;
-    color: #2d1e50;
+    color: #3e2184;
     font-size: 18px;
     cursor: pointer;
-    padding: 6px 10px;
+    padding: 5px 10px;
     border-radius: 50%;
     transition: 0.3s ease;
 }
@@ -63,33 +70,36 @@
 }
   
 .state-transition-header {
-    background: #e9d8ff; 
     padding: 12px;
     border-radius: 8px;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     font-weight: bold;
+    
 }
   
-.state-mapping {
+.state-mapping strong {
     font-size: 18px;
     font-weight: bold;
     margin: 6px 0;
+    color: #5e35b1;
 }
   
 .state {
     font-weight: bold;
-    color: #9c27b0;
+    font-size: 18px;
+    color: #8a2be2;
 }
   
 .transition-table {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
     padding: 12px;
-    background: #f4e1ff;
+    background: #f6ebff;
     border-radius: 8px;
-    border: 1px solid #d1b3ff;
+    border: 1px solid #b18aeb;
+    box-shadow: 0px 4px 8px rgba(152, 105, 190, 0.15);
 }
   
 .transition-header {
@@ -115,12 +125,10 @@
     font-weight: bold;
     border-radius: 6px;
     box-shadow: 0px 2px 4px rgba(162, 115, 199, 0.2);
-    font-size: 16px;
-    transition: 0.3s ease-in-out;
 }
 
 .input-value, .output-value {
-    font-size: 16px;
+    font-size: 18px;
     color: #5e35b1;
     flex: 1;
     font-weight: bold;

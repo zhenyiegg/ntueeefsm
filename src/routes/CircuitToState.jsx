@@ -223,14 +223,11 @@ const CircuitToState = () => {
   
     if (ensureRowZeroHasOne) {
       if (isMinterm && !terms.includes(0)) {
-        // Ensure rowIndex 0 is included for minterms
         terms[0] = 0; 
         terms = Array.from(new Set(terms)).sort((a, b) => a - b); 
       } else if (!isMinterm && terms.includes(0)) {
-        // Ensure rowIndex 0 is excluded for maxterms
         terms = terms.filter((term) => term !== 0);
         if (terms.length < limit) {
-          // Add another valid term to maintain size
           for (let i = 1; i < maxValue; i++) {
             if (!terms.includes(i)) {
               terms.push(i);
@@ -242,7 +239,7 @@ const CircuitToState = () => {
       }
     }
   
-    // Meet the limit constraint after enforcing uniqueness
+    // Meet the limit constraint
     while (terms.length > limit) {
       terms.pop();
     }
@@ -525,7 +522,7 @@ const CircuitToState = () => {
       newExcitationTable.map((row) => ({
         ...row,
         flipFlopInputs: Object.keys(row.flipFlopInputs).reduce((acc, key) => {
-          acc[key] = { value: "", status: "editable" }; // Initialize as editable
+          acc[key] = { value: "", status: "editable" }; 
           return acc;
         }, {}),
       }))
@@ -619,7 +616,7 @@ const CircuitToState = () => {
           status: "correct", 
         };
       } else {
-        allCorrect = false; // Mark as incorrect if validation fails
+        allCorrect = false; 
         updatedRow.flipFlopInputs[flipFlop] = {
           ...row.flipFlopInputs[flipFlop],
           status: "incorrect", 
@@ -811,7 +808,7 @@ const CircuitToState = () => {
           onClick={handleGenerateButtonClick}
           disabled={!isFormComplete}
         >
-          Generate Circuit & Flip-Flop Inputs
+          Generate
         </button>
 
         <button
@@ -832,9 +829,9 @@ const CircuitToState = () => {
       />
 
       {/* Display Generated Minterms & Maxterms */}
-      <div className="minMaxterms-section">
+      <div className={`minMaxterms-section ${isGenerated ? "active" : ""}`}>
         {!isGenerated ? (
-          <h3 style = {{color: "#aaa"}}>Generated Flip-Flop Inputs</h3>
+          <h3 style = {{color: "#cccccc"}}>Generated Flip-Flop Inputs & Output Z</h3>
         ) : (
           <>
             <p>
@@ -985,7 +982,7 @@ const CircuitToState = () => {
       </div>
 
       {/* State Diagram Section */}
-      <div className={`content-box stateDiagram-box ${showStateDiagram ? "active" : ""}`}>
+      <div className={`content-box ${showStateDiagram ? "active" : ""}`}>
         <h2>State Diagram</h2>
         {showStateDiagram ? (
           <div className="state-diagram-placeholder">
