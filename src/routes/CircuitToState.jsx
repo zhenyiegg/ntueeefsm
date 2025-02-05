@@ -346,7 +346,7 @@ const CircuitToState = () => {
     }
 
     setShowExcitationTable(true); 
-    setExcitationSubheader('Complete the Excitation Table with only binary "0" and "1" values.');
+    setExcitationSubheader('Fill in the blanks with binary "0" and "1" values.');
     setShowStateTransitionTable(false); 
     setStateTransitionSubheader("Exercise 2");
     setShowStateDiagram(false);
@@ -632,7 +632,7 @@ const CircuitToState = () => {
     if (allCorrect) {
       setShowStateTransitionTable(true);
       setExcitationSubheader('Completed!');
-      setStateTransitionSubheader('Complete the State Transition Table with only binary "0" and "1" values.');
+      setStateTransitionSubheader('Fill in the blanks with binary "0" and "1" values.');
     }
   };
 
