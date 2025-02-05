@@ -34,13 +34,13 @@ select {
 }
 
 select:hover {
-  border-color: #996dd2;
+  border-color: #9068c1;
   box-shadow: 0 0 5px rgba(191, 111, 223, 0.3);
 }
 
 select:focus {
   outline: none;
-  border-color: #996dd2;
+  border-color: #9068c1;
   box-shadow: 0 0 8px rgba(191, 111, 223, 0.3);
 }
 
@@ -52,7 +52,7 @@ select:focus {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: background-color 0.2s ease;
 }
 
 .auto-generate-btn {
@@ -64,7 +64,7 @@ select:focus {
 }
 
 .auto-generate-btn:hover {
-  background-color: #452276;
+  background-color: #4d2995;
 }
 
 .generate-btn.disabled {
@@ -81,7 +81,7 @@ canvas {
   max-width: 1200px; 
   padding: 15px;
   background-color: white;
-  border: 3px solid #996dd2;
+  border: 3px solid #9068c1;
   border-radius: 12px;
 }
 
@@ -163,7 +163,7 @@ canvas {
 }
 
 .content-box p {
-  font-size: 16px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 
@@ -176,11 +176,11 @@ canvas {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: 0.2s ease-in-out;
+  transition: 0.2s ease;
 }
 
 .next-btn:hover {
-  background-color: #452276;
+  background-color: #4d2995;
 }
 
 .next-btn.disabled {
@@ -195,7 +195,7 @@ table {
 }
 
 table th {
-  background: #996dd2;
+  background: #9068c1;
   font-size: 16px;
   color: #ffffff;
 }
@@ -220,11 +220,10 @@ table td input {
 table td input:focus {
   outline: none;
   border-color: #996dd2;
-  box-shadow: 0 0 5px rgba(169, 111, 223, 0.3);
 }
 
 table tr:hover {
-  background-color: #e0c7ff38;
+  background-color: #e9d7ff5f;
 }
 
 .currentState-column {
@@ -299,7 +298,7 @@ table tr:hover {
   color: #3e2184;
   padding: 2px 8px;
   border-radius: 50%;
-  transition: 0.3s ease;
+  transition: 0.2s ease;
 }
 
 .popup-close:hover {
