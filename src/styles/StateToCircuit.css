@@ -267,53 +267,71 @@ html, body, #root, .App {
   background-color: #2171a6; /* Keep darker blue */
 }
 
+/* Update equations container for left alignment */
 .equations-container {
     background: #ffffff;
     padding: 1.5rem;
     border-radius: 12px;
     border: 3px solid #b084cc;
-    margin-top: 20px; /* Reduced from 1rem */
+    margin-top: 20px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.equations-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;  /* Left align the equations */
+    width: 100%;
 }
 
 .equation-block {
+    width: 100%;
     margin-bottom: 2rem;
 }
 
-.equation-block:last-child {
-    margin-bottom: 0;
-}
-
-.equation-block h4 {
-    color: #572b94;
-    margin-bottom: 1rem;
-    border-bottom: 2px solid #f9eeff;
-    padding-bottom: 0.5rem;
-}
-
 .equation-forms {
+    width: 97.5%;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    align-items: flex-start;  /* Left align the form elements */
 }
 
 .equation-form {
+    width: 100%;
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 1rem;
 }
 
+/* Update equation label and value for consistent alignment */
 .equation-label {
-    font-weight: 600;
-    color: #572b94;
+    min-width: 180px;
+    font-weight: 500;
+    color: #572b94;  /* Changed to purple to match theme */
+    text-align: left;
 }
 
 .equation-value {
-    font-family: "Courier New", monospace;
-    background: #f9eeff;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: 1.5px solid #b084cc;
-    color: #333;
+    flex: 1;
+    text-align: left;
+    font-family: monospace;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Add state for equations info tooltip */
+.equations-container .info-tooltip {
+    border: 2px solid #b084cc;
+}
+
+.equations-container .info-tooltip h3 {
+    color: #572b94;
+    margin: 0 0 0.5rem 0;
+    border-bottom: 2px solid #f9eeff;
 }
 
 /* Input container for tooltip positioning */
@@ -570,5 +588,77 @@ td:nth-child(3) .table-input {
     font-size: 0.9rem;
     color: #333;
     animation: fadeInTooltip 0.2s ease-in-out;
+}
+
+/* Add purple button style */
+.purple-button {
+    background-color: #b084cc !important;  /* Use !important to override default confirm-button style */
+}
+
+.purple-button:hover {
+    background-color: #9370b8 !important;  /* Darker purple on hover */
+}
+
+/* Add styles for equation inputs */
+.equation-input {
+    width: 120px;
+    padding: 4px 8px;
+    border: 2px solid #6FC3DF;
+    border-radius: 4px;
+    font-size: 1rem;
+    margin: 0 4px;
+}
+
+.equation-input:focus {
+    outline: none;
+    border-color: #2980b9;
+    box-shadow: 0 0 5px rgba(111, 195, 223, 0.3);
+}
+
+.equation-input.correct {
+    background-color: #e6ffe6;
+    border-color: #4CAF50;
+}
+
+.equation-input.incorrect {
+    background-color: #ffe6e6;
+    border-color: #ff4444;
+}
+
+.equation-input:disabled {
+    background-color: #e6ffe6;
+    border-color: #4CAF50;
+    color: #333;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+/* Update equation forms container */
+.equation-forms {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.equation-form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.equation-label {
+    min-width: 180px;
+    font-weight: 500;
+    color: #2980b9;
+}
+
+.equation-value {
+    flex: 1;
+    font-family: monospace;
+    font-size: 1.1rem;
 }
 
