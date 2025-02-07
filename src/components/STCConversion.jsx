@@ -34,6 +34,22 @@ const STCConversion = ({
     // Add state for info tooltip
     const [showExcitationInfo, setShowExcitationInfo] = useState(false);
 
+    // Add new state to track if equations should be shown
+    const [showEquations, setShowEquations] = useState(false);
+
+    // Add new states for equation validation
+    const [equationAnswers, setEquationAnswers] = useState({});
+    const [equationValidation, setEquationValidation] = useState({});
+    const [isEquationsComplete, setIsEquationsComplete] = useState(false);
+    const [equationTooltip, setEquationTooltip] = useState({});
+    const [focusedEquationCell, setFocusedEquationCell] = useState(null);
+
+    // Add new state for equations info
+    const [showEquationsInfo, setShowEquationsInfo] = useState(false);
+
+    // Add new state at the top with other state variables
+    const [showCircuit, setShowCircuit] = useState(false);
+
     useEffect(() => {
         if (transitionTable.length === 0) return;
 
@@ -600,7 +616,12 @@ const STCConversion = ({
                 </table>
                 <div className="convert-button-container">
                     {isExcitationComplete ? (
-                        <button className="convert-button">Next</button>
+                        <button
+                            className="convert-button purple-button"
+                            onClick={() => setShowEquations(true)}
+                        >
+                            Next
+                        </button>
                     ) : (
                         <button
                             onClick={handleExcitationConfirm}
@@ -614,59 +635,393 @@ const STCConversion = ({
         );
     };
 
-    /**
-     * Render the minterm / maxterm / minimal SoP for each equation
-     */
+    // Update validation for equation inputs to handle different field types
+    const validateEquationInput = (value, field) => {
+        if (value === "") return true;
+
+        switch (field) {
+            case "minterms":
+            case "maxterms":
+                // Allow numbers, commas, and spaces for minterm/maxterm indices
+                return /^[0-9,\s]*$/.test(value);
+            case "sop":
+                // Allow letters (A-Z), numbers, operators (+), prime ('), and spaces
+                return /^[A-Z0-9'+\s]*$/.test(value);
+            default:
+                return false;
+        }
+    };
+
+    // Update handleEquationCellChange to pass the field type to validation
+    const handleEquationCellChange = (equationKey, field, value) => {
+        const key = `${equationKey}-${field}`;
+
+        // Convert to uppercase for SOP expressions
+        const processedValue = field === "sop" ? value.toUpperCase() : value;
+
+        if (validateEquationInput(processedValue, field)) {
+            setEquationAnswers((prev) => ({
+                ...prev,
+                [key]: processedValue,
+            }));
+        }
+
+        // Set appropriate tooltip message based on field type
+        let message;
+        switch (field) {
+            case "minterms":
+                message =
+                    "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)";
+                break;
+            case "maxterms":
+                message =
+                    "Enter maxterm indices separated by commas (e.g., 2, 3, 6, 7)";
+                break;
+            case "sop":
+                message =
+                    "Enter simplified boolean expression using variables and operators (e.g., AB' + BC)";
+                break;
+            default:
+                message = "Enter the correct value";
+        }
+
+        setEquationTooltip((prev) => ({
+            ...prev,
+            [key]: message,
+        }));
+    };
+
+    // Add equation focus handler
+    const handleEquationFocus = (equationKey, field) => {
+        const key = `${equationKey}-${field}`;
+        setFocusedEquationCell(key);
+
+        let message;
+        switch (field) {
+            case "minterms":
+                message =
+                    "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)";
+                break;
+            case "maxterms":
+                message =
+                    "Enter maxterm indices separated by commas (e.g., 2, 3, 6, 7)";
+                break;
+            case "sop":
+                message =
+                    "Enter simplified boolean expression using variables and operators (e.g., AB' + BC)";
+                break;
+            default:
+                message = "Enter the correct value";
+        }
+
+        setEquationTooltip((prev) => ({
+            ...prev,
+            [key]: message,
+        }));
+    };
+
+    // Add handler for equation confirmation
+    const handleEquationConfirm = () => {
+        const newValidation = {};
+        let allCorrect = true;
+
+        Object.keys(simplifiedEquations).forEach((key) => {
+            const eqn = simplifiedEquations[key];
+
+            // Check minterms
+            const mintermKey = `${key}-minterms`;
+            const userMinterms = equationAnswers[mintermKey] || "";
+            const correctMinterms = eqn.mintermIndices.join(", ");
+            const areMintermsCorrect =
+                userMinterms.replace(/\s/g, "") ===
+                correctMinterms.replace(/\s/g, "");
+            newValidation[mintermKey] = areMintermsCorrect;
+
+            // Check maxterms
+            const maxtermKey = `${key}-maxterms`;
+            const userMaxterms = equationAnswers[maxtermKey] || "";
+            const correctMaxterms = eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+            const areMaxtermsCorrect =
+                userMaxterms.replace(/\s/g, "") ===
+                correctMaxterms.replace(/\s/g, "");
+            newValidation[maxtermKey] = areMaxtermsCorrect;
+
+            // Check simplified expression
+            const sopKey = `${key}-sop`;
+            const userSop = equationAnswers[sopKey] || "";
+            const correctSop = eqn.minimalSoP;
+            const isSopCorrect =
+                userSop.replace(/\s/g, "") === correctSop.replace(/\s/g, "");
+            newValidation[sopKey] = isSopCorrect;
+
+            if (!areMintermsCorrect || !areMaxtermsCorrect || !isSopCorrect) {
+                allCorrect = false;
+            }
+        });
+
+        setEquationValidation(newValidation);
+        setIsEquationsComplete(allCorrect);
+    };
+
+    // Update renderEquations to include info button and left alignment
     const renderEquations = () => {
         return (
             <div className="equations-container">
-                {Object.keys(simplifiedEquations).map((key) => {
-                    const eqn = simplifiedEquations[key];
-                    const variableName = key.includes("_")
-                        ? key.replace("_", "") // For JK flip-flops
-                        : key;
+                <button
+                    className="info-button"
+                    onClick={() => setShowEquationsInfo(!showEquationsInfo)}
+                    aria-label="Equations Information"
+                >
+                    <FontAwesomeIcon icon={faCircleInfo} />
+                </button>
+                {showEquationsInfo && (
+                    <div className="info-tooltip">
+                        <h3>Equation Information</h3>
+                        <p>Fill in the minterm indices for each equation:</p>
+                        <ul>
+                            <li>
+                                Use the Sum of Minterms expression to identify
+                                the indices
+                            </li>
+                            <li>
+                                Separate multiple indices with commas (e.g., "0,
+                                1, 4, 5")
+                            </li>
+                            <li>
+                                The indices should match the terms in the
+                                canonical sum
+                            </li>
+                        </ul>
+                        <p>
+                            Example: If sum of minterms is "x̄ȳz + x̄yz̄", the
+                            indices would be "1, 2"
+                        </p>
+                    </div>
+                )}
+                <div className="equations-list">
+                    {Object.keys(simplifiedEquations).map((key) => {
+                        const eqn = simplifiedEquations[key];
+                        const variableName = key.includes("_")
+                            ? key.replace("_", "")
+                            : key;
+                        const mintermKey = `${key}-minterms`;
+                        const maxtermKey = `${key}-maxterms`;
+                        const sopKey = `${key}-sop`;
 
-                    return (
-                        <div key={key} className="equation-block">
-                            <h4>{variableName} Equation</h4>
-                            <div className="equation-forms">
-                                <div className="equation-form">
-                                    <span className="equation-label">
-                                        Canonical Form (Σm):
-                                    </span>
-                                    <span className="equation-value">
-                                        {variableName} = Σm(
-                                        {eqn.mintermIndices.join(", ")})
-                                    </span>
-                                </div>
-                                <div className="equation-form">
-                                    <span className="equation-label">
-                                        Sum of Minterms:
-                                    </span>
-                                    <span className="equation-value">
-                                        {eqn.canonicalSoM}
-                                    </span>
-                                </div>
-                                <div className="equation-form">
-                                    <span className="equation-label">
-                                        Product of Maxterms:
-                                    </span>
-                                    <span className="equation-value">
-                                        {eqn.canonicalPoM}
-                                    </span>
-                                </div>
-                                <div className="equation-form">
-                                    <span className="equation-label">
-                                        Simplified Expression:
-                                    </span>
-                                    <span className="equation-value">
-                                        {eqn.minimalSoP}
-                                    </span>
+                        return (
+                            <div key={key} className="equation-block">
+                                <h4>{variableName} Equation</h4>
+                                <div className="equation-forms">
+                                    <div className="equation-form">
+                                        <span className="equation-label">
+                                            Sum of Minterms (Σm):
+                                        </span>
+                                        <span className="equation-value">
+                                            {variableName} = Σm(
+                                            <div className="input-container">
+                                                <input
+                                                    type="text"
+                                                    className={`equation-input ${
+                                                        equationValidation[
+                                                            mintermKey
+                                                        ]
+                                                            ? "correct"
+                                                            : equationValidation.hasOwnProperty(
+                                                                  mintermKey
+                                                              )
+                                                            ? "incorrect"
+                                                            : ""
+                                                    }`}
+                                                    value={
+                                                        equationAnswers[
+                                                            mintermKey
+                                                        ] || ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleEquationCellChange(
+                                                            key,
+                                                            "minterms",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    onFocus={() =>
+                                                        handleEquationFocus(
+                                                            key,
+                                                            "minterms"
+                                                        )
+                                                    }
+                                                    onBlur={() =>
+                                                        setFocusedEquationCell(
+                                                            null
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        equationValidation[
+                                                            mintermKey
+                                                        ]
+                                                    }
+                                                />
+                                                {focusedEquationCell ===
+                                                    mintermKey && (
+                                                    <div className="input-tooltip">
+                                                        {
+                                                            equationTooltip[
+                                                                mintermKey
+                                                            ]
+                                                        }
+                                                    </div>
+                                                )}
+                                            </div>
+                                            )
+                                        </span>
+                                    </div>
+                                    <div className="equation-form">
+                                        <span className="equation-label">
+                                            Product of Maxterms:
+                                        </span>
+                                        <span className="equation-value">
+                                            {variableName} = ΠM(
+                                            <div className="input-container">
+                                                <input
+                                                    type="text"
+                                                    className={`equation-input ${
+                                                        equationValidation[
+                                                            maxtermKey
+                                                        ]
+                                                            ? "correct"
+                                                            : equationValidation.hasOwnProperty(
+                                                                  maxtermKey
+                                                              )
+                                                            ? "incorrect"
+                                                            : ""
+                                                    }`}
+                                                    value={
+                                                        equationAnswers[
+                                                            maxtermKey
+                                                        ] || ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleEquationCellChange(
+                                                            key,
+                                                            "maxterms",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    onFocus={() =>
+                                                        handleEquationFocus(
+                                                            key,
+                                                            "maxterms"
+                                                        )
+                                                    }
+                                                    onBlur={() =>
+                                                        setFocusedEquationCell(
+                                                            null
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        equationValidation[
+                                                            maxtermKey
+                                                        ]
+                                                    }
+                                                />
+                                                {focusedEquationCell ===
+                                                    maxtermKey && (
+                                                    <div className="input-tooltip">
+                                                        {
+                                                            equationTooltip[
+                                                                maxtermKey
+                                                            ]
+                                                        }
+                                                    </div>
+                                                )}
+                                            </div>
+                                            )
+                                        </span>
+                                    </div>
+                                    <div className="equation-form">
+                                        <span className="equation-label">
+                                            Simplified Expression:
+                                        </span>
+                                        <span className="equation-value">
+                                            {variableName} =
+                                            <div className="input-container">
+                                                <input
+                                                    type="text"
+                                                    className={`equation-input ${
+                                                        equationValidation[
+                                                            sopKey
+                                                        ]
+                                                            ? "correct"
+                                                            : equationValidation.hasOwnProperty(
+                                                                  sopKey
+                                                              )
+                                                            ? "incorrect"
+                                                            : ""
+                                                    }`}
+                                                    value={
+                                                        equationAnswers[
+                                                            sopKey
+                                                        ] || ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleEquationCellChange(
+                                                            key,
+                                                            "sop",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    onFocus={() =>
+                                                        handleEquationFocus(
+                                                            key,
+                                                            "sop"
+                                                        )
+                                                    }
+                                                    onBlur={() =>
+                                                        setFocusedEquationCell(
+                                                            null
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        equationValidation[
+                                                            sopKey
+                                                        ]
+                                                    }
+                                                />
+                                                {focusedEquationCell ===
+                                                    sopKey && (
+                                                    <div className="input-tooltip">
+                                                        {
+                                                            equationTooltip[
+                                                                sopKey
+                                                            ]
+                                                        }
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
+                <div className="convert-button-container">
+                    {isEquationsComplete ? (
+                        <button
+                            className="convert-button purple-button"
+                            onClick={() => setShowCircuit(true)}
+                        >
+                            Next
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleEquationConfirm}
+                            className="confirm-button purple-button"
+                        >
+                            Confirm
+                        </button>
+                    )}
+                </div>
             </div>
         );
     };
@@ -679,6 +1034,7 @@ const STCConversion = ({
                 !event.target.closest(".info-tooltip")
             ) {
                 setShowExcitationInfo(false);
+                setShowEquationsInfo(false);
             }
         };
 
@@ -690,35 +1046,31 @@ const STCConversion = ({
 
     return (
         <div>
-            {/* 1) Display Excitation Table */}
+            {/* 1) Always Display Excitation Table */}
             {renderExcitationTable()}
 
-            {/* 2) Display Minterm/Maxterm equations and minimal SoP */}
-            <h3>Minterm / Maxterm Equations</h3>
-            {renderEquations()}
+            {/* 2) Only show equations after clicking Next in excitation table */}
+            {showEquations && (
+                <>
+                    <h3>Minterm / Maxterm Equations</h3>
+                    {renderEquations()}
+                </>
+            )}
 
-            <h2>Generated Circuit Diagram</h2>
-
-            {/**
-             * 3) Draw the circuit using <CircuitDiagram />
-             *    The p5-based circuit code requires:
-             *       - numInputs     (string)
-             *       - flipFlopType  (string: 'D','T','JK')
-             *       - numFlipFlops  (string)
-             *       - fsmType       (string: 'Mealy','Moore')
-             *       - isGenerated   (bool)
-             *
-             *    In your case, numFlipFlops is `numStateBits`, which is a number.
-             *    The p5 code expects a string, so do `.toString()`.
-             */}
-            {isGenerated && (
-                <CircuitDiagram
-                    numInputs={numInputs ? numInputs.toString() : "1"}
-                    flipFlopType={flipFlopType}
-                    numFlipFlops={numStateBits.toString()}
-                    fsmType={diagramType} // e.g. "Mealy"/"Moore"
-                    isGenerated={true}
-                />
+            {/* 3) Only show circuit diagram after clicking Next in equations */}
+            {showCircuit && (
+                <>
+                    <h2>Generated Circuit Diagram</h2>
+                    {isGenerated && (
+                        <CircuitDiagram
+                            numInputs={numInputs ? numInputs.toString() : "1"}
+                            flipFlopType={flipFlopType}
+                            numFlipFlops={numStateBits.toString()}
+                            fsmType={diagramType}
+                            isGenerated={true}
+                        />
+                    )}
+                </>
             )}
         </div>
     );
