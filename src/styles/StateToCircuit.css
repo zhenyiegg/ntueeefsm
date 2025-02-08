@@ -321,6 +321,7 @@ html, body, #root, .App {
     font-size: 1.1rem;
     display: flex;
     align-items: center;
+    position: relative; /* For hint button positioning */
 }
 
 /* Add state for equations info tooltip */
@@ -337,7 +338,8 @@ html, body, #root, .App {
 /* Input container for tooltip positioning */
 .input-container {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }
 
 /* Update tooltip styles */
@@ -660,5 +662,62 @@ td:nth-child(3) .table-input {
     flex: 1;
     font-family: monospace;
     font-size: 1.1rem;
+}
+
+/* Update hint button container and positioning */
+.hint-container {
+    position: relative;
+    margin-left: auto; /* Push to the right */
+    padding-left: 10px; /* Add some space from the input */
+}
+
+/* Update hint button styles */
+.hint-button {
+    background-color: #b084cc;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hint-button:hover {
+    background-color: #9370b8;
+}
+
+/* Add hint tooltip styles */
+.hint-tooltip {
+    position: absolute;
+    top: calc(100% + 5px); /* Position below the button */
+    right: 0;
+    background-color: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    z-index: 1000;
+    min-width: 200px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Add arrow for hint tooltip */
+.hint-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: 10px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid #333;
 }
 
