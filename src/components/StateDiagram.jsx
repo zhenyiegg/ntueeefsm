@@ -231,25 +231,89 @@ const StateDiagram = ({
             };
 
             const calculateNextState = (currentStateNumber, inputValue) => {
-                let nextStateNumber;
-                switch (flipFlopType) {
-                    case "D":
-                        nextStateNumber = inputValue;
-                        break;
-                    case "T":
-                        nextStateNumber =
-                            currentStateNumber === inputValue ? 0 : 1;
-                        break;
-                    case "JK":
-                        if (inputValue === 0)
-                            nextStateNumber = currentStateNumber;
-                        else nextStateNumber = currentStateNumber === 1 ? 0 : 1;
-                        break;
-                    default:
-                        nextStateNumber = inputValue;
-                        break;
+                // Get array of possible next states (0 to numStates-1)
+                const possibleStates = Array.from(
+                    { length: numStates },
+                    (_, i) => i
+                );
+
+                // For D flip-flop, we want to ensure the input value influences the next state
+                // but not completely determine it like before
+                if (flipFlopType === "D") {
+                    // 70% chance to follow input value (for some predictability)
+                    if (Math.random() < 0.7) {
+                        return inputValue % numStates;
+                    }
+                    // 30% chance to pick any valid state randomly
+                    return possibleStates[
+                        Math.floor(Math.random() * numStates)
+                    ];
                 }
-                return nextStateNumber % numStates;
+
+                // For T flip-flop, we'll maintain the toggle behavior but with randomness
+                else if (flipFlopType === "T") {
+                    if (inputValue === 1) {
+                        // On toggle (input=1), randomly select any state except current
+                        const otherStates = possibleStates.filter(
+                            (state) => state !== currentStateNumber
+                        );
+                        return otherStates[
+                            Math.floor(Math.random() * otherStates.length)
+                        ];
+                    } else {
+                        // On no toggle (input=0), 80% chance to stay, 20% chance to move
+                        return Math.random() < 0.8
+                            ? currentStateNumber
+                            : possibleStates[
+                                  Math.floor(Math.random() * numStates)
+                              ];
+                    }
+                }
+
+                // For JK flip-flop, maintain JK behavior but with randomness
+                else if (flipFlopType === "JK") {
+                    if (inputValue === 0) {
+                        // No change (J=K=0)
+                        return currentStateNumber;
+                    } else if (inputValue === 1) {
+                        // Toggle (J=K=1)
+                        const otherStates = possibleStates.filter(
+                            (state) => state !== currentStateNumber
+                        );
+                        return otherStates[
+                            Math.floor(Math.random() * otherStates.length)
+                        ];
+                    } else if (inputValue === 2) {
+                        // Set (J=1,K=0)
+                        const higherStates = possibleStates.filter(
+                            (state) => state > currentStateNumber
+                        );
+                        return higherStates.length > 0
+                            ? higherStates[
+                                  Math.floor(
+                                      Math.random() * higherStates.length
+                                  )
+                              ]
+                            : possibleStates[
+                                  Math.floor(Math.random() * numStates)
+                              ];
+                    } else {
+                        // Reset (J=0,K=1)
+                        const lowerStates = possibleStates.filter(
+                            (state) => state < currentStateNumber
+                        );
+                        return lowerStates.length > 0
+                            ? lowerStates[
+                                  Math.floor(Math.random() * lowerStates.length)
+                              ]
+                            : possibleStates[
+                                  Math.floor(Math.random() * numStates)
+                              ];
+                    }
+                }
+
+                // Fallback: return random valid state
+                return Math.floor(Math.random() * numStates);
             };
 
             const transitionDataList = [];

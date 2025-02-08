@@ -50,6 +50,13 @@ const STCConversion = ({
     // Add new state at the top with other state variables
     const [showCircuit, setShowCircuit] = useState(false);
 
+    // Add new state variables at the top with other states
+    const [showHints, setShowHints] = useState({});
+    const [hintAttempts, setHintAttempts] = useState({});
+
+    // Add new state for hint tooltip
+    const [activeHint, setActiveHint] = useState(null);
+
     useEffect(() => {
         if (transitionTable.length === 0) return;
 
@@ -720,9 +727,35 @@ const STCConversion = ({
         }));
     };
 
-    // Add handler for equation confirmation
+    // Add helper function to get hint or answer
+    const getHintOrAnswer = (key, equation, isAnswer = false) => {
+        const [baseKey, field] = key.split("-");
+
+        if (field === "minterms") {
+            if (isAnswer) {
+                return `Answer: ${equation.mintermIndices.join(", ")}`;
+            }
+            return `Hint: These are the input combinations where the output is 1. Look for ${equation.mintermIndices.length} indices.`;
+        } else if (field === "maxterms") {
+            if (isAnswer) {
+                const maxterms = equation.canonicalPoM.match(/\((.*?)\)/)[1];
+                return `Answer: ${maxterms}`;
+            }
+            return "Hint: Maxterms are the complement of minterms. Look for input combinations where the output is 0.";
+        } else if (field === "sop") {
+            if (isAnswer) {
+                return `Answer: ${equation.minimalSoP}`;
+            }
+            return "Hint: This is the simplified boolean expression. Look for patterns in the minterms.";
+        }
+        return "";
+    };
+
+    // Update handleEquationConfirm to track incorrect attempts
     const handleEquationConfirm = () => {
         const newValidation = {};
+        const newHints = { ...showHints };
+        const newAttempts = { ...hintAttempts };
         let allCorrect = true;
 
         Object.keys(simplifiedEquations).forEach((key) => {
@@ -737,6 +770,11 @@ const STCConversion = ({
                 correctMinterms.replace(/\s/g, "");
             newValidation[mintermKey] = areMintermsCorrect;
 
+            if (!areMintermsCorrect && userMinterms !== "") {
+                newHints[mintermKey] = true;
+                newAttempts[mintermKey] = (newAttempts[mintermKey] || 0) + 1;
+            }
+
             // Check maxterms
             const maxtermKey = `${key}-maxterms`;
             const userMaxterms = equationAnswers[maxtermKey] || "";
@@ -746,6 +784,11 @@ const STCConversion = ({
                 correctMaxterms.replace(/\s/g, "");
             newValidation[maxtermKey] = areMaxtermsCorrect;
 
+            if (!areMaxtermsCorrect && userMaxterms !== "") {
+                newHints[maxtermKey] = true;
+                newAttempts[maxtermKey] = (newAttempts[maxtermKey] || 0) + 1;
+            }
+
             // Check simplified expression
             const sopKey = `${key}-sop`;
             const userSop = equationAnswers[sopKey] || "";
@@ -754,16 +797,104 @@ const STCConversion = ({
                 userSop.replace(/\s/g, "") === correctSop.replace(/\s/g, "");
             newValidation[sopKey] = isSopCorrect;
 
+            if (!isSopCorrect && userSop !== "") {
+                newHints[sopKey] = true;
+                newAttempts[sopKey] = (newAttempts[sopKey] || 0) + 1;
+            }
+
             if (!areMintermsCorrect || !areMaxtermsCorrect || !isSopCorrect) {
                 allCorrect = false;
             }
         });
 
         setEquationValidation(newValidation);
+        setShowHints(newHints);
+        setHintAttempts(newAttempts);
         setIsEquationsComplete(allCorrect);
     };
 
-    // Update renderEquations to include info button and left alignment
+    // Update the equation form rendering in renderEquations to include hint buttons
+    const renderEquationInput = (key, field, variableName, equation) => {
+        const fullKey = `${key}-${field}`;
+        const showHintButton =
+            showHints[fullKey] && !equationValidation[fullKey];
+        const attempts = hintAttempts[fullKey] || 0;
+        const isAnswer = attempts > 1;
+
+        return (
+            <div className="equation-form">
+                <span className="equation-label">
+                    {field === "minterms"
+                        ? "Sum of Minterms (Σm):"
+                        : field === "maxterms"
+                        ? "Product of Maxterms:"
+                        : "Simplified Expression:"}
+                </span>
+                <span className="equation-value">
+                    {variableName} ={" "}
+                    {field === "minterms"
+                        ? "Σm("
+                        : field === "maxterms"
+                        ? "ΠM("
+                        : ""}
+                    <div className="input-container">
+                        <input
+                            type="text"
+                            className={`equation-input ${
+                                equationValidation[fullKey]
+                                    ? "correct"
+                                    : equationValidation.hasOwnProperty(fullKey)
+                                    ? "incorrect"
+                                    : ""
+                            }`}
+                            value={equationAnswers[fullKey] || ""}
+                            onChange={(e) =>
+                                handleEquationCellChange(
+                                    key,
+                                    field,
+                                    e.target.value
+                                )
+                            }
+                            onFocus={() => handleEquationFocus(key, field)}
+                            onBlur={() => setFocusedEquationCell(null)}
+                            disabled={equationValidation[fullKey]}
+                        />
+                        {focusedEquationCell === fullKey && (
+                            <div className="input-tooltip">
+                                {equationTooltip[fullKey]}
+                            </div>
+                        )}
+                    </div>
+                    {field === "minterms" || field === "maxterms" ? ")" : ""}
+                    {showHintButton && (
+                        <div className="hint-container">
+                            <button
+                                className="hint-button"
+                                onClick={() =>
+                                    setActiveHint(
+                                        activeHint === fullKey ? null : fullKey
+                                    )
+                                }
+                            >
+                                {isAnswer ? "?" : "Hint"}
+                            </button>
+                            {activeHint === fullKey && (
+                                <div className="hint-tooltip">
+                                    {getHintOrAnswer(
+                                        fullKey,
+                                        equation,
+                                        isAnswer
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </span>
+            </div>
+        );
+    };
+
+    // Update the equation block rendering to use the new renderEquationInput
     const renderEquations = () => {
         return (
             <div className="equations-container">
@@ -800,206 +931,33 @@ const STCConversion = ({
                 )}
                 <div className="equations-list">
                     {Object.keys(simplifiedEquations).map((key) => {
-                        const eqn = simplifiedEquations[key];
                         const variableName = key.includes("_")
                             ? key.replace("_", "")
                             : key;
-                        const mintermKey = `${key}-minterms`;
-                        const maxtermKey = `${key}-maxterms`;
-                        const sopKey = `${key}-sop`;
+                        const eqn = simplifiedEquations[key];
 
                         return (
                             <div key={key} className="equation-block">
                                 <h4>{variableName} Equation</h4>
                                 <div className="equation-forms">
-                                    <div className="equation-form">
-                                        <span className="equation-label">
-                                            Sum of Minterms (Σm):
-                                        </span>
-                                        <span className="equation-value">
-                                            {variableName} = Σm(
-                                            <div className="input-container">
-                                                <input
-                                                    type="text"
-                                                    className={`equation-input ${
-                                                        equationValidation[
-                                                            mintermKey
-                                                        ]
-                                                            ? "correct"
-                                                            : equationValidation.hasOwnProperty(
-                                                                  mintermKey
-                                                              )
-                                                            ? "incorrect"
-                                                            : ""
-                                                    }`}
-                                                    value={
-                                                        equationAnswers[
-                                                            mintermKey
-                                                        ] || ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleEquationCellChange(
-                                                            key,
-                                                            "minterms",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    onFocus={() =>
-                                                        handleEquationFocus(
-                                                            key,
-                                                            "minterms"
-                                                        )
-                                                    }
-                                                    onBlur={() =>
-                                                        setFocusedEquationCell(
-                                                            null
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        equationValidation[
-                                                            mintermKey
-                                                        ]
-                                                    }
-                                                />
-                                                {focusedEquationCell ===
-                                                    mintermKey && (
-                                                    <div className="input-tooltip">
-                                                        {
-                                                            equationTooltip[
-                                                                mintermKey
-                                                            ]
-                                                        }
-                                                    </div>
-                                                )}
-                                            </div>
-                                            )
-                                        </span>
-                                    </div>
-                                    <div className="equation-form">
-                                        <span className="equation-label">
-                                            Product of Maxterms:
-                                        </span>
-                                        <span className="equation-value">
-                                            {variableName} = ΠM(
-                                            <div className="input-container">
-                                                <input
-                                                    type="text"
-                                                    className={`equation-input ${
-                                                        equationValidation[
-                                                            maxtermKey
-                                                        ]
-                                                            ? "correct"
-                                                            : equationValidation.hasOwnProperty(
-                                                                  maxtermKey
-                                                              )
-                                                            ? "incorrect"
-                                                            : ""
-                                                    }`}
-                                                    value={
-                                                        equationAnswers[
-                                                            maxtermKey
-                                                        ] || ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleEquationCellChange(
-                                                            key,
-                                                            "maxterms",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    onFocus={() =>
-                                                        handleEquationFocus(
-                                                            key,
-                                                            "maxterms"
-                                                        )
-                                                    }
-                                                    onBlur={() =>
-                                                        setFocusedEquationCell(
-                                                            null
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        equationValidation[
-                                                            maxtermKey
-                                                        ]
-                                                    }
-                                                />
-                                                {focusedEquationCell ===
-                                                    maxtermKey && (
-                                                    <div className="input-tooltip">
-                                                        {
-                                                            equationTooltip[
-                                                                maxtermKey
-                                                            ]
-                                                        }
-                                                    </div>
-                                                )}
-                                            </div>
-                                            )
-                                        </span>
-                                    </div>
-                                    <div className="equation-form">
-                                        <span className="equation-label">
-                                            Simplified Expression:
-                                        </span>
-                                        <span className="equation-value">
-                                            {variableName} =
-                                            <div className="input-container">
-                                                <input
-                                                    type="text"
-                                                    className={`equation-input ${
-                                                        equationValidation[
-                                                            sopKey
-                                                        ]
-                                                            ? "correct"
-                                                            : equationValidation.hasOwnProperty(
-                                                                  sopKey
-                                                              )
-                                                            ? "incorrect"
-                                                            : ""
-                                                    }`}
-                                                    value={
-                                                        equationAnswers[
-                                                            sopKey
-                                                        ] || ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleEquationCellChange(
-                                                            key,
-                                                            "sop",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    onFocus={() =>
-                                                        handleEquationFocus(
-                                                            key,
-                                                            "sop"
-                                                        )
-                                                    }
-                                                    onBlur={() =>
-                                                        setFocusedEquationCell(
-                                                            null
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        equationValidation[
-                                                            sopKey
-                                                        ]
-                                                    }
-                                                />
-                                                {focusedEquationCell ===
-                                                    sopKey && (
-                                                    <div className="input-tooltip">
-                                                        {
-                                                            equationTooltip[
-                                                                sopKey
-                                                            ]
-                                                        }
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </span>
-                                    </div>
+                                    {renderEquationInput(
+                                        key,
+                                        "minterms",
+                                        variableName,
+                                        eqn
+                                    )}
+                                    {renderEquationInput(
+                                        key,
+                                        "maxterms",
+                                        variableName,
+                                        eqn
+                                    )}
+                                    {renderEquationInput(
+                                        key,
+                                        "sop",
+                                        variableName,
+                                        eqn
+                                    )}
                                 </div>
                             </div>
                         );
@@ -1035,6 +993,20 @@ const STCConversion = ({
             ) {
                 setShowExcitationInfo(false);
                 setShowEquationsInfo(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Add click-outside handler for hint tooltips
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".hint-container")) {
+                setActiveHint(null);
             }
         };
 
