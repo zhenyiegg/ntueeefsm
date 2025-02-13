@@ -93,7 +93,7 @@ canvas {
   border-radius: 12px;
   padding: 0 20px;
   margin: 20px auto;
-  max-width: 65%;
+  width: 65%;
 }
 
 .minMaxterms-section.active {
@@ -326,7 +326,7 @@ table tr:hover {
       width: 80%;
   }
 
-  .minterms-section {
-      margin: 0 auto;
+  .minMaxterms-section.active {
+      width: 80%;
   }
 }
