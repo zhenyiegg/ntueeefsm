@@ -125,13 +125,13 @@ html, body, #root, .App {
 /* Table section styles */
 .table-section {
   flex: 1;
-  min-width: 450px; /* Reduced from 500px */
+  min-width: 600px; /* Increased from 450px */
   max-width: none;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  padding: 1.2rem; /* Slightly reduced padding */
+  padding: 1.2rem;
   border-radius: 12px;
   border: 3px solid #6FC3DF;
   position: relative;
@@ -151,7 +151,7 @@ html, body, #root, .App {
 .state-transition-table {
   margin: 0;
   width: 100%;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -165,6 +165,7 @@ html, body, #root, .App {
   color: white;
   padding: 12px;
   z-index: 1;
+  font-size: 1.3rem;
 }
 
 /* Table cell styles */
@@ -174,27 +175,28 @@ html, body, #root, .App {
   word-wrap: break-word;
   border: 1px solid #e3f2fd;
   text-align: center;
+  font-size: 1.3rem;
 }
 
 /* Set specific widths for each column */
 .state-transition-table th:nth-child(1),
 .state-transition-table td:nth-child(1) {
-  width: 25%; /* Present State column */
+  width: 22%; /* Reduced from 25% */
 }
 
 .state-transition-table th:nth-child(2),
 .state-transition-table td:nth-child(2) {
-  width: 20%; /* Input column */
+  width: 18%; /* Reduced from 20% */
 }
 
 .state-transition-table th:nth-child(3),
 .state-transition-table td:nth-child(3) {
-  width: 35%; /* Next State column */
+  width: 40%; /* Increased from 35% */
 }
 
 .state-transition-table th:nth-child(4),
 .state-transition-table td:nth-child(4) {
-  width: 20%; /* Output column */
+  width: 20%; /* Kept the same */
 }
 
 /* First cell in each row */
@@ -379,10 +381,10 @@ html, body, #root, .App {
     text-align: center;
     border: 2px solid #6FC3DF;
     border-radius: 4px;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     background: white;
     box-sizing: border-box;
-    padding: 0 4px;
+    padding: 6px 10px;
 }
 
 /* Adjust nextState input width */
@@ -719,5 +721,47 @@ td:nth-child(3) .table-input {
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
     border-bottom: 5px solid #333;
+}
+
+
+.table-input.select:disabled {
+    background-color: #e6ffe6;
+    border-color: #4CAF50;
+    color: #333;
+    cursor: not-allowed;
+}
+
+.table-input.select.incorrect {
+    background-color: #ffe6e6;
+    border-color: #ff4444;
+}
+
+.table-input.select.correct {
+    background-color: #e6ffe6;
+    border-color: #4CAF50;
+}
+
+
+/* Update dropdown styles for larger vertical size */
+.table-input.select {
+  width: 180px;
+  padding: 8px 12px;
+  border: 2px solid #6FC3DF;
+  border-radius: 4px;
+  font-size: 1.3rem;
+  background-color: white;
+  cursor: pointer;
+  text-align: center;
+  height: 45px; /* Added height */
+  line-height: 1.4; /* Added line height */
+}
+
+/* Update dropdown option styles */
+.table-input.select option {
+  font-size: 0.8rem;
+  padding: 8px 4px; /* Increased vertical padding */
+  height: 30px; /* Added height for options */
+  line-height: 30px; /* Added line height for options */
+  text-align: left;
 }
 

@@ -223,7 +223,16 @@ const StateToCircuit = () => {
         }));
     };
 
-    // Update renderCell to include the new focus behavior
+    // Add a function to get active states
+    const getActiveStates = () => {
+        return Array.from({ length: numStates }, (_, i) => {
+            const stateBits = Math.ceil(Math.log2(numStates));
+            const binaryCode = i.toString(2).padStart(stateBits, "0");
+            return `S${i} (${binaryCode})`;
+        });
+    };
+
+    // Update renderCell to remove tooltip for nextState
     const renderCell = (row, rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
         const isBlank = blankCells.has(`${rowIndex}-${column}`);
@@ -231,11 +240,42 @@ const StateToCircuit = () => {
 
         if (!isBlank) return value;
 
+        if (column === "nextState") {
+            const activeStates = getActiveStates();
+            return (
+                <div className="input-container">
+                    <select
+                        value={userAnswers[key] || ""}
+                        onChange={(e) =>
+                            handleCellChange(rowIndex, column, e.target.value)
+                        }
+                        onFocus={() => setFocusedCell(null)} // Remove tooltip trigger
+                        onBlur={() => setFocusedCell(null)}
+                        className={`table-input select ${
+                            cellValidation[key]
+                                ? "correct"
+                                : cellValidation.hasOwnProperty(key)
+                                ? "incorrect"
+                                : ""
+                        }`}
+                        disabled={isCorrect}
+                    >
+                        <option value=""></option>
+                        {activeStates.map((state) => (
+                            <option key={state} value={state}>
+                                {state}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            );
+        }
+
         return (
             <div className="input-container">
                 <input
                     type="text"
-                    maxLength={column === "nextState" ? 8 : 2}
+                    maxLength={2}
                     value={userAnswers[key] || ""}
                     onChange={(e) =>
                         handleCellChange(rowIndex, column, e.target.value)
