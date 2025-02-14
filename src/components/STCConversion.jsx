@@ -294,17 +294,20 @@ const STCConversion = ({
         switch (column) {
             case "input":
             case "output":
-            case "nextState":
-                // Allow single (0,1) or double (00,01,10,11) binary digits
+                // Keep these as single or double binary digits
                 return /^[01]$|^[01]{2}$/.test(value);
+
+            case "nextState":
+                // Allow single, double, or triple binary digits
+                return /^[01]$|^[01]{2}$|^[01]{3}$/.test(value);
 
             case "excitation":
                 if (flipFlopType === "JK") {
                     // Always return true to allow free typing for JK
                     return true;
                 } else if (flipFlopType === "T" || flipFlopType === "D") {
-                    // For T and D flip-flops, allow single or double binary digits
-                    return /^[01]$|^[01]{2}$/.test(value);
+                    // Allow single, double, or triple binary digits for excitation
+                    return /^[01]$|^[01]{2}$|^[01]{3}$/.test(value);
                 }
                 return false;
 
@@ -327,20 +330,22 @@ const STCConversion = ({
             }));
         }
 
-        // Always set a tooltip message
+        // Update tooltip message
         let message;
         switch (column) {
             case "input":
             case "output":
-            case "nextState":
                 message = "Enter 0, 1, 00, 01, 10, or 11";
+                break;
+            case "nextState":
+                message = "Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111";
                 break;
             case "excitation":
                 if (flipFlopType === "JK") {
                     message =
                         "Format should be: XY XY where X,Y can be 0, 1, or X (e.g., 0X 1X)";
                 } else {
-                    message = `Enter 0, 1, 00, 01, 10, or 11 for ${flipFlopType} flip-flop`;
+                    message = `Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111 for ${flipFlopType} flip-flop`;
                 }
                 break;
             default:
@@ -352,30 +357,32 @@ const STCConversion = ({
         }));
     };
 
-    // Add excitation focus handler
+    // Update handleExcitationFocus to include updated tooltip messages
     const handleExcitationFocus = (rowIndex, column) => {
         const key = `${rowIndex}-${column}`;
         setFocusedExcitationCell(key);
 
-        // Set initial tooltip message
         let message;
         switch (column) {
             case "input":
             case "output":
-            case "nextState":
                 message = "Enter 0, 1, 00, 01, 10, or 11";
+                break;
+            case "nextState":
+                message = "Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111";
                 break;
             case "excitation":
                 if (flipFlopType === "JK") {
                     message =
                         "Format should be: XY XY where X,Y can be 0, 1, or X (e.g., 0X 1X)";
                 } else {
-                    message = `Enter 0, 1, 00, 01, 10, or 11 for ${flipFlopType} flip-flop`;
+                    message = `Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111 for ${flipFlopType} flip-flop`;
                 }
                 break;
             default:
-                message = "Invalid input";
+                message = "Enter the correct value";
         }
+
         setExcitationTooltip((prev) => ({
             ...prev,
             [key]: message,
@@ -444,10 +451,10 @@ const STCConversion = ({
                 maxLength = 2;
                 break;
             case "nextState":
-                maxLength = 8; // For format "S# (###)"
+                maxLength = 3;
                 break;
             case "excitation":
-                maxLength = flipFlopType === "JK" ? 7 : 2; // JK: "XX XX", D/T: "##"
+                maxLength = flipFlopType === "JK" ? 7 : 3; // JK: "XX XX", D/T: "##"
                 break;
             default:
                 maxLength = 1;
@@ -659,7 +666,7 @@ const STCConversion = ({
         }
     };
 
-    // Update handleEquationCellChange to pass the field type to validation
+    // Update handleEquationCellChange to include updated tooltip messages
     const handleEquationCellChange = (equationKey, field, value) => {
         const key = `${equationKey}-${field}`;
 
@@ -686,7 +693,7 @@ const STCConversion = ({
                 break;
             case "sop":
                 message =
-                    "Enter simplified boolean expression using variables and operators (e.g., AB' + BC)";
+                    "Enter simplified boolean expression using Q (state) and X (input) variables (e.g., Q1'Q0X0 + Q1X1')";
                 break;
             default:
                 message = "Enter the correct value";
@@ -698,7 +705,7 @@ const STCConversion = ({
         }));
     };
 
-    // Add equation focus handler
+    // Update handleEquationFocus to use the same updated messages
     const handleEquationFocus = (equationKey, field) => {
         const key = `${equationKey}-${field}`;
         setFocusedEquationCell(key);
@@ -715,7 +722,7 @@ const STCConversion = ({
                 break;
             case "sop":
                 message =
-                    "Enter simplified boolean expression using variables and operators (e.g., AB' + BC)";
+                    "Enter simplified boolean expression using Q (state) and X (input) variables (e.g., Q1'Q0X0 + Q1X1')";
                 break;
             default:
                 message = "Enter the correct value";
@@ -813,13 +820,41 @@ const STCConversion = ({
         setIsEquationsComplete(allCorrect);
     };
 
-    // Update the equation form rendering in renderEquations to include hint buttons
+    // Add helper function to get flip-flop variable names
+    const getFlipFlopName = (ffIndex, ffType) => {
+        switch (ffType) {
+            case "D":
+                return `D${ffIndex}`;
+            case "T":
+                return `T${ffIndex}`;
+            case "JK":
+                // For JK, we return both J and K names since they're handled separately
+                return `${ffIndex}`; // The J/K prefix is already in the key (e.g., Q0_J, Q0_K)
+            default:
+                return `Q${ffIndex}`;
+        }
+    };
+
+    // Update the renderEquationInput function to use correct variable names
     const renderEquationInput = (key, field, variableName, equation) => {
         const fullKey = `${key}-${field}`;
         const showHintButton =
             showHints[fullKey] && !equationValidation[fullKey];
         const attempts = hintAttempts[fullKey] || 0;
         const isAnswer = attempts > 1;
+
+        // Extract the flip-flop index from the key (e.g., "Q0" -> "0")
+        const ffIndex = key.match(/\d+/)[0];
+
+        // Get the proper flip-flop name
+        let displayName;
+        if (key.includes("_J")) {
+            displayName = `J${ffIndex}`;
+        } else if (key.includes("_K")) {
+            displayName = `K${ffIndex}`;
+        } else {
+            displayName = getFlipFlopName(ffIndex, flipFlopType);
+        }
 
         return (
             <div className="equation-form">
@@ -831,11 +866,11 @@ const STCConversion = ({
                         : "Simplified Expression:"}
                 </span>
                 <span className="equation-value">
-                    {variableName} ={" "}
+                    {displayName} ={" "}
                     {field === "minterms"
                         ? "Σm("
                         : field === "maxterms"
-                        ? "ΠM("
+                        ? "∏M("
                         : ""}
                     <div className="input-container">
                         <input
@@ -938,7 +973,19 @@ const STCConversion = ({
 
                         return (
                             <div key={key} className="equation-block">
-                                <h4>{variableName} Equation</h4>
+                                <h4>
+                                    {key.includes("_")
+                                        ? `${getFlipFlopName(
+                                              key.match(/\d+/)[0],
+                                              flipFlopType
+                                          )}${
+                                              key.includes("_J") ? "J" : "K"
+                                          } Equation`
+                                        : `${getFlipFlopName(
+                                              key.match(/\d+/)[0],
+                                              flipFlopType
+                                          )} Equation`}
+                                </h4>
                                 <div className="equation-forms">
                                     {renderEquationInput(
                                         key,

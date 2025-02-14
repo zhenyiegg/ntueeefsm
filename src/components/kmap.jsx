@@ -3,10 +3,23 @@
 export function simplifyBooleanFunction(minterms, numVariables, validIndices) {
     const hasDontCares = !!validIndices;
 
-    const variables = ["A", "B", "C", "D", "E", "F", "G", "H"].slice(
-        0,
-        numVariables
-    );
+    // Create variable names based on state bits (Q) and inputs (X)
+    const variables = [];
+    const numStateBits = Math.ceil(Math.log2(8)); // 8 states max = 3 bits
+    const numInputBits = numVariables - numStateBits;
+
+    // Add state variables (Q1, Q0, etc.)
+    for (let i = numStateBits - 1; i >= 0; i--) {
+        variables.push(`Q${i}`);
+    }
+
+    // Add input variables (X1, X0, etc.)
+    for (let i = numInputBits - 1; i >= 0; i--) {
+        variables.push(`X${i}`);
+    }
+
+    // Slice to get only the needed number of variables
+    variables.length = numVariables;
 
     // Use Set to ensure unique minterms
     const uniqueMinterms = new Set(minterms);
