@@ -87,11 +87,11 @@ const StateDiagram = ({
                     return [
                         {
                             x: state.position().x - loopOffset,
-                            y: state.position().y,
+                            y: state.position().y + 50,
                         },
                         {
-                            x: state.position().x - loopOffset,
-                            y: state.position().y - loopOffset,
+                            x: state.position().x - loopOffset + 100,
+                            y: state.position().y - loopOffset + 30,
                         },
                     ];
                 case 7:
@@ -138,8 +138,8 @@ const StateDiagram = ({
         if (shouldGenerate && numStates && numInputs && paperRef.current) {
             const graph = new dia.Graph();
 
-            const paperWidth = 1400;
-            const paperHeight = 1200;
+            const paperWidth = 1200;
+            const paperHeight = 1000;
 
             paperInstance.current = new dia.Paper({
                 el: paperRef.current,
@@ -173,7 +173,7 @@ const StateDiagram = ({
 
                 const state = new shapes.standard.Circle();
                 state.position(x, y);
-                state.resize(120, 120);
+                state.resize(100, 100);
 
                 // Determine if the state is active or inactive
                 const isActive = stateNumber < numStates;
@@ -183,8 +183,8 @@ const StateDiagram = ({
                 state.set("stateNumber", stateNumber);
 
                 // Adjust font size
-                const minFontSize = 22; // [Modified]
-                const maxFontSize = 26; // [Modified]
+                const minFontSize = 20;
+                const maxFontSize = 24;
                 const fontSize =
                     maxFontSize - (numStates - 3) > minFontSize // [Modified]
                         ? maxFontSize - (numStates - 3)
@@ -192,14 +192,14 @@ const StateDiagram = ({
 
                 state.attr({
                     body: {
-                        fill: isActive ? "#6FC3DF" : "#CCCCCC",
-                        opacity: isActive ? 1 : 0.1,
+                        fill: isActive ? "#6FC3DF" : "none",
+                        opacity: isActive ? 1 : 0,
                         "pointer-events": isActive ? "visiblePainted" : "none",
                     },
                     label: {
                         text: isActive ? `${stateId}` : "",
-                        fill: isActive ? "white" : "#666666",
-                        fontSize: fontSize, // [Modified]
+                        fill: isActive ? "white" : "none",
+                        fontSize: fontSize,
                     },
                 });
 
@@ -207,9 +207,11 @@ const StateDiagram = ({
                 if (diagramType === "Moore" && isActive) {
                     state.attr({
                         label: {
-                            text: `${stateId}\nOut=${stateNumber % 2}`,
+                            text: `${stateId}\n―\n${stateNumber % 2}`,
                             fill: "white",
-                            fontSize: fontSize, // [Modified]
+                            fontSize: fontSize,
+                            "text-anchor": "middle",
+                            "y-alignment": "middle",
                         },
                     });
                 }
@@ -462,8 +464,9 @@ const StateDiagram = ({
                     attrs: {
                         text: {
                             text: labelText,
-                            fill: "black",
+                            fill: "#FF0000",
                             fontSize: 28,
+                            "font-weight": "bold",
                         },
                         rect: {
                             fill: "white",
@@ -496,9 +499,12 @@ const StateDiagram = ({
                     const transitionGroup =
                         linkView.model.get("transitionData");
                     if (transitionGroup) {
+                        // Create different tooltip text based on machine type
                         const transitionsText = transitionGroup
-                            .map(
-                                (t) => `Input: ${t.input}, Output: ${t.output}`
+                            .map((t) =>
+                                diagramType === "Mealy"
+                                    ? `Input: ${t.input}, Output: ${t.output}`
+                                    : `Input: ${t.input}`
                             )
                             .join("\n");
 
@@ -510,7 +516,6 @@ const StateDiagram = ({
                             visible: true,
                             content: transitionsText,
                             position: {
-                                // Adjust mouse position relative to the container
                                 x: evt.clientX - containerRect.left + 10,
                                 y: evt.clientY - containerRect.top + 10,
                             },
