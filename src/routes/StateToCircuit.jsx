@@ -265,12 +265,13 @@ const StateToCircuit = () => {
         setIsTableComplete(true);
     };
 
-    // Update renderCell to include given-up class
+    // Update renderCell to include incorrect class
     const renderCell = (row, rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
         const isBlank = blankCells.has(`${rowIndex}-${column}`);
         const isCorrect = cellValidation[key];
         const isGivenUp = hasGivenUp.transitionTable;
+        const isIncorrect = cellValidation.hasOwnProperty(key) && !isCorrect;
 
         if (!isBlank) return value;
 
@@ -287,7 +288,9 @@ const StateToCircuit = () => {
                         onBlur={() => setFocusedCell(null)}
                         className={`table-input select ${
                             isCorrect ? "correct" : ""
-                        } ${isGivenUp ? "given-up" : ""}`}
+                        } ${isIncorrect ? "incorrect" : ""} ${
+                            isGivenUp ? "given-up" : ""
+                        }`}
                         disabled={isCorrect || isGivenUp}
                     >
                         <option value=""></option>
@@ -313,8 +316,8 @@ const StateToCircuit = () => {
                     onFocus={() => handleInputFocus(rowIndex, column)}
                     onBlur={() => setFocusedCell(null)}
                     className={`table-input ${isCorrect ? "correct" : ""} ${
-                        isGivenUp ? "given-up" : ""
-                    }`}
+                        isIncorrect ? "incorrect" : ""
+                    } ${isGivenUp ? "given-up" : ""}`}
                     disabled={isCorrect || isGivenUp}
                 />
                 {focusedCell === key && (
