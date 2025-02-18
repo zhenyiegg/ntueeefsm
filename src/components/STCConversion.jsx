@@ -57,6 +57,21 @@ const STCConversion = ({
     // Add new state for hint tooltip
     const [activeHint, setActiveHint] = useState(null);
 
+    // Add new state for tracking give up status
+    const [hasGivenUp, setHasGivenUp] = useState({
+        transitionTable: false,
+        excitationTable: false,
+        equations: false,
+    });
+
+    // Add this helper function near the top of your component
+    const measureText = (text, font) => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        context.font = font;
+        return context.measureText(text).width;
+    };
+
     useEffect(() => {
         if (transitionTable.length === 0) return;
 
@@ -287,6 +302,23 @@ const STCConversion = ({
         setIsGenerated(true);
     }, [transitionTable, flipFlopType, numInputs]);
 
+    // Add useEffect to reset states when transitionTable changes
+    useEffect(() => {
+        if (transitionTable.length > 0) {
+            setHasGivenUp({
+                transitionTable: false,
+                excitationTable: false,
+                equations: false,
+            });
+            setExcitationAnswers({});
+            setExcitationValidation({});
+            setIsExcitationComplete(false);
+            setEquationAnswers({});
+            setEquationValidation({});
+            setIsEquationsComplete(false);
+        }
+    }, [transitionTable]);
+
     // Update validation function for excitation table
     const validateExcitationInput = (value, column) => {
         if (value === "") return true;
@@ -441,6 +473,7 @@ const STCConversion = ({
         const key = `${rowIndex}-${column}`;
         const isBlank = excitationBlankCells.has(key);
         const isCorrect = excitationValidation[key];
+        const isGivenUp = hasGivenUp.excitationTable;
 
         if (!isBlank) return value;
 
@@ -475,14 +508,10 @@ const STCConversion = ({
                     }
                     onFocus={() => handleExcitationFocus(rowIndex, column)}
                     onBlur={() => setFocusedExcitationCell(null)}
-                    className={`table-input ${
-                        excitationValidation[key]
-                            ? "correct"
-                            : excitationValidation.hasOwnProperty(key)
-                            ? "incorrect"
-                            : ""
+                    className={`table-input ${isCorrect ? "correct" : ""} ${
+                        isGivenUp ? "given-up" : ""
                     }`}
-                    disabled={isCorrect}
+                    disabled={isCorrect || isGivenUp}
                 />
                 {focusedExcitationCell === key && (
                     <div className="input-tooltip">
@@ -534,13 +563,23 @@ const STCConversion = ({
         return (
             <div className="excitation-table-container">
                 <h3>Combined Excitation Table</h3>
-                <button
-                    className="info-button"
-                    onClick={() => setShowExcitationInfo(!showExcitationInfo)}
-                    aria-label="Excitation Table Information"
-                >
-                    <FontAwesomeIcon icon={faCircleInfo} />
-                </button>
+                <div className="button-container">
+                    <button
+                        className="info-button"
+                        onClick={() =>
+                            setShowExcitationInfo(!showExcitationInfo)
+                        }
+                    >
+                        <FontAwesomeIcon icon={faCircleInfo} />
+                    </button>
+                    <button
+                        className="give-up-button"
+                        onClick={() => handleGiveUp("excitationTable")}
+                        disabled={hasGivenUp.excitationTable}
+                    >
+                        Give Up
+                    </button>
+                </div>
                 {showExcitationInfo && (
                     <div className="info-tooltip">
                         <h3>Excitation Table Information</h3>
@@ -842,6 +881,16 @@ const STCConversion = ({
             showHints[fullKey] && !equationValidation[fullKey];
         const attempts = hintAttempts[fullKey] || 0;
         const isAnswer = attempts > 1;
+        const isGivenUp = hasGivenUp.equations;
+
+        // Calculate width based on input value
+        const value = equationAnswers[fullKey] || "";
+        const minWidth = 100; // Minimum width in pixels
+        const padding = 16; // Account for input padding
+        const width = Math.max(
+            minWidth,
+            measureText(value, "1rem monospace") + padding
+        );
 
         // Extract the flip-flop index from the key (e.g., "Q0" -> "0")
         const ffIndex = key.match(/\d+/)[0];
@@ -876,13 +925,10 @@ const STCConversion = ({
                         <input
                             type="text"
                             className={`equation-input ${
-                                equationValidation[fullKey]
-                                    ? "correct"
-                                    : equationValidation.hasOwnProperty(fullKey)
-                                    ? "incorrect"
-                                    : ""
-                            }`}
-                            value={equationAnswers[fullKey] || ""}
+                                equationValidation[fullKey] ? "correct" : ""
+                            } ${isGivenUp ? "given-up" : ""}`}
+                            value={value}
+                            style={{ width: `${width}px` }}
                             onChange={(e) =>
                                 handleEquationCellChange(
                                     key,
@@ -892,7 +938,7 @@ const STCConversion = ({
                             }
                             onFocus={() => handleEquationFocus(key, field)}
                             onBlur={() => setFocusedEquationCell(null)}
-                            disabled={equationValidation[fullKey]}
+                            disabled={equationValidation[fullKey] || isGivenUp}
                         />
                         {focusedEquationCell === fullKey && (
                             <div className="input-tooltip">
@@ -933,13 +979,21 @@ const STCConversion = ({
     const renderEquations = () => {
         return (
             <div className="equations-container">
-                <button
-                    className="info-button"
-                    onClick={() => setShowEquationsInfo(!showEquationsInfo)}
-                    aria-label="Equations Information"
-                >
-                    <FontAwesomeIcon icon={faCircleInfo} />
-                </button>
+                <div className="button-container">
+                    <button
+                        className="info-button"
+                        onClick={() => setShowEquationsInfo(!showEquationsInfo)}
+                    >
+                        <FontAwesomeIcon icon={faCircleInfo} />
+                    </button>
+                    <button
+                        className="give-up-button"
+                        onClick={() => handleGiveUp("equations")}
+                        disabled={hasGivenUp.equations}
+                    >
+                        Give Up
+                    </button>
+                </div>
                 {showEquationsInfo && (
                     <div className="info-tooltip">
                         <h3>Equation Information</h3>
@@ -1062,6 +1116,38 @@ const STCConversion = ({
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
+    // Add handler for give up button
+    const handleGiveUp = (section) => {
+        setHasGivenUp((prev) => ({
+            ...prev,
+            [section]: true,
+        }));
+
+        // Fill in all answers for the respective section
+        if (section === "excitationTable") {
+            const newAnswers = {};
+            excitationBlankCells.forEach((key) => {
+                const [rowIndex, column] = key.split("-");
+                newAnswers[key] = mergedExcitationTable[rowIndex][column];
+            });
+            setExcitationAnswers(newAnswers);
+            setExcitationValidation({});
+            setIsExcitationComplete(true);
+        } else if (section === "equations") {
+            const newAnswers = {};
+            Object.keys(simplifiedEquations).forEach((key) => {
+                const eqn = simplifiedEquations[key];
+                newAnswers[`${key}-minterms`] = eqn.mintermIndices.join(", ");
+                newAnswers[`${key}-maxterms`] =
+                    eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+                newAnswers[`${key}-sop`] = eqn.minimalSoP;
+            });
+            setEquationAnswers(newAnswers);
+            setEquationValidation({});
+            setIsEquationsComplete(true);
+        }
+    };
 
     return (
         <div>

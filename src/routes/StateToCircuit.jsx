@@ -23,6 +23,7 @@ const StateToCircuit = () => {
     const [focusedCell, setFocusedCell] = useState(null);
     const [showTableInfo, setShowTableInfo] = useState(false);
     const [showPaper, setShowPaper] = useState(false);
+    const [hasGivenUp, setHasGivenUp] = useState({ transitionTable: false });
 
     // Add click-outside handler
     useEffect(() => {
@@ -45,6 +46,13 @@ const StateToCircuit = () => {
         setShowPaper(true);
         setShouldGenerate(true);
         setShouldConvert(false);
+        // Reset states
+        setUserAnswers({});
+        setCellValidation({});
+        setIsTableComplete(false);
+        setTooltipMessage({});
+        setBlankCells(new Set());
+        setHasGivenUp({ transitionTable: false }); // Reset give up state
     };
 
     const handleAutoGenerate = () => {
@@ -75,11 +83,18 @@ const StateToCircuit = () => {
         setNumStates(randomNumStates);
         setNumInputs(randomNumInputs);
 
+        // Reset all states
+        setUserAnswers({});
+        setCellValidation({});
+        setIsTableComplete(false);
+        setTooltipMessage({});
+        setBlankCells(new Set());
+        setHasGivenUp({ transitionTable: false }); // Reset give up state
+
         // Trigger the generation after updating state
-        // We need to ensure that the state updates have taken place before triggering generation
         setTimeout(() => {
-            setShouldGenerate(true); // Trigger the generation
-            setShouldConvert(false); // Reset the conversion flag
+            setShouldGenerate(true);
+            setShouldConvert(false);
         }, 0);
     };
 
@@ -232,11 +247,30 @@ const StateToCircuit = () => {
         });
     };
 
-    // Update renderCell to remove tooltip for nextState
+    // Add handleGiveUp function near other handlers
+    const handleGiveUp = () => {
+        setHasGivenUp((prev) => ({
+            ...prev,
+            transitionTable: true,
+        }));
+
+        // Fill in all blank cells with correct answers
+        const newAnswers = {};
+        blankCells.forEach((key) => {
+            const [rowIndex, column] = key.split("-");
+            newAnswers[key] = transitionTable[rowIndex][column];
+        });
+        setUserAnswers(newAnswers);
+        setCellValidation({});
+        setIsTableComplete(true);
+    };
+
+    // Update renderCell to include given-up class
     const renderCell = (row, rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
         const isBlank = blankCells.has(`${rowIndex}-${column}`);
         const isCorrect = cellValidation[key];
+        const isGivenUp = hasGivenUp.transitionTable;
 
         if (!isBlank) return value;
 
@@ -249,16 +283,12 @@ const StateToCircuit = () => {
                         onChange={(e) =>
                             handleCellChange(rowIndex, column, e.target.value)
                         }
-                        onFocus={() => setFocusedCell(null)} // Remove tooltip trigger
+                        onFocus={() => setFocusedCell(null)}
                         onBlur={() => setFocusedCell(null)}
                         className={`table-input select ${
-                            cellValidation[key]
-                                ? "correct"
-                                : cellValidation.hasOwnProperty(key)
-                                ? "incorrect"
-                                : ""
-                        }`}
-                        disabled={isCorrect}
+                            isCorrect ? "correct" : ""
+                        } ${isGivenUp ? "given-up" : ""}`}
+                        disabled={isCorrect || isGivenUp}
                     >
                         <option value=""></option>
                         {activeStates.map((state) => (
@@ -282,14 +312,10 @@ const StateToCircuit = () => {
                     }
                     onFocus={() => handleInputFocus(rowIndex, column)}
                     onBlur={() => setFocusedCell(null)}
-                    className={`table-input ${
-                        cellValidation[key]
-                            ? "correct"
-                            : cellValidation.hasOwnProperty(key)
-                            ? "incorrect"
-                            : ""
+                    className={`table-input ${isCorrect ? "correct" : ""} ${
+                        isGivenUp ? "given-up" : ""
                     }`}
-                    disabled={isCorrect}
+                    disabled={isCorrect || isGivenUp}
                 />
                 {focusedCell === key && (
                     <div className="input-tooltip">{tooltipMessage[key]}</div>
@@ -391,13 +417,23 @@ const StateToCircuit = () => {
                     {transitionTable.length > 0 && (
                         <div className="table-section">
                             <h2>State Transition Table</h2>
-                            <button
-                                className="info-button"
-                                onClick={() => setShowTableInfo(!showTableInfo)}
-                                aria-label="State Table Information"
-                            >
-                                <FontAwesomeIcon icon={faCircleInfo} />
-                            </button>
+                            <div className="button-container">
+                                <button
+                                    className="info-button"
+                                    onClick={() =>
+                                        setShowTableInfo(!showTableInfo)
+                                    }
+                                >
+                                    <FontAwesomeIcon icon={faCircleInfo} />
+                                </button>
+                                <button
+                                    className="give-up-button"
+                                    onClick={handleGiveUp}
+                                    disabled={hasGivenUp.transitionTable}
+                                >
+                                    Give Up
+                                </button>
+                            </div>
                             {showTableInfo && (
                                 <div className="info-tooltip">
                                     <h2>State Encoding Information</h2>
