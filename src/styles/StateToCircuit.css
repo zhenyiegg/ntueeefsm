@@ -304,26 +304,26 @@ html, body, #root, .App {
 .equation-form {
     width: 100%;
     display: flex;
-    align-items: center;
     gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap; /* Allow wrapping if needed */
 }
 
-/* Update equation label and value for consistent alignment */
 .equation-label {
     min-width: 180px;
     font-weight: 500;
-    color: #572b94;  /* Changed to purple to match theme */
-    text-align: left;
+    color: #2980b9;
+    flex-shrink: 0; /* Prevent label from shrinking */
 }
 
 .equation-value {
     flex: 1;
-    text-align: left;
     font-family: monospace;
     font-size: 1.1rem;
     display: flex;
     align-items: center;
-    position: relative; /* For hint button positioning */
+    flex-wrap: wrap; /* Allow wrapping for long expressions */
+    gap: 0.5rem;
 }
 
 /* Add state for equations info tooltip */
@@ -603,67 +603,42 @@ td:nth-child(3) .table-input {
     background-color: #9370b8 !important;  /* Darker purple on hover */
 }
 
-/* Add styles for equation inputs */
+/* Update equation input styles for dynamic width */
 .equation-input {
-    width: 120px;
+    min-width: 100px;
+    max-width: 1000px;
     padding: 4px 8px;
     border: 2px solid #6FC3DF;
     border-radius: 4px;
     font-size: 1rem;
     margin: 0 4px;
+    font-family: monospace;
+    transition: width 0.1s ease;
 }
 
-.equation-input:focus {
-    outline: none;
-    border-color: #2980b9;
-    box-shadow: 0 0 5px rgba(111, 195, 223, 0.3);
+/* Update input container to match equation input max-width */
+.input-container {
+    flex: 1;
+    min-width: 100px;
+    max-width: 1000px; /* Increased from 800px to match equation-input */
 }
 
-.equation-input.correct {
-    background-color: #e6ffe6;
-    border-color: #4CAF50;
-}
-
-.equation-input.incorrect {
-    background-color: #ffe6e6;
-    border-color: #ff4444;
-}
-
-.equation-input:disabled {
-    background-color: #e6ffe6;
-    border-color: #4CAF50;
-    color: #333;
-    cursor: not-allowed;
-    opacity: 1;
-}
-
-/* Update equation forms container */
-.equation-forms {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 1rem;
-    background: #f9f9f9;
-    border-radius: 8px;
-    margin-top: 0.5rem;
-}
-
+/* Update equation form layout */
 .equation-form {
     display: flex;
     gap: 1rem;
     align-items: center;
-}
-
-.equation-label {
-    min-width: 180px;
-    font-weight: 500;
-    color: #2980b9;
+    flex-wrap: wrap;
+    width: 100%;
 }
 
 .equation-value {
     flex: 1;
-    font-family: monospace;
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0; /* Allow container to shrink */
 }
 
 /* Update hint button container and positioning */
@@ -763,5 +738,66 @@ td:nth-child(3) .table-input {
   height: 30px; /* Added height for options */
   line-height: 30px; /* Added line height for options */
   text-align: left;
+}
+
+/* Add styles for button container */
+.button-container {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 1001;
+}
+
+/* Add styles for give up button */
+.give-up-button {
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.give-up-button:hover {
+    background: #ff0000;
+}
+
+.give-up-button:disabled {
+    background: #ffcccc;
+    cursor: not-allowed;
+}
+
+/* Update info button to work with new container */
+.info-button {
+    position: static; /* Remove absolute positioning */
+    margin: 0;
+}
+
+/* Add styles for given up state */
+.table-input.given-up {
+    background-color: #f0f0f0 !important; /* Light grey background */
+    border-color: #999999 !important; /* Darker grey border */
+    color: #666666 !important; /* Grey text */
+    cursor: not-allowed;
+}
+
+/* Update dropdown styles for given up state */
+.table-input.select.given-up {
+    background-color: #f0f0f0 !important;
+    border-color: #999999 !important;
+    color: #666666 !important;
+    cursor: not-allowed;
+}
+
+/* Update equation input styles for given up state */
+.equation-input.given-up {
+    background-color: #f0f0f0 !important;
+    border-color: #999999 !important;
+    color: #666666 !important;
+    cursor: not-allowed;
 }
 
