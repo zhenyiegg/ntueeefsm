@@ -474,6 +474,8 @@ const STCConversion = ({
         const isBlank = excitationBlankCells.has(key);
         const isCorrect = excitationValidation[key];
         const isGivenUp = hasGivenUp.excitationTable;
+        const isIncorrect =
+            excitationValidation.hasOwnProperty(key) && !isCorrect;
 
         if (!isBlank) return value;
 
@@ -509,8 +511,8 @@ const STCConversion = ({
                     onFocus={() => handleExcitationFocus(rowIndex, column)}
                     onBlur={() => setFocusedExcitationCell(null)}
                     className={`table-input ${isCorrect ? "correct" : ""} ${
-                        isGivenUp ? "given-up" : ""
-                    }`}
+                        isIncorrect ? "incorrect" : ""
+                    } ${isGivenUp ? "given-up" : ""}`}
                     disabled={isCorrect || isGivenUp}
                 />
                 {focusedExcitationCell === key && (
@@ -877,16 +879,15 @@ const STCConversion = ({
     // Update the renderEquationInput function to use correct variable names
     const renderEquationInput = (key, field, variableName, equation) => {
         const fullKey = `${key}-${field}`;
-        const showHintButton =
-            showHints[fullKey] && !equationValidation[fullKey];
-        const attempts = hintAttempts[fullKey] || 0;
-        const isAnswer = attempts > 1;
         const isGivenUp = hasGivenUp.equations;
+        const isCorrect = equationValidation[fullKey];
+        const isIncorrect =
+            equationValidation.hasOwnProperty(fullKey) && !isCorrect;
 
         // Calculate width based on input value
         const value = equationAnswers[fullKey] || "";
-        const minWidth = 100; // Minimum width in pixels
-        const padding = 16; // Account for input padding
+        const minWidth = 100;
+        const padding = 16;
         const width = Math.max(
             minWidth,
             measureText(value, "1rem monospace") + padding
@@ -925,8 +926,10 @@ const STCConversion = ({
                         <input
                             type="text"
                             className={`equation-input ${
-                                equationValidation[fullKey] ? "correct" : ""
-                            } ${isGivenUp ? "given-up" : ""}`}
+                                isCorrect ? "correct" : ""
+                            } ${isIncorrect ? "incorrect" : ""} ${
+                                isGivenUp ? "given-up" : ""
+                            }`}
                             value={value}
                             style={{ width: `${width}px` }}
                             onChange={(e) =>
@@ -938,7 +941,7 @@ const STCConversion = ({
                             }
                             onFocus={() => handleEquationFocus(key, field)}
                             onBlur={() => setFocusedEquationCell(null)}
-                            disabled={equationValidation[fullKey] || isGivenUp}
+                            disabled={isCorrect || isGivenUp}
                         />
                         {focusedEquationCell === fullKey && (
                             <div className="input-tooltip">
@@ -947,29 +950,6 @@ const STCConversion = ({
                         )}
                     </div>
                     {field === "minterms" || field === "maxterms" ? ")" : ""}
-                    {showHintButton && (
-                        <div className="hint-container">
-                            <button
-                                className="hint-button"
-                                onClick={() =>
-                                    setActiveHint(
-                                        activeHint === fullKey ? null : fullKey
-                                    )
-                                }
-                            >
-                                {isAnswer ? "?" : "Hint"}
-                            </button>
-                            {activeHint === fullKey && (
-                                <div className="hint-tooltip">
-                                    {getHintOrAnswer(
-                                        fullKey,
-                                        equation,
-                                        isAnswer
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </span>
             </div>
         );
@@ -979,6 +959,7 @@ const STCConversion = ({
     const renderEquations = () => {
         return (
             <div className="equations-container">
+                <h3>Minterm / Maxterm Equations</h3>
                 <div className="button-container">
                     <button
                         className="info-button"
@@ -1155,12 +1136,7 @@ const STCConversion = ({
             {renderExcitationTable()}
 
             {/* 2) Only show equations after clicking Next in excitation table */}
-            {showEquations && (
-                <>
-                    <h3>Minterm / Maxterm Equations</h3>
-                    {renderEquations()}
-                </>
-            )}
+            {showEquations && renderEquations()}
 
             {/* 3) Only show circuit diagram after clicking Next in equations */}
             {showCircuit && (
