@@ -35,199 +35,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     const states = Array.from(new Set(stateTransitionTable.flatMap(row => [row.currentState, row.nextState])));
     const positions = calculateStatePositions(states, numFlipFlops, numInputs);
 
-    // Identify unused states
-    const incomingTransitions = {};
-    const outgoingTransitions = {};
-
-    // Initialize counts for incoming and outgoing transitions
-    states.forEach(state => {
-      incomingTransitions[state] = 0;
-      outgoingTransitions[state] = 0;
-    });
-
-    // Count incoming and outgoing transitions
-    stateTransitionTable.forEach(row => {
-      incomingTransitions[row.nextState] += 1;
-      outgoingTransitions[row.currentState] += 1;
-    });
-
     const resetState = numFlipFlops === 2 ? "00" : "000";
-
-    // 1. Identify Primary Unused States
-    let primaryUnusedStates = states.filter(state => {
-      if (state === resetState) {
-        return false; // Reset state is never unused
-      }
-
-      let hasSelfLoop = false;
-      let hasOutgoing = false;
-      let hasIncoming = false;
-    
-      stateTransitionTable.forEach(row => {
-        if (row.currentState === state && row.nextState === state) {
-          hasSelfLoop = true; 
-        }
-        if (row.currentState === state && row.nextState !== state) {
-          hasOutgoing = true; 
-        }
-        if (row.nextState === state && row.currentState !== state) {
-          hasIncoming = true; 
-        }
-      });
-    
-      // Unused state conditions
-      return (
-        (hasSelfLoop && !hasOutgoing && !hasIncoming) || 
-        (!hasSelfLoop && hasOutgoing && !hasIncoming) ||
-        (hasSelfLoop && hasOutgoing && !hasIncoming)    
-      );
-    });
-
-    console.log("➡️ Primary Unused States:", primaryUnusedStates);
-
-    // Check if a state is only reached by unused states
-    const isReachedOnlyByUnused = (state, unusedStates, stateTransitionTable, resetState) => {
-      if (state === resetState) {
-        return false;
-      }
-    
-      const incomingStates = stateTransitionTable
-        .filter(row => row.nextState === state)
-        .map(row => row.currentState);
-
-      // Allow a state to be considered unused if it is ONLY reached by unused states (or itself)
-      return incomingStates.length > 0 &&
-        incomingStates.every(currentState => unusedStates.includes(currentState) || currentState === state) &&
-        incomingStates.some(currentState => unusedStates.includes(currentState)); // Ensure at least one true unused state reaches it
-    };
-
-    // 2. Identify Secondary Unused States (States Reached Only by Primary Unused)
-    const getStatesReachedOnlyByPrimaryUnused = (states, primaryUnusedStates, stateTransitionTable, resetState) => {
-      return states.filter(state => {
-        if (primaryUnusedStates.includes(state) || state === resetState) {
-          return false; 
-        }
-
-        const incomingStates = stateTransitionTable
-          .filter(row => row.nextState === state)
-          .map(row => row.currentState);
-
-        const reachedByPrimaryUnused = incomingStates.length > 0 &&
-          incomingStates.every(currentState => 
-            primaryUnusedStates.includes(currentState) || currentState === state 
-          ) &&
-          incomingStates.some(currentState => primaryUnusedStates.includes(currentState)); // At least one primary unused state reaching it
-
-        if (!reachedByPrimaryUnused) {
-          return false; // If reached by any active state, exclude it
-        }
-
-        const hasSelfLoop = stateTransitionTable.some(row => row.currentState === state && row.nextState === state);
-        const hasOutgoingTransition = stateTransitionTable.some(row => row.currentState === state && row.nextState !== state);
-
-        return reachedByPrimaryUnused && (hasSelfLoop || hasOutgoingTransition);
-      });
-    };
-
-    // 3. Identify Cascading Unused States
-    const getNewlyIdentifiedUnusedStates = (states, unusedStates, stateTransitionTable, resetState) => {
-      return states.filter(state => {
-        if (state === resetState || unusedStates.includes(state)) {
-          return false; 
-        }
-
-        const reachedByOnlyUnused = isReachedOnlyByUnused(state, unusedStates, stateTransitionTable, resetState);
-    
-        if (!reachedByOnlyUnused) {
-          return false; // If reached by any active state, exclude it
-        }
-    
-        const hasSelfLoop = stateTransitionTable.some(row => row.currentState === state && row.nextState === state);
-        const hasOutgoingTransition = stateTransitionTable.some(row => row.currentState === state && row.nextState !== state);
-  
-        // Unused state conditions
-        return reachedByOnlyUnused && (hasSelfLoop || hasOutgoingTransition);
-      });
-    };
-
-    // 4. Identify states reached only by reset state and unused states
-    const getStatesReachedOnlyByResetAndUnused = (states, stateTransitionTable, resetState, unusedStates) => {
-      return states.filter(state => {
-        if (state === resetState) {
-          return false; 
-        }
-    
-        const incomingStates = stateTransitionTable
-          .filter(row => row.nextState === state)
-          .map(row => row.currentState);
-    
-        const reachedByResetAndUnused = incomingStates.length > 0 &&
-          incomingStates.every(currentState => currentState === resetState || unusedStates.includes(currentState));
-    
-        const hasSelfLoop = stateTransitionTable.some(row => row.currentState === state && row.nextState === state);
-        const hasOutgoingToReset = stateTransitionTable.some(row => row.currentState === state && row.nextState === resetState);
-        const hasOutgoingToActiveStates = stateTransitionTable.some(row => 
-          row.currentState === state && !unusedStates.includes(row.nextState) && row.nextState !== resetState
-        );
-        const reachedByActiveState = incomingStates.some(currentState => 
-          !unusedStates.includes(currentState) && currentState !== resetState
-        );
-    
-        // Unused state conditions
-        if (reachedByResetAndUnused && !reachedByActiveState) {
-          if (hasSelfLoop && !hasOutgoingToActiveStates) {
-            return true; 
-          }
-          if (hasSelfLoop && hasOutgoingToReset && !hasOutgoingToActiveStates) {
-            return true;
-          }
-          if (!hasSelfLoop && hasOutgoingToReset && !hasOutgoingToActiveStates) {
-            return true; 
-          }
-        }
-    
-        return false; // If the state has outgoing transitions to active states or is reached by active states, it is not unused
-      });
-    };
-
-    
-    // Start identifying unused state
-    let unusedStates = [...primaryUnusedStates];
-
-    // Identify secondary unused states (Reached only by primary unused states)
-    const primaryReachedUnusedStates = getStatesReachedOnlyByPrimaryUnused(states, primaryUnusedStates, stateTransitionTable, resetState);
-    console.log("➡️ Secondary Unused States:", primaryReachedUnusedStates);
-    unusedStates = [...new Set([...unusedStates, ...primaryReachedUnusedStates])];
-
-    // Identify cascading unused states iteratively
-    let newlyIdentifiedUnusedStates;
-    do {
-      newlyIdentifiedUnusedStates = getNewlyIdentifiedUnusedStates(states, unusedStates, stateTransitionTable, resetState);
-      console.log("➡️ Cascading Unused States:", newlyIdentifiedUnusedStates);
-      unusedStates = [...new Set([...unusedStates, ...newlyIdentifiedUnusedStates])];
-
-      // Identify states reached only by reset state and unused states
-      const resetAndUnusedReachedStates = getStatesReachedOnlyByResetAndUnused(states, stateTransitionTable, resetState, unusedStates);
-      console.log("➡️ States Reached by Reset & Unused:", resetAndUnusedReachedStates);
-      unusedStates = [...new Set([...unusedStates, ...resetAndUnusedReachedStates])];
-
-    } while (newlyIdentifiedUnusedStates.length > 0);
-  
-    console.log("➡️ Final Unused States:", unusedStates);
-
-    // Ensure reset state is not marked as unused
-    unusedStates = unusedStates.filter(state => state !== resetState);
-
-    // Log transitions for each state
-    states.forEach(state => {
-      const incoming = stateTransitionTable.filter(row => row.nextState === state).map(row => row.currentState);
-      const outgoing = stateTransitionTable.filter(row => row.currentState === state).map(row => row.nextState);
-  
-      console.log(`State: ${state}`);
-      console.log(`  Incoming Transitions: ${incoming.length > 0 ? incoming.join(", ") : "None"}`);
-      console.log(`  Outgoing Transitions: ${outgoing.length > 0 ? outgoing.join(", ") : "None"}`);
-      console.log(`  Marked as UNUSED? ${unusedStates.includes(state)}`);
-    });
 
     /* Verify Correctness:
      * State Transitions 
@@ -299,7 +107,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       circle.resize(80, 80);
       circle.attr({
         body: {  
-          fill: unusedStates.includes(state) ? "#b1b1b179" : "#d1b3ff91", // Gray for unused states 
+          fill: "#d1b3ff91",
           stroke: "#333", 
           strokeWidth: 2 
         },
@@ -313,17 +121,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       stateElements[state] = circle;
     });
 
-    // Display FSM information
-    const uniqueUnusedStates = [...new Set(unusedStates)];
-
-    let explanation;
-    if (uniqueUnusedStates.length > 0) {
-      explanation = `State${uniqueUnusedStates.length > 1 ? "s" : ""} ${uniqueUnusedStates.join(", ")} ${uniqueUnusedStates.length > 1 ? "are" : "is"} unused as no active state transitions into ${uniqueUnusedStates.length > 1 ? "them" : "it"}.`;
-    } else {
-      explanation = "";
-    }
-    
-    setDiagramInfo(`${fsmType} State Diagram\nAssume State ${resetState} is a reset state.\n${states.length - uniqueUnusedStates.length} active states, ${uniqueUnusedStates.length} unused states\n${explanation}`);
+    setDiagramInfo(`${fsmType} State Diagram`);
     
     // Add grouped transitions
     Object.entries(groupedTransitions).forEach(([key, transitions]) => {
@@ -613,7 +411,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             <div className="state-transition-header">
               <p className="state-mapping">
                 <strong>Q{numFlipFlops === 2 ? "1Q0" : "2Q1Q0"}</strong> ➔
-                <strong> Q{numFlipFlops === 2 ? "1'Q0'" : "2'Q1'Q0'"}</strong>
+                <strong> Q{numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}</strong>
               </p>
               <p className="state-mapping">
                 <span className="state">{popupData.from}</span> ➔ 
