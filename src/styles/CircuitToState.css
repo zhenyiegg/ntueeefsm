@@ -154,6 +154,14 @@ canvas {
   margin-bottom: 80px;
 }
 
+.stateDiagram-box.active {
+  background-color: transparent;
+  border: 0;
+  width: 90%;
+  padding-right: 0;
+  padding-left: 0;
+}
+
 .content-box h2 {
   margin-top: 0;
   font-size: 20px;
@@ -252,7 +260,7 @@ table tr:hover {
 }
 
 .currentState-column {
-  width: 120px; 
+  width: 110px; 
 }
 
 .inputX-column {
@@ -260,7 +268,7 @@ table tr:hover {
 }
 
 .outputZ-column {
-  width: 120px; 
+  width: 70px; 
 }
 
 .input-correct {
