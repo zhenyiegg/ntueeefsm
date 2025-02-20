@@ -5,6 +5,7 @@
   align-items: center;
   min-height: 100vh; 
   text-align: center;
+  margin: 0 auto;
 }
 
 .container header {
@@ -17,10 +18,14 @@
 
 .dropdown-container {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center; 
   gap: 10px; 
+  width: 90%;
   margin-bottom: 20px;
+  /*margin-right: 8%;
+  margin-left: 8%;*/
 }  
 
 select {
@@ -67,7 +72,7 @@ select:focus {
   background-color: #4d2995;
 }
 
-.generate-btn.disabled {
+.generate-btn.disabled, .next-btn.disabled {
   background-color: #c0bdbd;
   cursor: not-allowed;
 }
@@ -78,11 +83,19 @@ select:focus {
 }
 
 canvas { 
-  max-width: 1200px; 
+  max-width: 1000px; 
   padding: 15px;
   background-color: white;
   border: 3px solid #9068c1;
   border-radius: 12px;
+
+}
+
+.instruction-section.active {
+  width: 80%;
+  text-align: center;
+  margin-top: 20px;
+  line-height: 1.6;
 }
 
 .minMaxterms-section {
@@ -105,6 +118,7 @@ canvas {
 
 .minMaxterms-section h3 {
   text-align: center;
+  font-size: 16px;
 }
 
 .minMaxterms-section .minMaxterm-item {
@@ -119,14 +133,10 @@ canvas {
   word-break: break-word;
 }
 
-.minterm {
-  font-weight: 500;
-}
-
 .maxterm {
-  font-family: 'Courier New', monospace;
-  font-size: 1.25em;
-  font-weight: bold;
+  font-family: "Times New Roman", "Courier New", serif;
+  font-size: 1.05em;
+  font-weight: normal;
   color: #333; 
 }
 
@@ -146,7 +156,7 @@ canvas {
 
 .content-box h2 {
   margin-top: 0;
-  font-size: 22px;
+  font-size: 20px;
   margin-bottom: 12px;
 }
 
@@ -181,11 +191,6 @@ canvas {
 
 .next-btn:hover {
   background-color: #4d2995;
-}
-
-.next-btn.disabled {
-  background-color: #c0bdbd;
-  cursor: not-allowed;
 }
 
 table {
@@ -227,11 +232,11 @@ table tr:hover {
 }
 
 .currentState-column {
-  width: 130px; 
+  width: 120px; 
 }
 
 .inputX-column {
-  width: 80px; 
+  width: 70px; 
 }
 
 .outputZ-column {
@@ -308,25 +313,20 @@ table tr:hover {
 
 /* Responsive layout */
 @media (max-width: 1064px) {
-  .dropdown-container {
-    flex-direction: column;
-    align-items: center;
-  }
-  
   select {
     margin-bottom: 10px;
     width: 100%;
   }
   
   .canvas-container {
-    width: 80%; 
+    width: 90%; 
   }
 
   .content-box {
       width: 80%;
   }
 
-  .minMaxterms-section.active {
-      width: 80%;
+  .minMaxterms-section, .minMaxterms-section.active {
+    width: 80%;
   }
 }

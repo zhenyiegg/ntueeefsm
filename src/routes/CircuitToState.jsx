@@ -724,7 +724,7 @@ const CircuitToState = () => {
         Input<br />{generateDescendingLabels("X", numInputs).join("")}
       </>,
       <>
-        Next State<br />{generateDescendingLabels("Q", numFlipFlops, "'").join("")}
+        Next State<br />{generateDescendingLabels("Q", numFlipFlops, "\u207A").join("")}
       </>,
       <>
         Output<br />Z
@@ -828,10 +828,19 @@ const CircuitToState = () => {
         isGenerated={isGenerated}
       />
 
+      {/* Display Instruction */}
+      {isGenerated && (
+        <div className="instruction-section active">
+          <p>
+            Given the above circuit and the following logic functions, complete the excitation table and state transition table to obtain the state diagram.
+          </p>
+        </div>
+      )}
+
       {/* Display Generated Minterms & Maxterms */}
       <div className={`minMaxterms-section ${isGenerated ? "active" : ""}`}>
         {!isGenerated ? (
-          <h3 style = {{color: "#cccccc"}}>Generated Flip-Flop Inputs & Output Z</h3>
+          <h3 style = {{color: "#cccccc"}}>Generated Flip-Flop Inputs & Output Z Equations</h3>
         ) : (
           <>
             <p>

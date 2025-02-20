@@ -12,15 +12,15 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
     const sketch = (p) => {
       const boxWidth = 145;
       const boxHeight = 60;
-      const startX = 235;
+      const startX = 128;
       const startY = 56;
       const flipFlopSpacing = 140;
 
       p.setup = () => {
         if (numFlipFlops === '3') {
-          p.createCanvas(1200, 530).parent(canvasRef.current);
+          p.createCanvas(1000, 530).parent(canvasRef.current);
         } else {
-          p.createCanvas(1200, 400).parent(canvasRef.current);
+          p.createCanvas(1000, 430).parent(canvasRef.current);
         }
         p.background(255); // White background
         p.strokeWeight(1.5);
@@ -128,7 +128,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               p.stroke(131, 80, 163);
               p.line(flipFlopX, flipFlopY + 60, flipFlopX - 80, flipFlopY + 60); // Horizontal
               if (numFlipFlops === '2') {
-                p.line(startX + boxWidth + 95, startY + 60, startX + boxWidth + 95, startY + 325); // Vertical
+                p.line(startX + boxWidth + 95, startY + 60, startX + boxWidth + 95, startY + 350); // Vertical
                 p.pop();
               } else {
                 p.line(startX + boxWidth + 95, startY + 60, startX + boxWidth + 95, startY + 455); // Vertical
@@ -168,7 +168,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               p.stroke(131, 80, 163);
               p.line(flipFlopX, bottomLabelY - 6, flipFlopX - 80, bottomLabelY - 6); // Horizontal
               if (numFlipFlops === '2') {
-                p.line(startX + boxWidth + 95, startY + 95, startX + boxWidth + 95, startY + 325); // Vertical
+                p.line(startX + boxWidth + 95, startY + 95, startX + boxWidth + 95, startY + 350); // Vertical
                 p.pop();
               } else {
                 p.line(startX + boxWidth + 95, startY + 95, startX + boxWidth + 95, startY + 455); // Vertical
@@ -180,11 +180,11 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
             if (numFlipFlops === '2') {
               p.push();
               p.stroke(131, 80, 163);
-              p.line(startX + boxWidth + 95, startY + 325, startX - 100, startY + 325); // Horizontal
+              p.line(startX + boxWidth + 95, startY + 350, startX - 100, startY + 350); // Horizontal
               p.pop();
               p.push();
               p.fill(131, 80, 163);
-              p.text(`CLK`, startX - 100, startY + 325 - 10);
+              p.text(`CLK`, startX - 100, startY + 350 - 10);
               p.pop();
             } else {
               p.push();
@@ -197,9 +197,11 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               p.pop();
             }
 
-            /* Connection from Flip-Flop outputs (Q') back to Next State Logic
+            /**
+             * Connection from Flip-Flop outputs (Q') back to Next State Logic
              * Route the line ABOVE the diagram to avoid overlap
              */
+            
             p.line(flipFlopX + flipFlopWidth, flipFlopY + boxHeight / 2, flipFlopX + flipFlopWidth + 90, flipFlopY + boxHeight / 2); // Q Horizontal FF to middle vertical line
             p.line(flipFlopX + flipFlopWidth, bottomLabelY - 6, flipFlopX + flipFlopWidth + 90, bottomLabelY - 6); // Q' Horizontal FF to middle vertical line
 
@@ -257,25 +259,50 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
           // Mealy Machine connection (X to Output Logic)
           if (fsmType === 'Mealy') {
             // Upward-pointing arrowhead to Output Logic
-            const arrowX = outputX + boxWidth / 2; 
+            const arrowX1 = (outputX + boxWidth / 2) + 10; 
+            const arrowX0 = (outputX + boxWidth / 2) - 10; 
+
+            const arrowX = (outputX + boxWidth / 2);
             const arrowY = outputY + boxHeight; 
-            p.triangle(arrowX - 5, arrowY + 10, arrowX + 5, arrowY + 10, arrowX, arrowY); 
+
+            p.push();
+            p.stroke(34, 139, 34);
+            p.fill(34, 139, 34);
 
             if (numFlipFlops === '3') {
               // Draw X going under the diagram to avoid overlap (orthogonal)
-              p.line(startX - 40, startY + boxHeight + 160, startX - 40, startY + boxHeight + 370); // Go down
-              p.line(startX - 40, startY + boxHeight + 370, outputX + boxWidth / 2 , startY + boxHeight + 370); // Go right
+              p.line(startX - 30, startY + boxHeight + 160, startX - 30, startY + boxHeight + 370); // Go down
+              p.line(startX - 30, startY + boxHeight + 370, outputX + boxWidth / 2 , startY + boxHeight + 370); // Go right
               p.line(outputX + boxWidth / 2, outputY + boxHeight, outputX + boxWidth / 2, outputY + boxHeight + 270); // Connect to output logic
+            
+              p.triangle(arrowX - 5, arrowY + 10, arrowX + 5, arrowY + 10, arrowX, arrowY); 
+
             } else {
               if (numInputs === '1') {
-                p.line(startX - 40, startY + boxHeight + 160, startX - 40, startY + boxHeight + 240); // Go down
+                p.line(startX - 30, startY + boxHeight + 160, startX - 30, startY + boxHeight + 240); // Go down
+
+                p.line(startX - 30, startY + boxHeight + 240, (outputX + boxWidth / 2), startY + boxHeight + 240); // Go right
+                p.line((outputX + boxWidth / 2), outputY + boxHeight, (outputX + boxWidth / 2), outputY + boxHeight + 140); // Connect to output logic
+            
+                p.triangle(arrowX - 5, arrowY + 10, arrowX + 5, arrowY + 10, arrowX, arrowY); 
               }
               else if (numInputs === '2') {
-                p.line(startX - 40, startY + boxHeight + 110, startX - 40, startY + boxHeight + 240); // Go down
+                p.line(startX - 50, startY + boxHeight + 110, startX - 50, startY + boxHeight + 260); // Go down X1
+                p.line(startX - 30, startY + boxHeight + 160, startX - 30, startY + boxHeight + 240); // Go down X0
+
+                // X1
+                p.line(startX - 50, startY + boxHeight + 260, (outputX + boxWidth / 2) + 10, startY + boxHeight + 260); // Go right
+                p.line((outputX + boxWidth / 2) + 10, outputY + boxHeight, (outputX + boxWidth / 2) + 10, outputY + boxHeight + 160); // Connect to output logic
+
+                // X0
+                p.line(startX - 30, startY + boxHeight + 240, (outputX + boxWidth / 2) - 10 , startY + boxHeight + 240); // Go right
+                p.line((outputX + boxWidth / 2) - 10, outputY + boxHeight, (outputX + boxWidth / 2) - 10, outputY + boxHeight + 140); // Connect to output logic
+
+                p.triangle(arrowX1 - 5, arrowY + 10, arrowX1 + 5, arrowY + 10, arrowX1, arrowY); 
+                p.triangle(arrowX0 - 5, arrowY + 10, arrowX0 + 5, arrowY + 10, arrowX0, arrowY); 
               }
-              p.line(startX - 40, startY + boxHeight + 240, outputX + boxWidth / 2 , startY + boxHeight + 240); // Go right
-              p.line(outputX + boxWidth / 2, outputY + boxHeight, outputX + boxWidth / 2, outputY + boxHeight + 140); // Connect to output logic
             }
+            p.pop();
           }
         }
       };
