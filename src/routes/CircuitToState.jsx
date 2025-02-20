@@ -1,5 +1,5 @@
 /* CircuitToState.jsx */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import CircuitDiagram from '../components/CircuitDiagram';
 import CTSConversion from '../components/CTSConversion'; 
 import '../styles/CircuitToState.css';
@@ -11,26 +11,40 @@ const CircuitToState = () => {
   const [minMaxterms, setMinMaxterms] = useState([]);
   const [minMaxtermOutputZ, setMinMaxtermOutputZ] = useState("");
   const [isGenerated, setIsGenerated] = useState(false);
+
   const [excitationTable, setExcitationTable] = useState([]);
   const [stateTransitionTable, setStateTransitionTable] = useState([]);
+
   const [hiddenExcitationCorrectAnswers, setHiddenExcitationCorrectAnswers] = useState({});
   const [hiddenStateTransitionCorrectAnswers, setHiddenStateTransitionCorrectAnswers] = useState({
     nextState: [],
     output: [],
   });
+
   const [userExcitationInputs, setUserExcitationInputs] = useState([]);
   const [userStateTransitionInputs, setUserStateTransitionInputs] = useState([]);
+
   const [isNextExcitationButtonEnabled, setIsNextExcitationButtonEnabled] = useState(false);
   const [isGenerateStateDiagramButtonEnabled, setisGenerateStateDiagramButtonEnabled] = useState(false);
+
   const [isExcitationTableComplete, setIsExcitationTableComplete] = useState(false);
   const [isStateTransitionTableComplete, setIsStateTransitionTableComplete] = useState(false);
+
   const [showExcitationTable, setShowExcitationTable] = useState(false);
   const [showStateTransitionTable, setShowStateTransitionTable] = useState(false);
-  const [excitationSubheader, setExcitationSubheader] = useState("Exercise 1");
-  const [stateTransitionSubheader, setStateTransitionSubheader] = useState("Exercise 2");
   const [showStateDiagram, setShowStateDiagram] = useState(false);
+
+  const [excitationSubheader, setExcitationSubheader] = useState(null);
+  const [stateTransitionSubheader, setStateTransitionSubheader] = useState(null);
+
   const [popupMessage, setPopupMessage] = useState(null); 
   const [showPopup, setShowPopup] = useState(false);
+
+  const [excitationAttemptCount, setExcitationAttemptCount] = useState(0);
+  const [stateTransitionAttemptCount, setStateTransitionAttemptCount] = useState(0);
+
+  const [isExcitationGivenUp, setIsExcitationGivenUp] = useState(false);
+  const [isStateTransitionGivenUp, setIsStateTransitionGivenUp] = useState(false);
 
   // State for dropdown selections
   const [dropdownState, setDropdownState] = useState({
@@ -70,6 +84,10 @@ const CircuitToState = () => {
   // Trigger generation manually on button click
   const handleGenerateButtonClick = () => {
     if (isFormComplete) {
+      // Reset attempt counters for a new exercise
+      setExcitationAttemptCount(0);
+      setStateTransitionAttemptCount(0);
+      // Proceed with generation...
       setGenerateState({ ...dropdownState }); 
       generateMinMaxterms({ ...dropdownState }); 
       setIsGenerated(true);
@@ -95,6 +113,10 @@ const CircuitToState = () => {
     if (randomDropdownState.numInputs === "2" && randomDropdownState.numFlipFlops === "3") {
       randomDropdownState.numFlipFlops = "2";
     }
+
+    // Reset attempt counters when starting a new exercise
+    setExcitationAttemptCount(0);
+    setStateTransitionAttemptCount(0);
   
     setDropdownState(randomDropdownState); 
     setGenerateState(randomDropdownState); 
@@ -348,7 +370,6 @@ const CircuitToState = () => {
     setShowExcitationTable(true); 
     setExcitationSubheader('Fill in the blanks with binary "0" and "1" values.');
     setShowStateTransitionTable(false); 
-    setStateTransitionSubheader("Exercise 2");
     setShowStateDiagram(false);
 
     // Reset completion states
@@ -361,12 +382,12 @@ const CircuitToState = () => {
 
     if (numFlipFlops === "2" && numInputs === "1") {
       maxValue = 8; // 0 to 7
-      minMinMaxterms = 3;
-      maxMinMaxterms = 5;
+      minMinMaxterms = 2;
+      maxMinMaxterms = 6;
     } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
       maxValue = 16; // 0 to 15
-      minMinMaxterms = 4;
-      maxMinMaxterms = 8;
+      minMinMaxterms = 6;
+      maxMinMaxterms = 10;
     }
 
     const generatedTerms = [];
@@ -537,17 +558,62 @@ const CircuitToState = () => {
     );
   };
 
-  // Handle popup display
+  const popupRef = useRef(null);
+  const previouslyFocusedElement = useRef(null);
+
   const showPopupMessage = (message) => {
+    previouslyFocusedElement.current = document.activeElement;
     setPopupMessage(message);
     setShowPopup(true);
   };
 
-  // Handle popup close
   const handleClosePopup = () => {
     setShowPopup(false);
+    if (previouslyFocusedElement.current) {
+      previouslyFocusedElement.current.focus();
+    }
   };
 
+  useEffect(() => {
+    if (showPopup && popupRef.current) {
+      popupRef.current.focus();
+    }
+  }, [showPopup]);
+
+  useEffect(() => {
+    if (showPopup) {
+      const handleKeyDown = (e) => {
+        e.preventDefault(); // Prevent default scrolling or focus shifting
+        e.stopPropagation(); // Stop the event from bubbling further
+        handleClosePopup();
+      };
+  
+      window.addEventListener("keydown", handleKeyDown, true);
+      
+      // Clean up the event listener when pop-up is hidden or component unmounts
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown, true);
+      };
+    }
+  }, [showPopup]);
+  
+  useEffect(() => {
+    if (showPopup) {
+      const handleClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClosePopup();
+      };
+  
+      window.addEventListener("click", handleClick, true);
+      
+      // Clean up the event listener when the popup is hidden or component unmounts
+      return () => {
+        window.removeEventListener("click", handleClick, true);
+      };
+    }
+  }, [showPopup]);
+  
   // Handle user input change
   const handleExcitationInputChange = (rowIndex, flipFlop, value) => {
     if (value === "" || value === "0" || value === "1") {
@@ -604,35 +670,41 @@ const CircuitToState = () => {
       Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
 
         const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
-
         const correctExcitationValue = isMinterm
         ? terms.includes(index) ? "1" : "0" // Minterms expect "1"
         : terms.includes(index) ? "0" : "1"; // Maxterms expect "0"
 
+        // If this input was already given up, leave it as is.
+        if (row.flipFlopInputs[flipFlop].status === "given-up") {
+          updatedRow.flipFlopInputs[flipFlop] = row.flipFlopInputs[flipFlop];
+        } else 
         // Check if the current input matches the expected value
         if (row.flipFlopInputs[flipFlop].value === correctExcitationValue) {
-        updatedRow.flipFlopInputs[flipFlop] = {
-          ...row.flipFlopInputs[flipFlop],
-          status: "correct", 
-        };
-      } else {
-        allCorrect = false; 
-        updatedRow.flipFlopInputs[flipFlop] = {
-          ...row.flipFlopInputs[flipFlop],
-          status: "incorrect", 
-        };
-      }
-    });
+          updatedRow.flipFlopInputs[flipFlop] = {
+            ...row.flipFlopInputs[flipFlop],
+            status: "correct", 
+          };
+        } else {
+          allCorrect = false; 
+          updatedRow.flipFlopInputs[flipFlop] = {
+            ...row.flipFlopInputs[flipFlop],
+            status: "incorrect", 
+          };
+        }
+      });
       return updatedRow;
     });
 
     setUserExcitationInputs(updatedInputs);
-    setIsExcitationTableComplete(allCorrect);
 
     if (allCorrect) {
+      setIsExcitationTableComplete(true);
       setShowStateTransitionTable(true);
       setExcitationSubheader('Completed!');
       setStateTransitionSubheader('Fill in the blanks with binary "0" and "1" values.');
+    } else {
+      // Increment attempt counter if not all correct
+      setExcitationAttemptCount(prev => prev + 1);
     }
   };
 
@@ -643,8 +715,11 @@ const CircuitToState = () => {
     const updatedInputs = userStateTransitionInputs.map((row, index) => {
       const updatedRow = { ...row };
 
-      // Validate next state
+      // For next state: if already given-up, leave it as is.
       const correctNextState = hiddenStateTransitionCorrectAnswers.nextState[index];
+      if (row.nextState.status === "given-up") {
+        updatedRow.nextState = row.nextState;
+      } else
       if (row.nextState.value === correctNextState) {
         updatedRow.nextState = {
           value: correctNextState,
@@ -662,6 +737,9 @@ const CircuitToState = () => {
 
       // Validate output Z
       const correctOutput = hiddenStateTransitionCorrectAnswers.output[index];
+      if (row.output.status === "given-up") {
+        updatedRow.output = row.output;
+      } else
       if (row.output.value === correctOutput) {
         updatedRow.output = {
           value: correctOutput,
@@ -679,14 +757,73 @@ const CircuitToState = () => {
       return updatedRow;
     });
     setUserStateTransitionInputs(updatedInputs);
-    setIsStateTransitionTableComplete(allCorrect);
 
     if (allCorrect) {
+      setIsStateTransitionTableComplete(true);
       setStateTransitionSubheader('Completed!');
       setShowStateDiagram(true);
+    } else {
+      // Increment attempt counter if answers are still incorrect
+      setStateTransitionAttemptCount(prev => prev + 1);
     }
   };
 
+  const handleGiveUpExcitation = () => {
+    const updatedInputs = userExcitationInputs.map((row, index) => {
+      const updatedRow = { ...row };
+      Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
+        // Get the correct value for this cell
+        const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
+        const correctValue = isMinterm
+          ? (terms.includes(index) ? "1" : "0")
+          : (terms.includes(index) ? "0" : "1");
+        
+         // Only update if the current answer is incorrect.
+        if (row.flipFlopInputs[flipFlop].status === "incorrect") {
+          updatedRow.flipFlopInputs[flipFlop] = {
+            value: correctValue,
+            status: "given-up", 
+            editable: false,
+          };
+        }
+      });
+      return updatedRow;
+    });
+    setUserExcitationInputs(updatedInputs);
+    setExcitationSubheader('Completed!');
+    setIsExcitationGivenUp(true);
+  };
+  
+  const handleGiveUpStateTransition = () => {
+    const updatedInputs = userStateTransitionInputs.map((row, index) => {
+      const updatedRow = { ...row };
+
+      // For next state: only update if incorrect.
+      const correctNextState = hiddenStateTransitionCorrectAnswers.nextState[index];
+      if (row.nextState.status === "incorrect") {
+        updatedRow.nextState = {
+          value: correctNextState,
+          status: "given-up",
+          editable: false,
+        };
+      }
+  
+      // For output: only update if incorrect.
+      const correctOutput = hiddenStateTransitionCorrectAnswers.output[index];
+      if (row.output.status === "incorrect") {
+        updatedRow.output = {
+          value: correctOutput,
+          status: "given-up",
+          editable: false,
+        };
+      }
+      return updatedRow;
+    });
+    setUserStateTransitionInputs(updatedInputs);
+    setStateTransitionSubheader('Completed!');
+    setIsStateTransitionGivenUp(true); 
+  };
+  
   // Helper to generate descending labels
   const generateDescendingLabels = (prefix, count, suffix = "") => {
     return Array.from({ length: count }, (_, i) => `${prefix}${count - i - 1}${suffix}`);
@@ -745,11 +882,8 @@ const CircuitToState = () => {
 
       {/* Popup */}
       {showPopup && (
-        <div className="popup">
+        <div className="popup" tabIndex="0" ref={popupRef} onKeyDown={handleClosePopup}>
           <div className="popup-content">
-            <button className="popup-close" onClick={handleClosePopup}>
-              &times;
-            </button>
             <p>{popupMessage}</p>
           </div>
         </div>
@@ -840,7 +974,7 @@ const CircuitToState = () => {
       {/* Display Generated Minterms & Maxterms */}
       <div className={`minMaxterms-section ${isGenerated ? "active" : ""}`}>
         {!isGenerated ? (
-          <h3 style = {{color: "#cccccc"}}>Generated Flip-Flop Inputs & Output Z Equations</h3>
+          <h3 style = {{color: "#cccccc"}}>Generated Flip-Flop Inputs & Output Z</h3>
         ) : (
           <>
             <p>
@@ -885,16 +1019,16 @@ const CircuitToState = () => {
                           <input
                             type="text"
                             value={value}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               handleExcitationInputChange(rowIndex, flipFlop, e.target.value)
                             }
-                            disabled={status === "correct"}
+                            disabled={status === "correct" || status === "given-up"}
                             className={
-                              status === "correct"
-                                ? "input-correct"
-                                : status === "incorrect"
-                                ? "input-incorrect"
-                                : "input-default"
+                              status === "given-up" ? "input-givenup" :
+                              status === "correct" ? "input-correct" : 
+                              status === "incorrect" ? "input-incorrect" :
+                              "input-default"
                             }
                           />
                         </td>
@@ -906,13 +1040,24 @@ const CircuitToState = () => {
             </table>
             )}
             {!isExcitationTableComplete && (
-              <button
-                className={`next-btn ${isNextExcitationButtonEnabled ? '' : 'disabled'}`}
-                disabled={!isNextExcitationButtonEnabled}
-                onClick={validateExcitationInputs}
-              >
-                Next
-              </button>
+              <div className="button-group">
+                <button
+                  className={`next-btn ${isNextExcitationButtonEnabled ? 'active' : 'disabled'}`}
+                  disabled={!isNextExcitationButtonEnabled}
+                  onClick={validateExcitationInputs}
+                >
+                  Next
+                </button>
+                {!isExcitationGivenUp && (
+                  <button
+                    className={`giveup-btn ${excitationAttemptCount >= 2 ? 'active' : 'disabled'}`}
+                    disabled={excitationAttemptCount < 2}
+                    onClick={handleGiveUpExcitation}
+                  >
+                    Give Up
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -941,17 +1086,17 @@ const CircuitToState = () => {
                       <input
                         type="text"
                         value={row.nextState.value}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) =>
                           row.nextState.editable &&
                           handleStateTransitionInputChange(rowIndex, "nextState", e.target.value)
                         }
                         disabled={!row.nextState.editable}
                         className={
-                          row.nextState.status === "correct"
-                            ? "input-correct"
-                            : row.nextState.status === "incorrect"
-                            ? "input-incorrect"
-                            : "input-default"
+                          row.nextState.status === "given-up" ? "input-givenup" :
+                          row.nextState.status === "correct" ? "input-correct" : 
+                          row.nextState.status === "incorrect" ? "input-incorrect" :
+                          "input-default"
                         }
                       />
                     </td>
@@ -959,17 +1104,17 @@ const CircuitToState = () => {
                       <input
                         type="text"
                         value={row.output.value}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) =>
                           row.output.editable &&
                           handleStateTransitionInputChange(rowIndex, "output", e.target.value)
                         }
                         disabled={!row.output.editable}
                         className={
-                          row.output.status === "correct"
-                            ? "input-correct"
-                            : row.output.status === "incorrect"
-                            ? "input-incorrect"
-                            : "input-default"
+                          row.output.status === "correct" ? "input-correct" :
+                          row.output.status === "incorrect" ? "input-incorrect" :
+                          row.output.status === "given-up" ? "input-givenup" :
+                          "input-default"
                         }
                       />
                     </td>
@@ -978,13 +1123,24 @@ const CircuitToState = () => {
               </tbody>
             </table>
             {!isStateTransitionTableComplete && (
-              <button
-                className={`next-btn ${isGenerateStateDiagramButtonEnabled ? '' : 'disabled'}`}
-                disabled={!isGenerateStateDiagramButtonEnabled}
-                onClick={validateStateTransitionInputs}
-              >
-                Generate State Diagram
-              </button>
+              <div className="button-group">
+                <button
+                  className={`next-btn ${isGenerateStateDiagramButtonEnabled ? 'active' : 'disabled'}`}
+                  disabled={!isGenerateStateDiagramButtonEnabled}
+                  onClick={validateStateTransitionInputs}
+                >
+                  Generate State Diagram
+                </button>
+                {!isStateTransitionGivenUp && (
+                  <button
+                    className={`giveup-btn ${stateTransitionAttemptCount >= 2 ? 'active' : 'disabled'}`}
+                    disabled={stateTransitionAttemptCount < 2}
+                    onClick={handleGiveUpStateTransition}
+                  >
+                    Give Up
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -993,7 +1149,7 @@ const CircuitToState = () => {
       {/* State Diagram Section */}
       <div className={`content-box stateDiagram-box ${showStateDiagram ? "active" : ""}`}>
         <h2>State Diagram</h2>
-        {showStateDiagram ? (
+        {showStateDiagram && (
           <div className="state-diagram-placeholder">
             {stateTransitionTable.length > 0 && (
               <CTSConversion
@@ -1004,8 +1160,6 @@ const CircuitToState = () => {
               />
             )}
           </div>
-        ) : (
-          <p>{generateState.fsmType} State Diagram</p>
         )}
       </div>
     </div>
