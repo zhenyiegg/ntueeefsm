@@ -13,7 +13,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     const paper = new dia.Paper({
       el: document.getElementById("stateDiagram-container"),
       model: graph,
-      width: 980,
+      width: 1020,
       height: 900,
       gridSize: 1,
       interactive: false,
