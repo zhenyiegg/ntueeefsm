@@ -87,6 +87,14 @@ const CircuitToState = () => {
       // Reset attempt counters for a new exercise
       setExcitationAttemptCount(0);
       setStateTransitionAttemptCount(0);
+      setIsExcitationGivenUp(false);
+      setIsStateTransitionGivenUp(false);
+
+      setIsExcitationTableComplete(false);
+      setIsStateTransitionTableComplete(false);
+      setExcitationSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
+      setStateTransitionSubheader(null);
+
       // Proceed with generation...
       setGenerateState({ ...dropdownState }); 
       generateMinMaxterms({ ...dropdownState }); 
@@ -117,7 +125,14 @@ const CircuitToState = () => {
     // Reset attempt counters when starting a new exercise
     setExcitationAttemptCount(0);
     setStateTransitionAttemptCount(0);
-  
+    setIsExcitationGivenUp(false);
+    setIsStateTransitionGivenUp(false);
+
+    setIsExcitationTableComplete(false);
+    setIsStateTransitionTableComplete(false);
+    setExcitationSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
+    setStateTransitionSubheader(null);
+
     setDropdownState(randomDropdownState); 
     setGenerateState(randomDropdownState); 
     generateMinMaxterms(randomDropdownState); 
@@ -368,7 +383,6 @@ const CircuitToState = () => {
     }
 
     setShowExcitationTable(true); 
-    setExcitationSubheader('Fill in the blanks with binary "0" and "1" values.');
     setShowStateTransitionTable(false); 
     setShowStateDiagram(false);
 
@@ -700,8 +714,8 @@ const CircuitToState = () => {
     if (allCorrect) {
       setIsExcitationTableComplete(true);
       setShowStateTransitionTable(true);
-      setExcitationSubheader('Completed!');
-      setStateTransitionSubheader('Fill in the blanks with binary "0" and "1" values.');
+      setExcitationSubheader("Completed!");
+      setStateTransitionSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
     } else {
       // Increment attempt counter if not all correct
       setExcitationAttemptCount(prev => prev + 1);
@@ -760,7 +774,7 @@ const CircuitToState = () => {
 
     if (allCorrect) {
       setIsStateTransitionTableComplete(true);
-      setStateTransitionSubheader('Completed!');
+      setStateTransitionSubheader("Completed!");
       setShowStateDiagram(true);
     } else {
       // Increment attempt counter if answers are still incorrect
