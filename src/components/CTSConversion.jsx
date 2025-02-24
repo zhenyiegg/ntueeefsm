@@ -4,9 +4,11 @@ import { dia, shapes } from "jointjs";
 import "../styles/CTSConversion.css";
 
 const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs }) => {
-  const [popupData, setPopupData] = useState(null); 
-  const [showTransitionPopup, setTransitionShowPopup] = useState(false); 
   const [diagramInfo, setDiagramInfo] = useState("");
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipContent, setTooltipContent] = useState("");
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
 
   useEffect(() => {
     const graph = new dia.Graph();
@@ -122,8 +124,36 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     });
 
     setDiagramInfo(`${fsmType} State Diagram`);
+
+    // Scroll Event
+    const handleScroll = () => {
+      setTooltipVisible(false);
+      document.removeEventListener("mousemove", handleMouseMove);
     
-    // Add grouped transitions
+      // Reset all arrows to black when scrolling
+      graph.getLinks().forEach((link) => {
+        link.attr({
+          line: {
+            stroke: "#000",
+            strokeWidth: 2,
+            targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" },
+          },
+        });
+      });
+    };
+
+    // Attach scroll event only once
+    window.addEventListener("scroll", handleScroll);
+
+    // Mouse move function (Used for tooltip tracking)
+    const handleMouseMove = (event) => {
+      setTooltipPosition({
+        x: event.clientX + 15, 
+        y: event.clientY + 25, 
+      });
+    };
+    
+    // Iterate transitions
     Object.entries(groupedTransitions).forEach(([key, transitions]) => {
       const [from, to] = key.split("->");
 
@@ -206,7 +236,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             text: {
               text: labels,
               fill: "black",
-              fontSize: 16,
+              fontSize: 18,
               textAnchor: "middle", 
               yAlignment: "middle",
             },
@@ -219,7 +249,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
               refWidth: 6, 
               refHeight: 2, 
               refX: -3, 
-              refY: -1,
+              refY: -2,
               width: "auto", 
               height: "auto", 
             },
@@ -227,19 +257,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         },
       ]);
 
-      link.attr({
-        line: {
-          stroke: "#000",
-          strokeWidth: 2,
-          targetMarker: {
-            type: "path",
-            fill: "black",
-            d: "M 10 -5 0 0 10 5 Z", 
-          },
-        },
-      });
-
-      // Hover and click events handled through Paper
+      // Hover event to show tooltip
       paper.on("link:mouseenter", (linkView) => {
         if (linkView.model === link) {
           linkView.model.attr({
@@ -249,9 +267,28 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             targetMarker: { type: "path", fill: "#5e35b1", d: "M 14 -8 -2 0 14 8 Z" }, 
             },
           });
+
+          const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}`;
+
+          const transitionLabel = `${from} ➔ ${to}`;
+
+          const inputLabel = `X${numInputs === 2 ? "1X0" : "0"}`;
+
+          // Format transition details, each on a new line
+          const transitionDetails = transitions
+            .map((t) => `${inputLabel}: ${t.input}, Z: ${t.output}`)
+            .join("\n");
+
+          setTooltipContent(`${stateLabel}\n${transitionLabel}\n${transitionDetails}`);
+
+          setTooltipVisible(true);
+
+          // Attach Global Mouse Move Event Once
+          document.addEventListener("mousemove", handleMouseMove);
         }
       });
 
+      // Mouse leave event to hide tooltip
       paper.on("link:mouseleave", (linkView) => {
         if (linkView.model === link) {
           linkView.model.attr({
@@ -261,22 +298,22 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
               targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" }, 
             },
           });
-        }
-      });
 
-      paper.on("link:pointerclick", (linkView) => {
-        if (linkView.model === link) {
-          setPopupData({
-            from,
-            to,
-            transitions,
-          });
-          setTransitionShowPopup(true);
+          setTooltipVisible(false);
+
+          // Remove mouse tracking event
+          document.removeEventListener("mousemove", handleMouseMove);
         }
       });
 
       link.addTo(graph);
     });
+
+    // Cleanup function (removes event listeners on unmount)
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
   }, [stateTransitionTable, fsmType, numFlipFlops, numInputs]);
 
   // Calculate positions for states
@@ -388,12 +425,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     link.connector("rounded", { radius: cornerRadius }); // rounded corners
   };
 
-  // Close popup function
-  const closePopup = () => {
-    setTransitionShowPopup(false);
-    setPopupData(null);
-  };
-
   // Render
   return (
     <div>
@@ -401,38 +432,15 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         <pre>{diagramInfo}</pre>
       </div>
       <div id="stateDiagram-container" />
-      {showTransitionPopup && popupData && (
-        <div className="popup-container">
-          <div className="popup-contentTransition">
-            <button className="close-button" onClick={closePopup}>✖</button>
-            <h3 className="popup-title">State Transition</h3>
-
-            {/* State transition header */}
-            <div className="state-transition-header">
-              <p className="state-mapping">
-                <strong>Q{numFlipFlops === 2 ? "1Q0" : "2Q1Q0"}</strong> ➔
-                <strong> Q{numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}</strong>
-              </p>
-              <p className="state-mapping">
-                <span className="state">{popupData.from}</span> ➔ 
-                <span className="state"> {popupData.to}</span>
-              </p>
-            </div>
-
-            {/* Display transitions in a structured format */}
-            <div className="transition-table">
-              <div className="transition-header">
-                <span><strong>Input (X{numInputs === 2 ? "1X0" : "0"})</strong></span>
-                <span><strong>Output (Z)</strong></span>
-              </div>
-              {popupData.transitions.map((t, index) => (
-                <div key={index} className="transition-row">
-                  <span className="input-value">{t.input}</span>
-                  <span className="output-value">{t.output}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {tooltipVisible && (
+        <div 
+          className="tooltip-cts"
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y,
+          }}
+        >
+          {tooltipContent}
         </div>
       )}
     </div>
