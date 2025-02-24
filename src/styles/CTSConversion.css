@@ -27,7 +27,7 @@
     border: 1px solid #c2a3eb;
     padding: 8px 12px;
     border-radius: 5px;
-    box-shadow: 1px 1px 6px rgba(0,0,0,0.2);
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
     text-align: center; 
     display: inline-block;
     pointer-events: none; /* Prevents interference with interactions*/

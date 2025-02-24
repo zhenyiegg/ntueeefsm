@@ -135,7 +135,7 @@ canvas {
 
 .maxterm {
   font-family: "Times New Roman", "Courier New", serif;
-  font-size: 1.05em;
+  font-size: 1.15em;
   font-weight: normal;
   color: #333; 
 }
@@ -234,7 +234,7 @@ table th {
 }
 
 table th, table td {
-  border: 1px solid #f9e3fd;
+  border: 1px solid #ede1ff;
   padding: 6px;
   text-align: center;
 }
@@ -246,7 +246,7 @@ table td input {
   text-align: center;
   border: none;
   border-radius: 4px;
-  border: 2px solid #b89de064;
+  border: 2px solid #dbc3ff88;
   font-size: 16px;
 }
 
@@ -256,7 +256,7 @@ table td input:focus {
 }
 
 table tr:hover {
-  background-color: #e9d7ff5f;
+  background-color: #f6ebfe;
 }
 
 .currentState-column {
