@@ -12,15 +12,15 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
     const sketch = (p) => {
       const boxWidth = 145;
       const boxHeight = 60;
-      const startX = 128;
+      const startX = 178;
       const startY = 56;
       const flipFlopSpacing = 140;
 
       p.setup = () => {
         if (numFlipFlops === '3') {
-          p.createCanvas(1000, 530).parent(canvasRef.current);
+          p.createCanvas(1100, 530).parent(canvasRef.current);
         } else {
-          p.createCanvas(1000, 430).parent(canvasRef.current);
+          p.createCanvas(1100, 430).parent(canvasRef.current);
         }
         p.background(255); // White background
         p.strokeWeight(1.5);

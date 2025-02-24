@@ -83,7 +83,7 @@ select:focus {
 }
 
 canvas { 
-  max-width: 1000px; 
+  max-width: 1100px; 
   padding: 15px;
   background-color: white;
   border: 3px solid #9068c1;
@@ -272,7 +272,7 @@ table tr:hover {
 }
 
 .input-correct {
-  background-color: none;
+  background-color: transparent;
   border: none;
 }
 
@@ -306,7 +306,6 @@ table tr:hover {
 }
 
 .popup-content {
-  background: #f8f2ff;
   background: #fff;
   padding: 20px;
   width: 340px;
