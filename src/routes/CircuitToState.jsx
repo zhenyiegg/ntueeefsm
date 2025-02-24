@@ -396,12 +396,17 @@ const CircuitToState = () => {
 
     if (numFlipFlops === "2" && numInputs === "1") {
       maxValue = 8; // 0 to 7
-      minMinMaxterms = 2;
+      minMinMaxterms = 4;
       maxMinMaxterms = 6;
     } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
       maxValue = 16; // 0 to 15
       minMinMaxterms = 6;
       maxMinMaxterms = 10;
+    }
+
+    let maxMinMaxtermsForOutput = maxMinMaxterms;
+    if (fsmType === "Moore" && numFlipFlops === "2" && numInputs === "2") {
+      maxMinMaxtermsForOutput = 16; // Allow up to 16 terms for Output Z
     }
 
     const generatedTerms = [];
@@ -491,7 +496,7 @@ const CircuitToState = () => {
       // Step 3: Calculate how many unique states to select
       let numSelectedStates = getRandomNumber(
         Math.ceil(minMinMaxterms / rowsPerState), // Divide by rows per state to get unique state count
-        Math.floor(maxMinMaxterms / rowsPerState) 
+        Math.floor(maxMinMaxtermsForOutput / rowsPerState) 
       );
     
       // Step 4: Randomly select only the required number of states
@@ -503,8 +508,8 @@ const CircuitToState = () => {
           outputTerms.push(...stateGroupedIndices[state]); // Include all rows for selected state
       });
 
-      // Step 6: Ensure total number of terms is within `minMinMaxterms` and `maxMinMaxterms`
-      while (outputTerms.length > maxMinMaxterms) {
+      // Step 6: Ensure total number of terms is within `minMinMaxterms` and `maxMinMaxtermsForOutput`
+      while (outputTerms.length > maxMinMaxtermsForOutput) {
         outputTerms.pop(); // Remove extra values
       }
       while (outputTerms.length < minMinMaxterms) {
