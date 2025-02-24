@@ -23,6 +23,45 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
 
     const stateElements = {}; // Store references to state circles
 
+    // Determine reset state based on flip-flops
+    const resetState = numFlipFlops === 2 ? "00" : "000";
+
+    // Position "Any state" oval above the diagram
+    const anyStatePos = (() => {
+      if (numFlipFlops === 2) {
+        return { x: 750, y: 50 }; // Default for 2 flip-flops (works well already)
+      } else if (numFlipFlops === 3) {
+        if (numInputs === 1) {
+          return { x: 750, y: 50 }; 
+        } else {
+          return { x: 750, y: 50 }; 
+        }
+      }
+      return { x: 350, y: 50 }; // Default fallback
+    })();
+
+    // "Any state" oval with dashed border
+    const anyState = new shapes.standard.Ellipse();
+    anyState.position(anyStatePos.x, anyStatePos.y);
+    anyState.resize(150, 60);
+    anyState.attr({
+      body: {
+        fill: "#ffffff",
+        stroke: "#000",
+        strokeWidth: 2,
+        strokeDasharray: "5,5", // Dashed border
+      },
+      label: {
+        text: "Any state",
+        fill: "#000",
+        fontSize: 16,
+      },
+    });
+    anyState.addTo(graph);
+
+    // Store reference to "Any state"
+    stateElements["AnyState"] = anyState;
+
     // Process transitions by grouping input/output combinations
     const groupedTransitions = {};
     stateTransitionTable.forEach((row) => {
@@ -36,14 +75,90 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     // Generate state positions based on the number of flip-flops
     const states = Array.from(new Set(stateTransitionTable.flatMap(row => [row.currentState, row.nextState])));
     const positions = calculateStatePositions(states, numFlipFlops, numInputs);
+    
+    // Create state circles
+    states.forEach((state) => {
+      const position = positions[state];
 
-    const resetState = numFlipFlops === 2 ? "00" : "000";
+      // For Moore FSM, collect unique outputs for the current state
+      const mooreOutput =
+        fsmType === "Moore"
+        ? Array.from(new Set(stateTransitionTable.filter(row => row.currentState === state).map(row => row.output)))
+        : [];
 
-    /* Verify Correctness:
+      const stateLabel = fsmType === "Moore"
+        ? `${state}\n───\n${mooreOutput}` // Line Separator + Output Below
+        : `${state}`; // Default for Mealy (no output)
+          
+      const circle = new shapes.standard.Circle();
+      circle.position(position.x, position.y);
+      circle.resize(80, 80);
+      circle.attr({
+        body: {  
+          fill: "#d1b3ff91",
+          stroke: "#333", 
+          strokeWidth: 2 
+        },
+        label: {
+          text: stateLabel,
+          fill: "black",
+          fontSize: 16,
+        },
+      });
+      circle.addTo(graph);
+      stateElements[state] = circle;
+    });
+
+    if (stateElements[resetState]) {
+      const resetArrow = new shapes.standard.Link();
+      resetArrow.source(stateElements["AnyState"]); // Link from "Any state"
+      resetArrow.target(stateElements[resetState]); // Link to the reset state
+
+      resetArrow.attr({
+        line: {
+          stroke: "#000",
+          strokeWidth: 2,
+          targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" },
+        },
+      });
+
+      // Add "RESET" label with overline
+      resetArrow.labels([
+        {
+          position: 0.5,
+          attrs: {
+            text: {
+              text: "RESET",
+              fill: "#000",
+              fontSize: 16,
+              textDecoration: "overline",
+            },
+            rect: {
+              fill: "#ffffff", 
+              stroke: "#000000", 
+              strokeWidth: 1,
+              rx: 2, 
+              ry: 2, 
+              refWidth: 6, 
+              refHeight: 8, 
+              refX: -3, 
+              refY: -6,
+            },
+          },
+        },
+      ]);
+
+      resetArrow.addTo(graph);
+    } else {
+      console.error("❌ Reset state not found in stateElements. Cannot create reset arrow.");
+    }
+
+    /**
+     * Verify Correctness:
      * State Transitions 
      * Mealy / Moore labels
      */
-    
+
     // Store Expected Transitions (From State Transition Table)
     const expectedTransitions = new Set();
     stateTransitionTable.forEach(row => {
@@ -92,35 +207,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         const stateLabel = `Z=${[...output].join(",")}`;
         console.log(`  Moore Label (${state}): ${stateLabel}`);
       }
-    });
-    
-    // Create state circles
-    states.forEach((state) => {
-      const position = positions[state];
-
-      // For Moore FSM, collect unique outputs for the current state
-      const uniqueOutputs =
-        fsmType === "Moore"
-        ? Array.from(new Set(stateTransitionTable.filter(row => row.currentState === state).map(row => row.output)))
-        : [];
-          
-      const circle = new shapes.standard.Circle();
-      circle.position(position.x, position.y);
-      circle.resize(80, 80);
-      circle.attr({
-        body: {  
-          fill: "#d1b3ff91",
-          stroke: "#333", 
-          strokeWidth: 2 
-        },
-        label: {
-          text: `${state}${fsmType === "Moore" && uniqueOutputs.length > 0 ? `\nZ=${uniqueOutputs.join(",")}` : ""}`,
-          fill: "black",
-          fontSize: 16,
-        },
-      });
-      circle.addTo(graph);
-      stateElements[state] = circle;
     });
 
     setDiagramInfo(`${fsmType} State Diagram`);
@@ -256,6 +342,18 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           },
         },
       ]);
+
+      /*link.attr({
+        line: {
+          stroke: "#000",
+          strokeWidth: 2,
+          targetMarker: {
+            type: "path",
+            fill: "black",
+            d: "M 10 -5 0 0 10 5 Z", 
+          },
+        },
+      });*/
 
       // Hover event to show tooltip
       paper.on("link:mouseenter", (linkView) => {
