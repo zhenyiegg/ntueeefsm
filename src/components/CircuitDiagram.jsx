@@ -91,7 +91,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               p.text(`J`, flipFlopLabelX, topLabelY);
               p.text(`K`, flipFlopLabelX, bottomLabelY);
               p.text(`Q`, topLabelX, topLabelY);
-              p.text(`Q'`, bottomLabelX, bottomLabelY);
+              p.text(`Q’`, bottomLabelX, bottomLabelY);
 
               // J input (top line) 
               p.line(flipFlopX, topLabelY - 6, startX + boxWidth, topLabelY - 6); 
@@ -139,7 +139,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
               // D and T Flip-Flop connections 
               p.text(`${flipFlopType}`, flipFlopLabelX, topLabelY);
               p.text(`Q`, topLabelX, topLabelY);
-              p.text(`Q'`, bottomLabelX, bottomLabelY);
+              p.text(`Q’`, bottomLabelX, bottomLabelY);
               p.text(`${flipFlopType}${flipFlopIndex}`, startX + boxWidth + 10, topLabelY - 15);
 
               // Single line for D or T flip-flop
@@ -223,7 +223,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
 
             // Label for Flip-Flop Outputs Q#
             p.text(`Q${flipFlopIndex}`, flipFlopX + flipFlopWidth + 56, topLabelY - 15);
-            p.text(`Q${flipFlopIndex}'`, flipFlopX + flipFlopWidth + 56, bottomLabelY - 15);
+            p.text(`Q${flipFlopIndex}’`, flipFlopX + flipFlopWidth + 56, bottomLabelY - 15);
           } 
 
           // Draw Output Logic Box

@@ -408,6 +408,9 @@ const CircuitToState = () => {
     const excitationCorrectAnswers = {};
     const allFlipFlops = [];
 
+    const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
+    const binaryInputs = generateBinaryStates(parseInt(numInputs));
+
     // Helper to format keys for display
     const formatKeyForDisplay = (key, numInputs, numFlipFlops) => {
       if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T") || key === "Z") {
@@ -466,10 +469,59 @@ const CircuitToState = () => {
 
     // Generate random minterms or maxterms for Output Z
     const isOutputMinterm = Math.random() < 0.5; // Randomly decide Σm or ΠM
-    const outputTerms = generateUniqueTerms(
-      getRandomNumber(minMinMaxterms, maxMinMaxterms),
-      maxValue
-    );
+    let outputTerms = [];
+
+    // Apply different logic based on FSM Type
+    if (fsmType === "Moore") {
+      // Step 1: Group row indices by current state
+      const stateGroupedIndices = {};
+      binaryStates.forEach((currentState) => {
+        stateGroupedIndices[currentState] = [];
+      });
+
+      // Step 2: Assign rows to their corresponding current state group
+      binaryStates.forEach((currentState, stateIndex) => {
+        binaryInputs.forEach((input, inputIndex) => {
+          const rowIndex = stateIndex * binaryInputs.length + inputIndex;
+          stateGroupedIndices[currentState].push(rowIndex);
+        });
+      });
+
+      // Step 3: Randomly decide how many states will have output "1"
+      let numSelectedStates = getRandomNumber(minMinMaxterms, maxMinMaxterms);
+    
+      // Step 4: Select only the required number of states
+      let selectedStates = shuffleArray(Object.keys(stateGroupedIndices)).slice(0, numSelectedStates);
+
+      // Step 5: Collect output terms from selected states, ensuring constraints
+      outputTerms = [];
+      selectedStates.forEach((state) => {
+          outputTerms.push(...stateGroupedIndices[state]);
+      });
+
+      // Ensure total number of terms is between `minMinMaxterms` and `maxMinMaxterms`
+      while (outputTerms.length > maxMinMaxterms) {
+        outputTerms.pop(); // Remove extra values
+      }
+      while (outputTerms.length < minMinMaxterms) {
+        for (let i = 0; i < maxValue; i++) {
+          if (!outputTerms.includes(i)) {
+            outputTerms.push(i);
+            if (outputTerms.length >= minMinMaxterms) break;
+          }
+        }
+      }
+
+      // Step 6: Ensure the output terms are sorted in ascending order
+      outputTerms.sort((a, b) => a - b);
+
+      } else {
+      // Default random generation for Mealy FSM (No restrictions per current state)
+      outputTerms = generateUniqueTerms(
+        getRandomNumber(minMinMaxterms, maxMinMaxterms),
+        maxValue
+      );
+    }
     
     const formattedOutputKey = formatKeyForDisplay("Z", numInputs, numFlipFlops);
 
@@ -491,9 +543,6 @@ const CircuitToState = () => {
     setIsGenerated(true);
 
     // Generate tables
-    const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
-    const binaryInputs = generateBinaryStates(parseInt(numInputs));
-
     const newExcitationTable = [];
     const newStateTransitionTable = [];
 
