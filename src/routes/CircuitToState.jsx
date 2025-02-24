@@ -480,6 +480,7 @@ const CircuitToState = () => {
       });
 
       // Step 2: Assign rows to their corresponding current state group
+      const rowsPerState = binaryInputs.length; // Determines how many rows each current state has
       binaryStates.forEach((currentState, stateIndex) => {
         binaryInputs.forEach((input, inputIndex) => {
           const rowIndex = stateIndex * binaryInputs.length + inputIndex;
@@ -487,19 +488,22 @@ const CircuitToState = () => {
         });
       });
 
-      // Step 3: Randomly decide how many states will have output "1"
-      let numSelectedStates = getRandomNumber(minMinMaxterms, maxMinMaxterms);
+      // Step 3: Calculate how many unique states to select
+      let numSelectedStates = getRandomNumber(
+        Math.ceil(minMinMaxterms / rowsPerState), // Divide by rows per state to get unique state count
+        Math.floor(maxMinMaxterms / rowsPerState) 
+      );
     
-      // Step 4: Select only the required number of states
+      // Step 4: Randomly select only the required number of states
       let selectedStates = shuffleArray(Object.keys(stateGroupedIndices)).slice(0, numSelectedStates);
 
-      // Step 5: Collect output terms from selected states, ensuring constraints
+      // Step 5: Collect all row indices for selected states
       outputTerms = [];
       selectedStates.forEach((state) => {
-          outputTerms.push(...stateGroupedIndices[state]);
+          outputTerms.push(...stateGroupedIndices[state]); // Include all rows for selected state
       });
 
-      // Ensure total number of terms is between `minMinMaxterms` and `maxMinMaxterms`
+      // Step 6: Ensure total number of terms is within `minMinMaxterms` and `maxMinMaxterms`
       while (outputTerms.length > maxMinMaxterms) {
         outputTerms.pop(); // Remove extra values
       }
@@ -512,7 +516,7 @@ const CircuitToState = () => {
         }
       }
 
-      // Step 6: Ensure the output terms are sorted in ascending order
+      // Step 7: Output terms are sorted in ascending order
       outputTerms.sort((a, b) => a - b);
 
       } else {
