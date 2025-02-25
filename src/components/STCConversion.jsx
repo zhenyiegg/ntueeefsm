@@ -15,6 +15,8 @@ const STCConversion = ({
     flipFlopType, // e.g. "D", "T", or "JK"
     transitionTable, // array of { presentState, input, nextState, output }, etc.
     numInputs, // pass this down from the parent (if you need it)
+    cellValidation, // validation state from parent
+    blankCells, // blank cells from parent
 }) => {
     // We'll track how many bits we need for each state,
     // the simplified equations, and whether we should display the circuit.
@@ -53,9 +55,6 @@ const STCConversion = ({
     // Add new state variables at the top with other states
     const [showHints, setShowHints] = useState({});
     const [hintAttempts, setHintAttempts] = useState({});
-
-    // Add new state for hint tooltip
-    const [activeHint, setActiveHint] = useState(null);
 
     // Add new state for tracking give up status
     const [hasGivenUp, setHasGivenUp] = useState({
@@ -477,6 +476,9 @@ const STCConversion = ({
         const isIncorrect =
             excitationValidation.hasOwnProperty(key) && !isCorrect;
 
+        // Only show given-up state for cells that were not correct
+        const showGivenUp = isGivenUp && !isCorrect;
+
         if (!isBlank) return value;
 
         let maxLength;
@@ -512,7 +514,7 @@ const STCConversion = ({
                     onBlur={() => setFocusedExcitationCell(null)}
                     className={`table-input ${isCorrect ? "correct" : ""} ${
                         isIncorrect ? "incorrect" : ""
-                    } ${isGivenUp ? "given-up" : ""}`}
+                    } ${showGivenUp ? "given-up" : ""}`}
                     disabled={isCorrect || isGivenUp}
                 />
                 {focusedExcitationCell === key && (
@@ -577,7 +579,9 @@ const STCConversion = ({
                     <button
                         className="give-up-button"
                         onClick={() => handleGiveUp("excitationTable")}
-                        disabled={hasGivenUp.excitationTable}
+                        disabled={
+                            hasGivenUp.excitationTable || isExcitationComplete
+                        }
                     >
                         Give Up
                     </button>
@@ -748,9 +752,10 @@ const STCConversion = ({
 
     // Update handleEquationFocus to use the same updated messages
     const handleEquationFocus = (equationKey, field) => {
-        const key = `${equationKey}-${field}`;
-        setFocusedEquationCell(key);
+        const fullKey = `${equationKey}-${field}`;
+        setFocusedEquationCell(fullKey);
 
+        // Set appropriate tooltip message based on field type
         let message;
         switch (field) {
             case "minterms":
@@ -771,32 +776,8 @@ const STCConversion = ({
 
         setEquationTooltip((prev) => ({
             ...prev,
-            [key]: message,
+            [fullKey]: message,
         }));
-    };
-
-    // Add helper function to get hint or answer
-    const getHintOrAnswer = (key, equation, isAnswer = false) => {
-        const [baseKey, field] = key.split("-");
-
-        if (field === "minterms") {
-            if (isAnswer) {
-                return `Answer: ${equation.mintermIndices.join(", ")}`;
-            }
-            return `Hint: These are the input combinations where the output is 1. Look for ${equation.mintermIndices.length} indices.`;
-        } else if (field === "maxterms") {
-            if (isAnswer) {
-                const maxterms = equation.canonicalPoM.match(/\((.*?)\)/)[1];
-                return `Answer: ${maxterms}`;
-            }
-            return "Hint: Maxterms are the complement of minterms. Look for input combinations where the output is 0.";
-        } else if (field === "sop") {
-            if (isAnswer) {
-                return `Answer: ${equation.minimalSoP}`;
-            }
-            return "Hint: This is the simplified boolean expression. Look for patterns in the minterms.";
-        }
-        return "";
     };
 
     // Update handleEquationConfirm to track incorrect attempts
@@ -884,6 +865,9 @@ const STCConversion = ({
         const isIncorrect =
             equationValidation.hasOwnProperty(fullKey) && !isCorrect;
 
+        // Only show given-up state for cells that were not correct
+        const showGivenUp = isGivenUp && !isCorrect;
+
         // Calculate width based on input value
         const value = equationAnswers[fullKey] || "";
         const minWidth = 100;
@@ -928,7 +912,7 @@ const STCConversion = ({
                             className={`equation-input ${
                                 isCorrect ? "correct" : ""
                             } ${isIncorrect ? "incorrect" : ""} ${
-                                isGivenUp ? "given-up" : ""
+                                showGivenUp ? "given-up" : ""
                             }`}
                             value={value}
                             style={{ width: `${width}px` }}
@@ -970,7 +954,7 @@ const STCConversion = ({
                     <button
                         className="give-up-button"
                         onClick={() => handleGiveUp("equations")}
-                        disabled={hasGivenUp.equations}
+                        disabled={hasGivenUp.equations || isEquationsComplete}
                     >
                         Give Up
                     </button>
@@ -1084,20 +1068,6 @@ const STCConversion = ({
         };
     }, []);
 
-    // Add click-outside handler for hint tooltips
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (!event.target.closest(".hint-container")) {
-                setActiveHint(null);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
-
     // Add handler for give up button
     const handleGiveUp = (section) => {
         setHasGivenUp((prev) => ({
@@ -1105,29 +1075,115 @@ const STCConversion = ({
             [section]: true,
         }));
 
-        // Fill in all answers for the respective section
+        // Fill in only incorrect or missing answers
         if (section === "excitationTable") {
-            const newAnswers = {};
+            const newAnswers = { ...excitationAnswers }; // Preserve existing answers
             excitationBlankCells.forEach((key) => {
                 const [rowIndex, column] = key.split("-");
-                newAnswers[key] = mergedExcitationTable[rowIndex][column];
+                // Only update if the answer is incorrect or missing
+                if (!excitationValidation[key]) {
+                    newAnswers[key] = mergedExcitationTable[rowIndex][column];
+                }
             });
             setExcitationAnswers(newAnswers);
-            setExcitationValidation({});
+            // Don't clear validations - preserve correct answers' validation state
             setIsExcitationComplete(true);
         } else if (section === "equations") {
-            const newAnswers = {};
+            const newAnswers = { ...equationAnswers }; // Preserve existing answers
             Object.keys(simplifiedEquations).forEach((key) => {
                 const eqn = simplifiedEquations[key];
-                newAnswers[`${key}-minterms`] = eqn.mintermIndices.join(", ");
-                newAnswers[`${key}-maxterms`] =
-                    eqn.canonicalPoM.match(/\((.*?)\)/)[1];
-                newAnswers[`${key}-sop`] = eqn.minimalSoP;
+                // Only update fields that are incorrect or missing
+                if (!equationValidation[`${key}-minterms`]) {
+                    newAnswers[`${key}-minterms`] =
+                        eqn.mintermIndices.join(", ");
+                }
+                if (!equationValidation[`${key}-maxterms`]) {
+                    newAnswers[`${key}-maxterms`] =
+                        eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+                }
+                if (!equationValidation[`${key}-sop`]) {
+                    newAnswers[`${key}-sop`] = eqn.minimalSoP;
+                }
             });
             setEquationAnswers(newAnswers);
-            setEquationValidation({});
+            // Don't clear validations - preserve correct answers' validation state
             setIsEquationsComplete(true);
         }
+    };
+
+    // Add calculateScore function before the return statement
+    const calculateScore = () => {
+        let totalFields = 0;
+        let correctFields = 0;
+
+        // Count state transition table fields
+        if (blankCells) {
+            totalFields += blankCells.size;
+            if (cellValidation) {
+                Object.keys(cellValidation).forEach((key) => {
+                    if (cellValidation[key]) correctFields++;
+                });
+            }
+        }
+
+        // Count excitation table fields
+        if (excitationBlankCells) {
+            totalFields += excitationBlankCells.size;
+            if (excitationValidation) {
+                Object.keys(excitationValidation).forEach((key) => {
+                    if (excitationValidation[key]) correctFields++;
+                });
+            }
+        }
+
+        // Count equation fields
+        if (simplifiedEquations) {
+            // For each equation, we have 3 fields: minterms, maxterms, and SOP
+            const numEquationFields =
+                Object.keys(simplifiedEquations).length * 3;
+            totalFields += numEquationFields;
+
+            if (equationValidation) {
+                Object.keys(equationValidation).forEach((key) => {
+                    if (equationValidation[key]) correctFields++;
+                });
+            }
+        }
+
+        return {
+            score: correctFields,
+            total: totalFields,
+            percentage:
+                totalFields > 0
+                    ? Math.round((correctFields / totalFields) * 100)
+                    : 0,
+        };
+    };
+
+    // Add renderScore function
+    const renderScore = () => {
+        const { score, total, percentage } = calculateScore();
+        return (
+            <div className="score-container">
+                <h3>Your Score</h3>
+                <div className="score-details">
+                    <p>
+                        <span className="score-number">{score}</span> /{" "}
+                        <span className="score-total">{total}</span> correct
+                        answers
+                    </p>
+                    <div className="score-percentage">
+                        <span
+                            style={{
+                                color: percentage >= 70 ? "#4CAF50" : "#ff4444",
+                            }}
+                        >
+                            {percentage}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -1143,13 +1199,18 @@ const STCConversion = ({
                 <>
                     <h2>Generated Circuit Diagram</h2>
                     {isGenerated && (
-                        <CircuitDiagram
-                            numInputs={numInputs ? numInputs.toString() : "1"}
-                            flipFlopType={flipFlopType}
-                            numFlipFlops={numStateBits.toString()}
-                            fsmType={diagramType}
-                            isGenerated={true}
-                        />
+                        <>
+                            <CircuitDiagram
+                                numInputs={
+                                    numInputs ? numInputs.toString() : "1"
+                                }
+                                flipFlopType={flipFlopType}
+                                numFlipFlops={numStateBits.toString()}
+                                fsmType={diagramType}
+                                isGenerated={true}
+                            />
+                            {renderScore()}
+                        </>
                     )}
                 </>
             )}
