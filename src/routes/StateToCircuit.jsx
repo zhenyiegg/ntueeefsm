@@ -254,14 +254,17 @@ const StateToCircuit = () => {
             transitionTable: true,
         }));
 
-        // Fill in all blank cells with correct answers
-        const newAnswers = {};
+        // Fill in only incorrect or missing answers
+        const newAnswers = { ...userAnswers }; // Preserve existing answers
         blankCells.forEach((key) => {
             const [rowIndex, column] = key.split("-");
-            newAnswers[key] = transitionTable[rowIndex][column];
+            // Only update if the answer is incorrect or missing
+            if (!cellValidation[key]) {
+                newAnswers[key] = transitionTable[rowIndex][column];
+            }
         });
         setUserAnswers(newAnswers);
-        setCellValidation({});
+        // Don't clear validations - preserve correct answers' validation state
         setIsTableComplete(true);
     };
 
@@ -272,6 +275,9 @@ const StateToCircuit = () => {
         const isCorrect = cellValidation[key];
         const isGivenUp = hasGivenUp.transitionTable;
         const isIncorrect = cellValidation.hasOwnProperty(key) && !isCorrect;
+
+        // Only show given-up state for cells that were not correct when give up was pressed
+        const showGivenUp = isGivenUp && !isCorrect;
 
         if (!isBlank) return value;
 
@@ -289,7 +295,7 @@ const StateToCircuit = () => {
                         className={`table-input select ${
                             isCorrect ? "correct" : ""
                         } ${isIncorrect ? "incorrect" : ""} ${
-                            isGivenUp ? "given-up" : ""
+                            showGivenUp ? "given-up" : ""
                         }`}
                         disabled={isCorrect || isGivenUp}
                     >
@@ -317,7 +323,7 @@ const StateToCircuit = () => {
                     onBlur={() => setFocusedCell(null)}
                     className={`table-input ${isCorrect ? "correct" : ""} ${
                         isIncorrect ? "incorrect" : ""
-                    } ${isGivenUp ? "given-up" : ""}`}
+                    } ${showGivenUp ? "given-up" : ""}`}
                     disabled={isCorrect || isGivenUp}
                 />
                 {focusedCell === key && (
@@ -432,7 +438,10 @@ const StateToCircuit = () => {
                                 <button
                                     className="give-up-button"
                                     onClick={handleGiveUp}
-                                    disabled={hasGivenUp.transitionTable}
+                                    disabled={
+                                        hasGivenUp.transitionTable ||
+                                        isTableComplete
+                                    }
                                 >
                                     Give Up
                                 </button>
@@ -542,6 +551,8 @@ const StateToCircuit = () => {
                     diagramType={diagramType}
                     flipFlopType={flipFlopType}
                     transitionTable={transitionTable}
+                    cellValidation={cellValidation}
+                    blankCells={blankCells}
                 />
             )}
         </div>

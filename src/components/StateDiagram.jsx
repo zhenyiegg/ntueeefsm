@@ -395,7 +395,6 @@ const StateDiagram = ({
             });
 
             Object.values(transitionGroups).forEach((group) => {
-                const totalTransitions = group.length;
                 const firstTransition = group[0];
 
                 // All transitions in this group have the same from/to states
