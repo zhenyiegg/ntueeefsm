@@ -77,6 +77,38 @@ select:focus {
   cursor: not-allowed;
 }
 
+.tooltipBtn-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltipBtn {
+  position: absolute;
+  bottom: 120%; /* above the button */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.8;
+  visibility: visible;
+  z-index: 10;
+}
+
+.tooltipBtn::after {
+  content: "";
+  position: absolute;
+  top: 100%; /* Triangle at the bottom */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
 .canvas-container {
   width: 100%; 
   margin-bottom: 0;

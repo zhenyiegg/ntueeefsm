@@ -46,6 +46,9 @@ const CircuitToState = () => {
   const [isExcitationGivenUp, setIsExcitationGivenUp] = useState(false);
   const [isStateTransitionGivenUp, setIsStateTransitionGivenUp] = useState(false);
 
+  const [showGenerateTooltip, setShowGenerateTooltip] = useState(false);
+  const [showAutoGenerateTooltip, setShowAutoGenerateTooltip] = useState(false);
+
   // State for dropdown selections
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
@@ -1008,21 +1011,36 @@ const CircuitToState = () => {
           <option value="Moore">Moore</option>
         </select>
 
-        {/* Generate & Auto-Generate Buttons*/}
-        <button
-          className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
-          onClick={handleGenerateButtonClick}
-          disabled={!isFormComplete}
-        >
-          Generate
-        </button>
+        {/* Generate Button */}
+        <div className="tooltipBtn-container">
+          {showGenerateTooltip && (
+            <div className="tooltipBtn">Refresh logic functions</div>
+          )}
+          <button
+            className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
+            onClick={handleGenerateButtonClick}
+            disabled={!isFormComplete}
+            onMouseEnter={() => setShowGenerateTooltip(true)}
+            onMouseLeave={() => setShowGenerateTooltip(false)}
+          >
+            Generate
+          </button>
+        </div>
 
-        <button
-          className="auto-generate-btn"
-          onClick={handleAutoGenerate}
-        >
-          Auto Generate
-        </button>
+        {/* Auto-Generate Button */}
+        <div className="tooltipBtn-container">
+          {showAutoGenerateTooltip && (
+            <div className="tooltipBtn">Randomise selections</div>
+          )}
+          <button
+            className="auto-generate-btn"
+            onClick={handleAutoGenerate}
+            onMouseEnter={() => setShowAutoGenerateTooltip(true)}
+            onMouseLeave={() => setShowAutoGenerateTooltip(false)}
+          >
+            Auto Generate
+          </button>
+        </div>
       </div>
               
       {/* Empty canvas until "Generate" is clicked */}
@@ -1046,7 +1064,7 @@ const CircuitToState = () => {
       {/* Display Generated Minterms & Maxterms */}
       <div className={`minMaxterms-section ${isGenerated ? "active" : ""}`}>
         {!isGenerated ? (
-          <h3 style = {{color: "#cccccc"}}>Generated Flip-Flop Inputs & Output Z</h3>
+          <h3 style = {{color: "#cccccc"}}>Logic Functions</h3>
         ) : (
           <>
             <p>
