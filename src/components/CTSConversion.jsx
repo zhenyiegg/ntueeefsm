@@ -209,7 +209,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       }
     });
 
-    setDiagramInfo(`${fsmType} State Diagram`);
+    setDiagramInfo(`${fsmType}`);
 
     // Scroll Event
     const handleScroll = () => {
