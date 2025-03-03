@@ -302,11 +302,11 @@ html, body, #root, .App {
 }
 
 .equation-form {
-    width: 100%;
     display: flex;
     gap: 1rem;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping if needed */
+    flex-wrap: wrap;
+    width: 100%;
 }
 
 .equation-label {
@@ -318,12 +318,15 @@ html, body, #root, .App {
 
 .equation-value {
     flex: 1;
-    font-family: monospace;
-    font-size: 1.1rem;
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping for long expressions */
+    flex-wrap: wrap;
     gap: 0.5rem;
+    min-width: 0; /* Allow container to shrink */
+    max-width: 100%; /* Ensure it doesn't overflow */
+    overflow-x: auto; /* Add horizontal scrolling if needed */
+    font-family: monospace;
+    font-size: 1.1rem;
 }
 
 /* Add state for equations info tooltip */
@@ -339,23 +342,26 @@ html, body, #root, .App {
 
 /* Input container for tooltip positioning */
 .input-container {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 100px;
+    max-width: 1000px; /* Increased from 800px to match equation-input */
 }
 
 /* Specific styling for input containers within the state transition table */
 .state-transition-table .input-container {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto;
 }
 
 /* Add specific input-container for selects to ensure proper placement */
 .state-transition-table .input-container select.table-input {
-  margin: 0 auto;
-  display: block;
+    margin: 0 auto;
+    display: block;
 }
 
 /* Update tooltip styles */
@@ -504,9 +510,8 @@ td:nth-child(3) .table-input {
 
 /* Add styles for info button and tooltip */
 .info-button {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+    position: static; /* Remove absolute positioning */
+    margin: 0;
     background: none;
     border: none;
     color: #6FC3DF;
@@ -630,31 +635,6 @@ td:nth-child(3) .table-input {
     transition: width 0.1s ease;
 }
 
-/* Update input container to match equation input max-width */
-.input-container {
-    flex: 1;
-    min-width: 100px;
-    max-width: 1000px; /* Increased from 800px to match equation-input */
-}
-
-/* Update equation form layout */
-.equation-form {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-    width: 100%;
-}
-
-.equation-value {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    min-width: 0; /* Allow container to shrink */
-}
-
 /* Update hint button container and positioning */
 .hint-container,
 .hint-button,
@@ -754,12 +734,6 @@ td:nth-child(4) .table-input.select {
 .give-up-button:disabled {
     background: #ffcccc;
     cursor: not-allowed;
-}
-
-/* Update info button to work with new container */
-.info-button {
-    position: static; /* Remove absolute positioning */
-    margin: 0;
 }
 
 /* Style for unused states */

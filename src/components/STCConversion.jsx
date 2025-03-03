@@ -1103,6 +1103,25 @@ const STCConversion = ({
             displayName = getFlipFlopName(ffIndex, flipFlopType);
         }
 
+        // Generate the variable list for the equation
+        // State variables in descending order (Q1, Q0) followed by input variables (X)
+        const stateVars = Array.from(
+            { length: numStateBits },
+            (_, i) => `Q${numStateBits - 1 - i}`
+        );
+
+        // Input variables
+        const inputVars =
+            numInputs > 1
+                ? Array.from(
+                      { length: numInputs },
+                      (_, i) => `X${numInputs - 1 - i}`
+                  )
+                : ["X"];
+
+        // Combine all variables
+        const allVars = [...stateVars, ...inputVars].join(", ");
+
         return (
             <div className="equation-form">
                 <span className="equation-label">
@@ -1113,7 +1132,7 @@ const STCConversion = ({
                         : "Simplified Expression:"}
                 </span>
                 <span className="equation-value">
-                    {displayName} ={" "}
+                    {displayName}({allVars}) ={" "}
                     {field === "minterms"
                         ? "Σm("
                         : field === "maxterms"
@@ -1140,13 +1159,15 @@ const STCConversion = ({
                             onBlur={() => setFocusedEquationCell(null)}
                             disabled={isCorrect || isGivenUp}
                         />
+                        {field === "minterms" || field === "maxterms" ? (
+                            <span style={{ marginLeft: "2px" }}>)</span>
+                        ) : null}
                         {focusedEquationCell === fullKey && (
                             <div className="input-tooltip">
                                 {equationTooltip[fullKey]}
                             </div>
                         )}
                     </div>
-                    {field === "minterms" || field === "maxterms" ? ")" : ""}
                 </span>
             </div>
         );
@@ -1189,6 +1210,11 @@ const STCConversion = ({
                                 The indices should match the terms in the
                                 canonical sum
                             </li>
+                            <li>
+                                The variables are listed in order (e.g., D0(Q1,
+                                Q0, X)) to ensure correct interpretation of
+                                minterms/maxterms
+                            </li>
                         </ul>
                         <p>
                             Example: If sum of minterms is "x̄ȳz + x̄yz̄", the
@@ -1197,50 +1223,58 @@ const STCConversion = ({
                     </div>
                 )}
                 <div className="equations-list">
-                    {Object.keys(simplifiedEquations).map((key) => {
-                        const variableName = key.includes("_")
-                            ? key.replace("_", "")
-                            : key;
-                        const eqn = simplifiedEquations[key];
+                    {Object.keys(simplifiedEquations)
+                        .sort((a, b) => {
+                            // Extract the numeric part from the keys
+                            const numA = parseInt(a.match(/\d+/)[0]);
+                            const numB = parseInt(b.match(/\d+/)[0]);
+                            // Sort in descending order (higher numbers first)
+                            return numB - numA;
+                        })
+                        .map((key) => {
+                            const variableName = key.includes("_")
+                                ? key.replace("_", "")
+                                : key;
+                            const eqn = simplifiedEquations[key];
 
-                        return (
-                            <div key={key} className="equation-block">
-                                <h4>
-                                    {key.includes("_")
-                                        ? `${getFlipFlopName(
-                                              key.match(/\d+/)[0],
-                                              flipFlopType
-                                          )}${
-                                              key.includes("_J") ? "J" : "K"
-                                          } Equation`
-                                        : `${getFlipFlopName(
-                                              key.match(/\d+/)[0],
-                                              flipFlopType
-                                          )} Equation`}
-                                </h4>
-                                <div className="equation-forms">
-                                    {renderEquationInput(
-                                        key,
-                                        "minterms",
-                                        variableName,
-                                        eqn
-                                    )}
-                                    {renderEquationInput(
-                                        key,
-                                        "maxterms",
-                                        variableName,
-                                        eqn
-                                    )}
-                                    {renderEquationInput(
-                                        key,
-                                        "sop",
-                                        variableName,
-                                        eqn
-                                    )}
+                            return (
+                                <div key={key} className="equation-block">
+                                    <h4>
+                                        {key.includes("_")
+                                            ? `${getFlipFlopName(
+                                                  key.match(/\d+/)[0],
+                                                  flipFlopType
+                                              )}${
+                                                  key.includes("_J") ? "J" : "K"
+                                              } Equation`
+                                            : `${getFlipFlopName(
+                                                  key.match(/\d+/)[0],
+                                                  flipFlopType
+                                              )} Equation`}
+                                    </h4>
+                                    <div className="equation-forms">
+                                        {renderEquationInput(
+                                            key,
+                                            "minterms",
+                                            variableName,
+                                            eqn
+                                        )}
+                                        {renderEquationInput(
+                                            key,
+                                            "maxterms",
+                                            variableName,
+                                            eqn
+                                        )}
+                                        {renderEquationInput(
+                                            key,
+                                            "sop",
+                                            variableName,
+                                            eqn
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
                 </div>
                 <div className="convert-button-container">
                     {isEquationsComplete ? (
