@@ -302,11 +302,11 @@ html, body, #root, .App {
 }
 
 .equation-form {
-    width: 100%;
     display: flex;
     gap: 1rem;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping if needed */
+    flex-wrap: wrap;
+    width: 100%;
 }
 
 .equation-label {
@@ -318,12 +318,15 @@ html, body, #root, .App {
 
 .equation-value {
     flex: 1;
-    font-family: monospace;
-    font-size: 1.1rem;
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* Allow wrapping for long expressions */
+    flex-wrap: wrap;
     gap: 0.5rem;
+    min-width: 0; /* Allow container to shrink */
+    max-width: 100%; /* Ensure it doesn't overflow */
+    overflow-x: auto; /* Add horizontal scrolling if needed */
+    font-family: monospace;
+    font-size: 1.1rem;
 }
 
 /* Add state for equations info tooltip */
@@ -340,8 +343,25 @@ html, body, #root, .App {
 /* Input container for tooltip positioning */
 .input-container {
     position: relative;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    flex: 1;
+    min-width: 100px;
+    max-width: 1000px; /* Increased from 800px to match equation-input */
+}
+
+/* Specific styling for input containers within the state transition table */
+.state-transition-table .input-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Add specific input-container for selects to ensure proper placement */
+.state-transition-table .input-container select.table-input {
+    margin: 0 auto;
+    display: block;
 }
 
 /* Update tooltip styles */
@@ -490,9 +510,8 @@ td:nth-child(3) .table-input {
 
 /* Add styles for info button and tooltip */
 .info-button {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+    position: static; /* Remove absolute positioning */
+    margin: 0;
     background: none;
     border: none;
     color: #6FC3DF;
@@ -616,31 +635,6 @@ td:nth-child(3) .table-input {
     transition: width 0.1s ease;
 }
 
-/* Update input container to match equation input max-width */
-.input-container {
-    flex: 1;
-    min-width: 100px;
-    max-width: 1000px; /* Increased from 800px to match equation-input */
-}
-
-/* Update equation form layout */
-.equation-form {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-    width: 100%;
-}
-
-.equation-value {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    min-width: 0; /* Allow container to shrink */
-}
-
 /* Update hint button container and positioning */
 .hint-container,
 .hint-button,
@@ -666,28 +660,49 @@ td:nth-child(3) .table-input {
     border-color: #4CAF50;
 }
 
-
-/* Update dropdown styles for larger vertical size */
+/* Update dropdown styles for better table fit */
 .table-input.select {
-  width: 180px;
-  padding: 8px 12px;
+  width: 100%; /* Changed from fixed 180px to be responsive */
+  max-width: 140px; /* Added max-width constraint */
+  padding: 6px 8px; /* Reduced padding */
   border: 2px solid #6FC3DF;
   border-radius: 4px;
-  font-size: 1.3rem;
+  font-size: 1.1rem; /* Reduced from 1.3rem */
   background-color: white;
   cursor: pointer;
   text-align: center;
-  height: 45px; /* Added height */
-  line-height: 1.4; /* Added line height */
+  height: 35px; /* Reduced from 45px */
+  line-height: 1.2; /* Adjusted from 1.4 */
+  appearance: menulist; /* Ensure dropdown arrow appears */
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+}
+
+/* Dropdown focus state */
+.table-input.select:focus {
+  outline: none;
+  border-color: #000000; /* Changed from #2980b9 (blue) to black */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Changed shadow color to match black border */
+}
+
+/* Column-specific dropdown widths */
+td:nth-child(2) .table-input.select {
+  max-width: 80px; /* Input column can be narrower */
+}
+
+td:nth-child(3) .table-input.select {
+  max-width: 140px; /* Next state column needs to be wider for state names */
+}
+
+td:nth-child(4) .table-input.select {
+  max-width: 80px; /* Output column can be narrower */
 }
 
 /* Update dropdown option styles */
 .table-input.select option {
-  font-size: 0.8rem;
-  padding: 8px 4px; /* Increased vertical padding */
-  height: 30px; /* Added height for options */
-  line-height: 30px; /* Added line height for options */
-  text-align: left;
+  font-size: 0.9rem;
+  padding: 4px; /* Reduced padding */
+  text-align: center;
 }
 
 /* Add styles for button container */
@@ -721,18 +736,36 @@ td:nth-child(3) .table-input {
     cursor: not-allowed;
 }
 
-/* Update info button to work with new container */
-.info-button {
-    position: static; /* Remove absolute positioning */
-    margin: 0;
+/* Style for unused states */
+.table-input.unused-state {
+    /* Remove different styling so it looks like regular inputs */
+    background-color: white;
+    color: inherit;
+    font-style: normal;
+    border: 1px solid #ccc;
 }
 
-/* Add styles for given up state */
-.table-input.given-up {
-    background-color: #f0f0f0 !important; /* Light grey background */
-    border-color: #999999 !important; /* Darker grey border */
-    color: #666666 !important; /* Grey text */
-    cursor: not-allowed;
+.table-input.unused-state:focus {
+    background-color: white;
+    border: 1px solid #b084cc;
+    box-shadow: 0 0 0 2px rgba(176, 132, 204, 0.2);
+}
+
+/* Remove different styling for unused state rows */
+.excitation-table tr.unused-state-row {
+    background-color: white;
+    font-style: normal;
+    color: inherit;
+}
+
+.excitation-table tr.unused-state-row:hover {
+    background-color: #f9eeff;
+}
+
+/* Make the X placeholder less obvious */
+.table-input.unused-state::placeholder {
+    color: #999;
+    opacity: 0.5;
 }
 
 /* Update dropdown styles for given up state */
@@ -860,5 +893,14 @@ td:nth-child(3) .table-input {
 .score-percentage {
     font-size: 2rem;
     font-weight: bold;
+    color: #572b94;
+}
+
+/* Add styles for given up state */
+.table-input.given-up {
+    background-color: #f0f0f0;
+    color: #777;
+    border: 1px solid #ccc;
+    text-decoration: none;
 }
 

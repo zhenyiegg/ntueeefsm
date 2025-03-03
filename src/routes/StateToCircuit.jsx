@@ -162,11 +162,16 @@ const StateToCircuit = () => {
         if (value === "") return true;
 
         if (column === "nextState") {
-            // Always return true to allow free typing
-            return true;
-        } else if (column === "input" || column === "output") {
-            // Allow single digits (0,1) and double digits (00,01,10,11)
-            return /^[01]$|^[01]{2}$/.test(value);
+            // For nextState dropdown, we accept values like "S0 (00)" format
+            return /^S\d+\s\(\d+\)$/.test(value);
+        } else if (column === "input") {
+            // Accept valid input values from dropdown
+            const validInputs = getInputOptions();
+            return validInputs.includes(value);
+        } else if (column === "output") {
+            // Accept valid output values from dropdown
+            const validOutputs = getOutputOptions();
+            return validOutputs.includes(value);
         }
         return false;
     };
@@ -175,22 +180,21 @@ const StateToCircuit = () => {
     const handleCellChange = (rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
 
-        // Capitalize any letters in the input for nextState
-        const capitalizedValue =
-            column === "nextState" ? value.toUpperCase() : value;
-
-        if (validateInput(capitalizedValue, column)) {
+        // No need to capitalize for dropdown selections
+        if (validateInput(value, column)) {
             setUserAnswers((prev) => ({
                 ...prev,
-                [key]: capitalizedValue,
+                [key]: value,
             }));
         }
 
-        // Always set a tooltip message based on the column type
+        // Tooltip message for dropdown selects are not as necessary
         const message =
             column === "nextState"
-                ? "Format should be: S# (##) or S# (###) - e.g., S0 (00) or S0 (001)"
-                : "Enter 0, 1, 00, 01, 10, or 11";
+                ? "Select the next state"
+                : column === "input"
+                ? "Select the input value"
+                : "Select the output value";
         setTooltipMessage((prev) => ({
             ...prev,
             [key]: message,
@@ -245,6 +249,28 @@ const StateToCircuit = () => {
             const binaryCode = i.toString(2).padStart(stateBits, "0");
             return `S${i} (${binaryCode})`;
         });
+    };
+
+    // Function to generate input options based on numInputs
+    const getInputOptions = () => {
+        if (numInputs === 1) {
+            return ["0", "1"];
+        } else {
+            return ["00", "01", "10", "11"];
+        }
+    };
+
+    // Function to generate output options (binary output options)
+    const getOutputOptions = () => {
+        // Both Mealy and Moore typically have binary outputs (0, 1)
+        // For systems with more output bits, we can provide more options
+        if (numInputs === 1) {
+            // When there's only 1 input bit, we typically have 1 output bit
+            return ["0", "1"];
+        } else {
+            // When there are 2 input bits, we could have up to 2 output bits
+            return ["0", "1", "00", "01", "10", "11"];
+        }
     };
 
     // Add handleGiveUp function near other handlers
@@ -303,6 +329,60 @@ const StateToCircuit = () => {
                         {activeStates.map((state) => (
                             <option key={state} value={state}>
                                 {state}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            );
+        } else if (column === "input") {
+            const inputOptions = getInputOptions();
+            return (
+                <div className="input-container">
+                    <select
+                        value={userAnswers[key] || ""}
+                        onChange={(e) =>
+                            handleCellChange(rowIndex, column, e.target.value)
+                        }
+                        onFocus={() => setFocusedCell(null)}
+                        onBlur={() => setFocusedCell(null)}
+                        className={`table-input select ${
+                            isCorrect ? "correct" : ""
+                        } ${isIncorrect ? "incorrect" : ""} ${
+                            showGivenUp ? "given-up" : ""
+                        }`}
+                        disabled={isCorrect || isGivenUp}
+                    >
+                        <option value=""></option>
+                        {inputOptions.map((input) => (
+                            <option key={input} value={input}>
+                                {input}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            );
+        } else if (column === "output") {
+            const outputOptions = getOutputOptions();
+            return (
+                <div className="input-container">
+                    <select
+                        value={userAnswers[key] || ""}
+                        onChange={(e) =>
+                            handleCellChange(rowIndex, column, e.target.value)
+                        }
+                        onFocus={() => setFocusedCell(null)}
+                        onBlur={() => setFocusedCell(null)}
+                        className={`table-input select ${
+                            isCorrect ? "correct" : ""
+                        } ${isIncorrect ? "incorrect" : ""} ${
+                            showGivenUp ? "given-up" : ""
+                        }`}
+                        disabled={isCorrect || isGivenUp}
+                    >
+                        <option value=""></option>
+                        {outputOptions.map((output) => (
+                            <option key={output} value={output}>
+                                {output}
                             </option>
                         ))}
                     </select>
@@ -530,7 +610,7 @@ const StateToCircuit = () => {
                                         onClick={handleConvert}
                                         className="convert-button"
                                     >
-                                        Convert to Circuit
+                                        Next
                                     </button>
                                 ) : (
                                     <button
@@ -551,6 +631,7 @@ const StateToCircuit = () => {
                     diagramType={diagramType}
                     flipFlopType={flipFlopType}
                     transitionTable={transitionTable}
+                    numInputs={numInputs}
                     cellValidation={cellValidation}
                     blankCells={blankCells}
                 />
