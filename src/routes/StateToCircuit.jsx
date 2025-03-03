@@ -631,6 +631,7 @@ const StateToCircuit = () => {
                     diagramType={diagramType}
                     flipFlopType={flipFlopType}
                     transitionTable={transitionTable}
+                    numInputs={numInputs}
                     cellValidation={cellValidation}
                     blankCells={blankCells}
                 />

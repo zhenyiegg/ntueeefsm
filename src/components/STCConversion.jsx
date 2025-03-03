@@ -127,6 +127,9 @@ const STCConversion = ({
             // Mark this state-input combination as used
             usedStateInputCombos.add(`${presentCode}-${inputVal}`);
 
+            // Log used state for debugging
+            console.log(`Used State at: ${presentCode}, Input: ${inputVal}`);
+
             // For the solver: mark this combination of (presentCode + inputVal) as "valid"
             const varsForThisRow = presentCode + inputVal;
             const decimalIndex = parseInt(varsForThisRow, 2);
@@ -206,10 +209,22 @@ const STCConversion = ({
 
         // Add unused states to the excitation table
         // Generate all possible state combinations
-        const possibleInputs = ["0", "1"];
-        if (numInputs === 2) {
+        const possibleInputs = [];
+        if (numInputs === 1) {
+            possibleInputs.push("0", "1");
+        } else if (numInputs === 2) {
             possibleInputs.push("00", "01", "10", "11");
+        } else {
+            // Default fallback, single input
+            possibleInputs.push("0", "1");
         }
+
+        // Log numInputs and possibleInputs for debugging
+        console.log(
+            `numInputs: ${numInputs}, possibleInputs: ${JSON.stringify(
+                possibleInputs
+            )}`
+        );
 
         // Generate all possible state combinations (2^maxBits)
         for (let stateNum = 0; stateNum < Math.pow(2, maxBits); stateNum++) {
@@ -221,6 +236,11 @@ const STCConversion = ({
                 if (usedStateInputCombos.has(`${presentCode}-${inputVal}`)) {
                     continue;
                 }
+
+                // Log unused state for debugging
+                console.log(
+                    `Unused State at: ${presentCode}, Input: ${inputVal}`
+                );
 
                 // Add unused state with "X" values
                 mergedTable.push({
