@@ -111,6 +111,9 @@ const STCConversion = ({
 
         const mergedTable = []; // For the combined excitation table
 
+        // Create a set of used states and inputs combinations from the transition table
+        const usedStateInputCombos = new Set();
+
         transitionTable.forEach((row) => {
             // parse the current row
             const inputVal = row.input;
@@ -120,6 +123,9 @@ const STCConversion = ({
             // For safety, .padStart(...) to ensure we have uniform bits
             const presentCode = states[presentStateId].padStart(maxBits, "0");
             const nextCode = states[nextStateId].padStart(maxBits, "0");
+
+            // Mark this state-input combination as used
+            usedStateInputCombos.add(`${presentCode}-${inputVal}`);
 
             // For the solver: mark this combination of (presentCode + inputVal) as "valid"
             const varsForThisRow = presentCode + inputVal;
@@ -194,7 +200,48 @@ const STCConversion = ({
                 nextState: nextCode,
                 excitation: excitationString,
                 output: row.output,
+                isUsed: true, // Mark as used state
             });
+        });
+
+        // Add unused states to the excitation table
+        // Generate all possible state combinations
+        const possibleInputs = ["0", "1"];
+        if (numInputs === 2) {
+            possibleInputs.push("00", "01", "10", "11");
+        }
+
+        // Generate all possible state combinations (2^maxBits)
+        for (let stateNum = 0; stateNum < Math.pow(2, maxBits); stateNum++) {
+            const presentCode = stateNum.toString(2).padStart(maxBits, "0");
+
+            // For each possible input
+            for (const inputVal of possibleInputs) {
+                // Skip if this state-input combination is already used
+                if (usedStateInputCombos.has(`${presentCode}-${inputVal}`)) {
+                    continue;
+                }
+
+                // Add unused state with "X" values
+                mergedTable.push({
+                    presentState: presentCode,
+                    input: inputVal,
+                    nextState: "X".repeat(maxBits),
+                    excitation:
+                        flipFlopType === "JK"
+                            ? Array(maxBits).fill("XX").join(" ") // Format for JK: "XX XX"
+                            : "X".repeat(maxBits), // Format for D/T: "XX"
+                    output: "X",
+                    isUsed: false, // Mark as unused state
+                });
+            }
+        }
+
+        // Sort the table by present state and input for better readability
+        mergedTable.sort((a, b) => {
+            const stateCompare = a.presentState.localeCompare(b.presentState);
+            if (stateCompare !== 0) return stateCompare;
+            return a.input.localeCompare(b.input);
         });
 
         setMergedExcitationTable(mergedTable);
@@ -322,23 +369,73 @@ const STCConversion = ({
     const validateExcitationInput = (value, column) => {
         if (value === "") return true;
 
+        // Convert lowercase 'x' to uppercase 'X' for validation
+        const normalizedValue = value.replace(/x/g, "X");
+
+        // Same validation rules for both used and unused states within the same column
         switch (column) {
             case "input":
             case "output":
-                // Keep these as single or double binary digits
-                return /^[01]$|^[01]{2}$/.test(value);
+                // Accept 0, 1, X for single bit
+                if (
+                    normalizedValue === "0" ||
+                    normalizedValue === "1" ||
+                    normalizedValue === "X"
+                )
+                    return true;
+                // Accept 00, 01, 10, 11, XX for two bits
+                if (
+                    normalizedValue === "00" ||
+                    normalizedValue === "01" ||
+                    normalizedValue === "10" ||
+                    normalizedValue === "11" ||
+                    normalizedValue === "XX"
+                )
+                    return true;
+                // Allow mixed X patterns like X0, 0X, X1, 1X for two bits
+                if (
+                    normalizedValue === "X0" ||
+                    normalizedValue === "0X" ||
+                    normalizedValue === "X1" ||
+                    normalizedValue === "1X"
+                )
+                    return true;
+                return false;
 
             case "nextState":
-                // Allow single, double, or triple binary digits
-                return /^[01]$|^[01]{2}$|^[01]{3}$/.test(value);
+                // Accept any number of bits (up to numStateBits) of 0s, 1s, and Xs
+                if (
+                    /^[01X]+$/.test(normalizedValue) &&
+                    normalizedValue.length <= numStateBits
+                )
+                    return true;
+                return false;
 
             case "excitation":
-                if (flipFlopType === "JK") {
-                    // Always return true to allow free typing for JK
+                if (flipFlopType === "D" || flipFlopType === "T") {
+                    // For D or T: Accept any numStateBits of 0s, 1s, and Xs
+                    if (
+                        /^[01X]+$/.test(normalizedValue) &&
+                        normalizedValue.length <= numStateBits
+                    )
+                        return true;
+                    return false;
+                } else if (flipFlopType === "JK") {
+                    // For JK, special format
+                    // Accept single X
+                    if (normalizedValue === "X") return true;
+                    // Accept XX
+                    if (normalizedValue === "XX") return true;
+
+                    // Check for JK pairs format (XX XX, 01 10, etc.)
+                    const pairs = normalizedValue.split(" ");
+                    if (pairs.length > numStateBits) return false;
+
+                    for (const pair of pairs) {
+                        if (pair.length !== 2) return false; // Each JK pair should be 2 chars
+                        if (!/^[01X]{2}$/.test(pair)) return false; // Each char should be 0, 1, or X
+                    }
                     return true;
-                } else if (flipFlopType === "T" || flipFlopType === "D") {
-                    // Allow single, double, or triple binary digits for excitation
-                    return /^[01]$|^[01]{2}$|^[01]{3}$/.test(value);
                 }
                 return false;
 
@@ -347,67 +444,91 @@ const STCConversion = ({
         }
     };
 
-    // Update handler for excitation cell changes
+    // Update handler for excitation cell changes with enhanced tooltip messages
     const handleExcitationCellChange = (rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
+        // Remove unused variable
+        // const isUnusedState = mergedExcitationTable[rowIndex].isUsed === false;
 
+        // Convert all lowercase 'x' to uppercase 'X' for consistency
+        const processedValue = value.replace(/x/g, "X");
+
+        // Continue with normal capitalization for excitation column
         const capitalizedValue =
-            column === "excitation" ? value.toUpperCase() : value;
+            column === "excitation"
+                ? processedValue.toUpperCase()
+                : processedValue;
 
-        if (validateExcitationInput(value, column)) {
+        if (validateExcitationInput(processedValue, column)) {
             setExcitationAnswers((prev) => ({
                 ...prev,
                 [key]: capitalizedValue,
             }));
         }
 
-        // Update tooltip message
+        // Provide consistent tooltips for each column type - same as in handleExcitationFocus
         let message;
         switch (column) {
             case "input":
             case "output":
-                message = "Enter 0, 1, 00, 01, 10, or 11";
+                message =
+                    "Enter 0, 1, or X (lowercase 'x' is also accepted). X is valid for don't care values.";
                 break;
             case "nextState":
-                message = "Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111";
+                if (numStateBits === 1) {
+                    message =
+                        "Enter 0, 1, or X (lowercase 'x' is also accepted). X is valid for don't care values.";
+                } else {
+                    message = `Enter ${numStateBits} bits (using 0, 1, and X). Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                }
                 break;
             case "excitation":
-                if (flipFlopType === "JK") {
-                    message =
-                        "Format should be: XY XY where X,Y can be 0, 1, or X (e.g., 0X 1X)";
-                } else {
-                    message = `Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111 for ${flipFlopType} flip-flop`;
+                if (flipFlopType === "D") {
+                    message = `Enter ${numStateBits} bits for D inputs using 0, 1, and X. Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                } else if (flipFlopType === "T") {
+                    message = `Enter ${numStateBits} bits for T inputs using 0, 1, and X. Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                } else if (flipFlopType === "JK") {
+                    message = `Enter JK pairs using 0, 1, and X (like "01 10" or "XX 0X"). Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
                 }
                 break;
             default:
-                message = "Invalid input";
+                message = "Enter the correct value";
         }
+
         setExcitationTooltip((prev) => ({
             ...prev,
             [key]: message,
         }));
     };
 
-    // Update handleExcitationFocus to include updated tooltip messages
+    // Add handleExcitationFocus to include updated tooltip messages
     const handleExcitationFocus = (rowIndex, column) => {
         const key = `${rowIndex}-${column}`;
         setFocusedExcitationCell(key);
 
+        // Use the same tooltip messages as in handleExcitationCellChange for consistency
         let message;
         switch (column) {
             case "input":
             case "output":
-                message = "Enter 0, 1, 00, 01, 10, or 11";
+                message =
+                    "Enter 0, 1, or X (lowercase 'x' is also accepted). X is valid for don't care values.";
                 break;
             case "nextState":
-                message = "Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111";
+                if (numStateBits === 1) {
+                    message =
+                        "Enter 0, 1, or X (lowercase 'x' is also accepted). X is valid for don't care values.";
+                } else {
+                    message = `Enter ${numStateBits} bits (using 0, 1, and X). Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                }
                 break;
             case "excitation":
-                if (flipFlopType === "JK") {
-                    message =
-                        "Format should be: XY XY where X,Y can be 0, 1, or X (e.g., 0X 1X)";
-                } else {
-                    message = `Enter 0, 1, 00, 01, 10, 11, 000, 001, ..., or 111 for ${flipFlopType} flip-flop`;
+                if (flipFlopType === "D") {
+                    message = `Enter ${numStateBits} bits for D inputs using 0, 1, and X. Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                } else if (flipFlopType === "T") {
+                    message = `Enter ${numStateBits} bits for T inputs using 0, 1, and X. Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                } else if (flipFlopType === "JK") {
+                    message = `Enter JK pairs using 0, 1, and X (like "01 10" or "XX 0X"). Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
                 }
                 break;
             default:
@@ -425,12 +546,67 @@ const STCConversion = ({
         const newValidation = {};
         let allCorrect = true;
 
+        // Process all blank cells to check if they are correct
         excitationBlankCells.forEach((key) => {
             const [rowIndex, column] = key.split("-");
-            const correctValue = mergedExcitationTable[rowIndex][column];
-            const userAnswer = excitationAnswers[key];
+            const row = mergedExcitationTable[rowIndex];
+            const correctValue = row[column];
+            const userAnswerRaw = excitationAnswers[key] || "";
 
-            const isCorrect = userAnswer && userAnswer === correctValue;
+            // Normalize user answer by converting any lowercase 'x' to uppercase 'X'
+            const userAnswer = userAnswerRaw.replace(/x/g, "X");
+
+            let isCorrect = false;
+
+            // Allow X inputs in all fields
+            if (row.isUsed === false) {
+                // For unused states, X values are always correct
+                if (/^X+$/.test(userAnswer)) {
+                    isCorrect = true;
+                } else if (userAnswer === correctValue) {
+                    isCorrect = true;
+                } else if (column === "nextState" || column === "excitation") {
+                    // For nextState and excitation, check if there are valid X patterns
+                    if (
+                        /^[01X]+$/.test(userAnswer) &&
+                        userAnswer.includes("X")
+                    ) {
+                        isCorrect = true;
+                    }
+                } else if (column === "input" || column === "output") {
+                    // For input or output, also allow X in patterns
+                    if (
+                        /^[01X]+$/.test(userAnswer) &&
+                        userAnswer.includes("X")
+                    ) {
+                        isCorrect = true;
+                    }
+                }
+            } else {
+                // For used states, still allow some flexibility with X
+                if (userAnswer === correctValue) {
+                    isCorrect = true;
+                }
+                // Allow using X in place of a bit that doesn't matter
+                else if (
+                    /^[01X]+$/.test(userAnswer) &&
+                    userAnswer.length === correctValue.length
+                ) {
+                    // Allow partial X patterns if they match where they matter
+                    let potentiallyCorrect = true;
+                    for (let i = 0; i < userAnswer.length; i++) {
+                        if (
+                            userAnswer[i] !== "X" &&
+                            userAnswer[i] !== correctValue[i]
+                        ) {
+                            potentiallyCorrect = false;
+                            break;
+                        }
+                    }
+                    isCorrect = potentiallyCorrect;
+                }
+            }
+
             newValidation[key] = isCorrect;
 
             if (!isCorrect) {
@@ -440,13 +616,20 @@ const STCConversion = ({
 
         setExcitationValidation(newValidation);
         setIsExcitationComplete(allCorrect);
+
+        // If all correct, enable the equations section
+        if (allCorrect) {
+            setShowEquations(true);
+        }
     };
 
     // Update useEffect to initialize blank cells for excitation table
     useEffect(() => {
         if (mergedExcitationTable) {
             const newBlankCells = new Set();
-            mergedExcitationTable.forEach((_, rowIndex) => {
+
+            // Assign blanks to all states (both used and unused) consistently
+            mergedExcitationTable.forEach((row, rowIndex) => {
                 let blanksInRow = 0;
                 const columns = [
                     "input",
@@ -455,14 +638,20 @@ const STCConversion = ({
                     "output",
                 ].sort(() => Math.random() - 0.5);
 
+                // Allow up to 3 blanks per row for all states
+                const maxBlanksInRow = 3;
+
                 for (const column of columns) {
-                    if (blanksInRow >= 2) break;
-                    if (Math.random() < 0.3) {
+                    if (blanksInRow >= maxBlanksInRow) break;
+
+                    // Use consistent probability for all states and columns
+                    if (Math.random() < 0.4) {
                         newBlankCells.add(`${rowIndex}-${column}`);
                         blanksInRow++;
                     }
                 }
             });
+
             setExcitationBlankCells(newBlankCells);
         }
     }, [mergedExcitationTable]);
@@ -475,12 +664,16 @@ const STCConversion = ({
         const isGivenUp = hasGivenUp.excitationTable;
         const isIncorrect =
             excitationValidation.hasOwnProperty(key) && !isCorrect;
+        // Remove unused variable since we're not differentiating unused states in the UI anymore
+        // const isUnusedState = row.isUsed === false;
 
         // Only show given-up state for cells that were not correct
         const showGivenUp = isGivenUp && !isCorrect;
 
+        // For all cells including unused states, show value if not blank
         if (!isBlank) return value;
 
+        // For all blank cells (both used and unused states), show input field
         let maxLength;
         switch (column) {
             case "input":
@@ -566,7 +759,7 @@ const STCConversion = ({
 
         return (
             <div className="excitation-table-container">
-                <h3>Combined Excitation Table</h3>
+                <h3>Excitation Table</h3>
                 <div className="button-container">
                     <button
                         className="info-button"
