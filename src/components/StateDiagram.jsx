@@ -511,12 +511,89 @@ const StateDiagram = ({
                         const containerRect =
                             paperRef.current.getBoundingClientRect();
 
+                        // Account for the scaling factor of 0.65 applied to the container
+                        const scaleFactor = 1 / 0.65; // Inverse of the scale to adjust coordinates
+
+                        // Calculate the position relative to the container, adjusted for scaling
+                        // Also account for any scrolling within the container
+                        const scrollLeft = paperRef.current.scrollLeft || 0;
+                        const scrollTop = paperRef.current.scrollTop || 0;
+
+                        // Determine complexity of the diagram based on number of states and transitions
+                        const graph = paperInstance.current.model;
+                        const transitionCount = graph.getLinks().length;
+
+                        // Calculate horizontal offset based on complexity scale
+                        // As complexity increases, we progressively shift more to the left
+                        let horizontalOffset = 15; // Default offset for simple diagrams
+
+                        if (transitionCount > 10) {
+                            horizontalOffset = -45; // Significant shift for very complex diagrams
+                        } else if (transitionCount > 7) {
+                            horizontalOffset = -30; // Medium shift for moderately complex diagrams
+                        } else if (transitionCount > 4) {
+                            horizontalOffset = -15; // Small shift for slightly complex diagrams
+                        }
+
+                        // If diagram has many states, add additional leftward shift
+                        if (numStates > 5) {
+                            horizontalOffset -= 15;
+                        }
+
+                        // Calculate position for tooltip
+                        let xPos =
+                            (evt.clientX - containerRect.left + scrollLeft) *
+                                scaleFactor +
+                            horizontalOffset;
+                        let yPos =
+                            (evt.clientY - containerRect.top + scrollTop) *
+                                scaleFactor +
+                            15;
+
+                        // Get window dimensions to check boundaries
+                        const windowWidth = window.innerWidth;
+                        const windowHeight = window.innerHeight;
+
+                        // Estimate tooltip width and height (adjust these values based on your actual tooltip size)
+                        const estimatedTooltipWidth = 300; // Max width defined in CSS
+                        const estimatedTooltipHeight =
+                            transitionsText.split("\n").length * 30; // Rough estimate
+
+                        // Check if tooltip would appear off-screen and adjust if needed
+                        // Right edge check
+                        if (
+                            evt.clientX +
+                                estimatedTooltipWidth +
+                                horizontalOffset >
+                            windowWidth
+                        ) {
+                            xPos =
+                                (evt.clientX -
+                                    containerRect.left +
+                                    scrollLeft) *
+                                    scaleFactor -
+                                estimatedTooltipWidth -
+                                15;
+                        }
+
+                        // Bottom edge check
+                        if (
+                            evt.clientY + estimatedTooltipHeight + 15 >
+                            windowHeight
+                        ) {
+                            yPos =
+                                (evt.clientY - containerRect.top + scrollTop) *
+                                    scaleFactor -
+                                estimatedTooltipHeight -
+                                15;
+                        }
+
                         setTooltip({
                             visible: true,
                             content: transitionsText,
                             position: {
-                                x: evt.clientX - containerRect.left + 10,
-                                y: evt.clientY - containerRect.top + 10,
+                                x: xPos,
+                                y: yPos,
                             },
                         });
 
