@@ -296,7 +296,8 @@ const STCConversion = ({
                     minimalSoP: simplifyBooleanFunction(
                         minterms,
                         numVariables,
-                        validIndices
+                        validIndices,
+                        maxBits
                     ),
                     canonicalSoM: getCanonicalSumOfMinterms(
                         minterms,
@@ -304,7 +305,8 @@ const STCConversion = ({
                     ),
                     canonicalPoM: getCanonicalProductOfMaxterms(
                         minterms,
-                        numVariables
+                        numVariables,
+                        validIndices
                     ),
                 };
             } else if (flipFlopType === "JK") {
@@ -334,7 +336,8 @@ const STCConversion = ({
                     minimalSoP: simplifyBooleanFunction(
                         mintermsJ,
                         numVariables,
-                        validIndices
+                        validIndices,
+                        maxBits
                     ),
                     canonicalSoM: getCanonicalSumOfMinterms(
                         mintermsJ,
@@ -342,7 +345,8 @@ const STCConversion = ({
                     ),
                     canonicalPoM: getCanonicalProductOfMaxterms(
                         mintermsJ,
-                        numVariables
+                        numVariables,
+                        validIndices
                     ),
                 };
                 eqns[`${ffKey}_K`] = {
@@ -350,7 +354,8 @@ const STCConversion = ({
                     minimalSoP: simplifyBooleanFunction(
                         mintermsK,
                         numVariables,
-                        validIndices
+                        validIndices,
+                        maxBits
                     ),
                     canonicalSoM: getCanonicalSumOfMinterms(
                         mintermsK,
@@ -358,7 +363,8 @@ const STCConversion = ({
                     ),
                     canonicalPoM: getCanonicalProductOfMaxterms(
                         mintermsK,
-                        numVariables
+                        numVariables,
+                        validIndices
                     ),
                 };
             }
@@ -1464,9 +1470,10 @@ const STCConversion = ({
             setIsExcitationComplete(true);
         } else if (section === "equations") {
             const newAnswers = { ...equationAnswers };
-            const newValidation = { ...equationValidation };
+            // We don't need to modify validation for given-up fields
+            // Let the UI style handle showing them as "given up"
 
-            // Fill in correct answers for all equation fields
+            // Fill in correct answers for all equation fields that aren't already correct
             Object.keys(simplifiedEquations).forEach((key) => {
                 const eqn = simplifiedEquations[key];
 
@@ -1475,6 +1482,7 @@ const STCConversion = ({
                 const isZeroKey = `${mintermKey}-isZero`;
                 const hasNoMinterms = eqn.mintermIndices.length === 0;
 
+                // Only update fields that haven't been correctly answered
                 if (!equationValidation[mintermKey]) {
                     if (hasNoMinterms) {
                         // Set the zero checkbox to checked and the value to "0"
@@ -1485,7 +1493,7 @@ const STCConversion = ({
                         newAnswers[isZeroKey] = false;
                         newAnswers[mintermKey] = eqn.mintermIndices.join(", ");
                     }
-                    newValidation[mintermKey] = true;
+                    // Don't set validation to true for given-up fields
                 }
 
                 // Handle maxterms
@@ -1493,22 +1501,19 @@ const STCConversion = ({
                 if (!equationValidation[maxtermKey]) {
                     newAnswers[maxtermKey] =
                         eqn.canonicalPoM.match(/\((.*?)\)/)[1];
-                    newValidation[maxtermKey] = true;
+                    // Don't set validation to true for given-up fields
                 }
 
                 // Handle SoP
                 const sopKey = `${key}-sop`;
                 if (!equationValidation[sopKey]) {
                     newAnswers[sopKey] = eqn.minimalSoP;
-                    newValidation[sopKey] = true;
+                    // Don't set validation to true for given-up fields
                 }
             });
 
             setEquationAnswers(newAnswers);
-            setEquationValidation((prev) => ({
-                ...prev,
-                ...newValidation,
-            }));
+            // We don't update the validation state for given-up fields
             setIsEquationsComplete(true);
         }
     };
