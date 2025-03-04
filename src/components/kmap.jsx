@@ -1,14 +1,21 @@
 // kmap.jsx
 
-export function simplifyBooleanFunction(minterms, numVariables, validIndices) {
+export function simplifyBooleanFunction(
+    minterms,
+    numVariables,
+    validIndices,
+    actualNumStateBits
+) {
     const hasDontCares = !!validIndices;
 
     // Create variable names based on state bits (Q) and inputs (X)
     const variables = [];
-    const numStateBits = Math.ceil(Math.log2(8)); // 8 states max = 3 bits
+
+    // Use the provided actualNumStateBits if available, otherwise use a default calculation
+    const numStateBits = actualNumStateBits || Math.ceil(Math.log2(8)); // Default: 8 states max = 3 bits
     const numInputBits = numVariables - numStateBits;
 
-    // Add state variables (Q1, Q0, etc.)
+    // Add state variables (Q1, Q0, etc.) but only up to the actual number of state bits
     for (let i = numStateBits - 1; i >= 0; i--) {
         variables.push(`Q${i}`);
     }
@@ -168,15 +175,33 @@ export function getCanonicalSumOfMinterms(mintermIndices, numVars) {
 }
 
 /**
- * Given a list of minterm decimal indices (where F=1) and total
- * number of variables, return the complementary maxterm indices
+ * Given a list of minterm decimal indices (where F=1), total
+ * number of variables, and validIndices, return the complementary maxterm indices
  * and produce a canonical product-of-maxterms string: "ΠM(0,2,4,...)"
+ *
+ * validIndices represents the state-input combinations that are used in the FSM.
+ * Any combination not in validIndices is a don't care state and should be excluded
+ * from both minterms and maxterms.
  */
-export function getCanonicalProductOfMaxterms(mintermIndices, numVars) {
+export function getCanonicalProductOfMaxterms(
+    mintermIndices,
+    numVars,
+    validIndices
+) {
     const allIndices = Array.from({ length: 2 ** numVars }, (_, i) => i);
-    const maxtermIndices = allIndices.filter(
-        (i) => !mintermIndices.includes(i)
-    );
+    let maxtermIndices;
+
+    if (validIndices) {
+        // If validIndices is provided, only include indices that are valid (not don't cares)
+        // and not in the minterms list
+        maxtermIndices = allIndices.filter(
+            (i) => validIndices.has(i) && !mintermIndices.includes(i)
+        );
+    } else {
+        // Backward compatibility: if validIndices is not provided, use original behavior
+        maxtermIndices = allIndices.filter((i) => !mintermIndices.includes(i));
+    }
+
     const sorted = maxtermIndices.sort((a, b) => a - b);
 
     // Example: F = ΠM(0,2,4,7,...)
