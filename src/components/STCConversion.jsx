@@ -379,11 +379,24 @@ const STCConversion = ({
             setExcitationAnswers({});
             setExcitationValidation({});
             setIsExcitationComplete(false);
-            setEquationAnswers({});
+
+            // When resetting equation answers, make sure to clear all zero-checkbox states too
+            const newEquationAnswers = {};
+
+            // Set all zero checkboxes to false initially
+            if (simplifiedEquations) {
+                Object.keys(simplifiedEquations).forEach((key) => {
+                    const mintermKey = `${key}-minterms`;
+                    const isZeroKey = `${mintermKey}-isZero`;
+                    newEquationAnswers[isZeroKey] = false;
+                });
+            }
+
+            setEquationAnswers(newEquationAnswers);
             setEquationValidation({});
             setIsEquationsComplete(false);
         }
-    }, [transitionTable]);
+    }, [transitionTable, simplifiedEquations]);
 
     // Update validation function for excitation table
     const validateExcitationInput = (value, column) => {
@@ -953,8 +966,17 @@ const STCConversion = ({
         let message;
         switch (field) {
             case "minterms":
-                message =
-                    "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)";
+                // Check if this is a case with no minterms (where answer should be 0)
+                const eqn = simplifiedEquations[equationKey];
+                const hasNoMinterms = eqn?.mintermIndices.length === 0;
+
+                if (hasNoMinterms) {
+                    message =
+                        "When there are no minterms, check the '0' checkbox to indicate Sum of Minterms is 0";
+                } else {
+                    message =
+                        "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)";
+                }
                 break;
             case "maxterms":
                 message =
@@ -983,8 +1005,17 @@ const STCConversion = ({
         let message;
         switch (field) {
             case "minterms":
-                message =
-                    "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)";
+                // Check if this is a case with no minterms (where answer should be 0)
+                const eqn = simplifiedEquations[equationKey];
+                const hasNoMinterms = eqn?.mintermIndices.length === 0;
+
+                if (hasNoMinterms) {
+                    message =
+                        "When there are no minterms, check the '0' checkbox to indicate Sum of Minterms is 0";
+                } else {
+                    message =
+                        "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)";
+                }
                 break;
             case "maxterms":
                 message =
@@ -1016,11 +1047,30 @@ const STCConversion = ({
 
             // Check minterms
             const mintermKey = `${key}-minterms`;
+            const isZeroKey = `${mintermKey}-isZero`;
+            const isZero = equationAnswers[isZeroKey] || false;
             const userMinterms = equationAnswers[mintermKey] || "";
             const correctMinterms = eqn.mintermIndices.join(", ");
-            const areMintermsCorrect =
-                userMinterms.replace(/\s/g, "") ===
-                correctMinterms.replace(/\s/g, "");
+
+            // Check if this is the special "0" case (no minterms)
+            const hasNoMinterms = eqn.mintermIndices.length === 0;
+
+            // For the 0 case, if the checkbox is checked and the field is "0", it's correct
+            // If there are no minterms and the checkbox is NOT checked, it's incorrect regardless of input
+            // Otherwise, validate the normal minterm input
+            let areMintermsCorrect;
+
+            if (hasNoMinterms) {
+                // When there are no minterms, ONLY accept the checkbox being checked
+                areMintermsCorrect = isZero && userMinterms === "0";
+            } else {
+                // When there are minterms, checkbox should NOT be checked and value should match
+                areMintermsCorrect =
+                    !isZero &&
+                    userMinterms.replace(/\s/g, "") ===
+                        correctMinterms.replace(/\s/g, "");
+            }
+
             newValidation[mintermKey] = areMintermsCorrect;
 
             if (!areMintermsCorrect && userMinterms !== "") {
@@ -1133,6 +1183,11 @@ const STCConversion = ({
         // Combine all variables
         const allVars = [...stateVars, ...inputVars].join(", ");
 
+        // Check if this equation has a "is zero" checkbox (only for minterms)
+        const isZeroCheckbox = field === "minterms";
+        const isZeroKey = `${fullKey}-isZero`;
+        const isZero = equationAnswers[isZeroKey] || false;
+
         return (
             <div className="equation-form">
                 <span className="equation-label">
@@ -1144,11 +1199,67 @@ const STCConversion = ({
                 </span>
                 <span className="equation-value">
                     {displayName}({allVars}) ={" "}
-                    {field === "minterms"
-                        ? "Σm("
-                        : field === "maxterms"
-                        ? "∏M("
-                        : ""}
+                    {isZeroCheckbox && (
+                        <div className="zero-checkbox-container">
+                            <label className="zero-checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    className="zero-checkbox"
+                                    checked={isZero}
+                                    onChange={(e) => {
+                                        // Set the isZero property for this equation
+                                        setEquationAnswers((prev) => ({
+                                            ...prev,
+                                            [isZeroKey]: e.target.checked,
+                                        }));
+
+                                        // If checked, set the value to "0"
+                                        if (e.target.checked) {
+                                            setEquationAnswers((prev) => ({
+                                                ...prev,
+                                                [fullKey]: "0",
+                                            }));
+
+                                            // Update tooltip when checked
+                                            setEquationTooltip((prev) => ({
+                                                ...prev,
+                                                [fullKey]:
+                                                    "Zero selected: indicates function is always 0 (no minterms)",
+                                            }));
+                                        } else {
+                                            // If unchecked, clear the value
+                                            setEquationAnswers((prev) => ({
+                                                ...prev,
+                                                [fullKey]: "",
+                                            }));
+
+                                            // Update tooltip when unchecked
+                                            const eqn =
+                                                simplifiedEquations[key];
+                                            const hasNoMinterms =
+                                                eqn?.mintermIndices.length ===
+                                                0;
+
+                                            setEquationTooltip((prev) => ({
+                                                ...prev,
+                                                [fullKey]: hasNoMinterms
+                                                    ? "When there are no minterms, check the '0' checkbox to indicate Sum of Minterms is 0"
+                                                    : "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)",
+                                            }));
+                                        }
+                                    }}
+                                    disabled={isCorrect || isGivenUp}
+                                />
+                                <span>0</span>
+                            </label>
+                        </div>
+                    )}
+                    {(!isZeroCheckbox || !isZero) && field === "minterms" && (
+                        <span>Σm(</span>
+                    )}
+                    {(!isZeroCheckbox || !isZero) && field === "maxterms" && (
+                        <span>∏M(</span>
+                    )}
                     <div className="input-container">
                         <input
                             type="text"
@@ -1156,7 +1267,7 @@ const STCConversion = ({
                                 isCorrect ? "correct" : ""
                             } ${isIncorrect ? "incorrect" : ""} ${
                                 showGivenUp ? "given-up" : ""
-                            }`}
+                            } ${isZeroCheckbox && isZero ? "zero-mode" : ""}`}
                             value={value}
                             style={{ width: `${width}px` }}
                             onChange={(e) =>
@@ -1168,11 +1279,16 @@ const STCConversion = ({
                             }
                             onFocus={() => handleEquationFocus(key, field)}
                             onBlur={() => setFocusedEquationCell(null)}
-                            disabled={isCorrect || isGivenUp}
+                            disabled={
+                                isCorrect ||
+                                isGivenUp ||
+                                (isZeroCheckbox && isZero)
+                            }
                         />
-                        {field === "minterms" || field === "maxterms" ? (
-                            <span style={{ marginLeft: "2px" }}>)</span>
-                        ) : null}
+                        {(field === "minterms" || field === "maxterms") &&
+                            (!isZeroCheckbox || !isZero) && (
+                                <span style={{ marginLeft: "2px" }}>)</span>
+                            )}
                         {focusedEquationCell === fullKey && (
                             <div className="input-tooltip">
                                 {equationTooltip[fullKey]}
@@ -1347,24 +1463,52 @@ const STCConversion = ({
             // Don't clear validations - preserve correct answers' validation state
             setIsExcitationComplete(true);
         } else if (section === "equations") {
-            const newAnswers = { ...equationAnswers }; // Preserve existing answers
+            const newAnswers = { ...equationAnswers };
+            const newValidation = { ...equationValidation };
+
+            // Fill in correct answers for all equation fields
             Object.keys(simplifiedEquations).forEach((key) => {
                 const eqn = simplifiedEquations[key];
-                // Only update fields that are incorrect or missing
-                if (!equationValidation[`${key}-minterms`]) {
-                    newAnswers[`${key}-minterms`] =
-                        eqn.mintermIndices.join(", ");
+
+                // Handle mintermIndices - check if it's the empty case (function is 0)
+                const mintermKey = `${key}-minterms`;
+                const isZeroKey = `${mintermKey}-isZero`;
+                const hasNoMinterms = eqn.mintermIndices.length === 0;
+
+                if (!equationValidation[mintermKey]) {
+                    if (hasNoMinterms) {
+                        // Set the zero checkbox to checked and the value to "0"
+                        newAnswers[isZeroKey] = true;
+                        newAnswers[mintermKey] = "0";
+                    } else {
+                        // Set normal minterm indices and ensure checkbox is unchecked
+                        newAnswers[isZeroKey] = false;
+                        newAnswers[mintermKey] = eqn.mintermIndices.join(", ");
+                    }
+                    newValidation[mintermKey] = true;
                 }
-                if (!equationValidation[`${key}-maxterms`]) {
-                    newAnswers[`${key}-maxterms`] =
+
+                // Handle maxterms
+                const maxtermKey = `${key}-maxterms`;
+                if (!equationValidation[maxtermKey]) {
+                    newAnswers[maxtermKey] =
                         eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+                    newValidation[maxtermKey] = true;
                 }
-                if (!equationValidation[`${key}-sop`]) {
-                    newAnswers[`${key}-sop`] = eqn.minimalSoP;
+
+                // Handle SoP
+                const sopKey = `${key}-sop`;
+                if (!equationValidation[sopKey]) {
+                    newAnswers[sopKey] = eqn.minimalSoP;
+                    newValidation[sopKey] = true;
                 }
             });
+
             setEquationAnswers(newAnswers);
-            // Don't clear validations - preserve correct answers' validation state
+            setEquationValidation((prev) => ({
+                ...prev,
+                ...newValidation,
+            }));
             setIsEquationsComplete(true);
         }
     };

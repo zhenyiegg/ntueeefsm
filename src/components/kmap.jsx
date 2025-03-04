@@ -155,6 +155,11 @@ function binaryToExpression(binary, variables) {
  * sum-of-minterms string: "Σm(1,3,5,...)"
  */
 export function getCanonicalSumOfMinterms(mintermIndices, numVars) {
+    // If there are no minterms, return "0" instead of "Σm()"
+    if (mintermIndices.length === 0) {
+        return "0";
+    }
+
     // Sort for nicer display
     const sorted = [...mintermIndices].sort((a, b) => a - b);
 
