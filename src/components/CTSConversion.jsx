@@ -5,10 +5,27 @@ import "../styles/CTSConversion.css";
 
 const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs }) => {
   const [diagramInfo, setDiagramInfo] = useState("");
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupContent, setPopupContent] = useState("");
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipContent, setTooltipContent] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
+  const closePopup = (event) => {
+    if (!event || event.target.classList.contains("popup-overlay")) {
+      setPopupVisible(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      event.preventDefault(); // Prevent scrolling or tabbing effect
+      closePopup();
+    };
+  
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, []);
 
   useEffect(() => {
     const graph = new dia.Graph();
@@ -29,7 +46,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     // Position "Any state" oval above the diagram
     const anyStatePos = (() => {
       if (numFlipFlops === 2) {
-        return { x: 750, y: 50 }; // Default for 2 flip-flops (works well already)
+        return { x: 400, y: 50 }; 
       } else if (numFlipFlops === 3) {
         if (numInputs === 1) {
           return { x: 750, y: 50 }; 
@@ -40,7 +57,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       return { x: 350, y: 50 }; // Default fallback
     })();
 
-    // "Any state" oval with dashed border
+    // "Any state" oval 
     const anyState = new shapes.standard.Ellipse();
     anyState.position(anyStatePos.x, anyStatePos.y);
     anyState.resize(150, 60);
@@ -343,18 +360,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         },
       ]);
 
-      /*link.attr({
-        line: {
-          stroke: "#000",
-          strokeWidth: 2,
-          targetMarker: {
-            type: "path",
-            fill: "black",
-            d: "M 10 -5 0 0 10 5 Z", 
-          },
-        },
-      });*/
-
       // Hover event to show tooltip
       paper.on("link:mouseenter", (linkView) => {
         if (linkView.model === link) {
@@ -367,14 +372,12 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           });
 
           const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}`;
-
           const transitionLabel = `${from} ➔ ${to}`;
-
           const inputLabel = `X${numInputs === 2 ? "1X0" : "0"}`;
 
-          // Format transition details, each on a new line
+          const isMealy = fsmType === "Mealy";
           const transitionDetails = transitions
-            .map((t) => `${inputLabel}: ${t.input}, Z: ${t.output}`)
+            .map((t) => isMealy ? `${inputLabel}: ${t.input}, Z: ${t.output}` : `${inputLabel}: ${t.input}`)
             .join("\n");
 
           setTooltipContent(`${stateLabel}\n${transitionLabel}\n${transitionDetails}`);
@@ -401,6 +404,25 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
 
           // Remove mouse tracking event
           document.removeEventListener("mousemove", handleMouseMove);
+        }
+      });
+
+      // Click to Open Popup
+      paper.on("link:pointerclick", (linkView, evt) => {
+        if (linkView.model === link) {
+          evt.stopPropagation(); // Prevents event bubbling
+          evt.preventDefault(); // Prevents accidental page actions
+
+          const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}`;
+          const transitionLabel = `${from} ➔ ${to}`;
+          const inputLabel = `X${numInputs === 2 ? "1X0" : "0"}`;
+
+          const transitionDetails = transitions
+            .map((t) => fsmType === "Mealy" ? `${inputLabel}: ${t.input}, Z: ${t.output}` : `${inputLabel}: ${t.input}`)
+            .join("\n");
+
+          setPopupContent(`${stateLabel}\n${transitionLabel}\n${transitionDetails}`);
+          setPopupVisible(true);
         }
       });
 
@@ -539,6 +561,14 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           }}
         >
           {tooltipContent}
+        </div>
+      )}
+      {popupVisible && (
+        <div className="popup-overlay" onClick={closePopup}>
+          <div className="popup-transition">
+            <h2>State Transition</h2>
+            <pre>{popupContent}</pre>
+          </div>
         </div>
       )}
     </div>
