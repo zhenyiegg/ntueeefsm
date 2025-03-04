@@ -45,7 +45,7 @@ const CircuitToState = () => {
 
   const [isExcitationGivenUp, setIsExcitationGivenUp] = useState(false);
   const [isStateTransitionGivenUp, setIsStateTransitionGivenUp] = useState(false);
-
+  
   const [showGenerateTooltip, setShowGenerateTooltip] = useState(false);
   const [showAutoGenerateTooltip, setShowAutoGenerateTooltip] = useState(false);
 
@@ -153,19 +153,10 @@ const CircuitToState = () => {
 
   // Helper to check if all input fields are filled
   const areAllStateTransitionInputsFilled = useCallback(() => {
-    const { numFlipFlops } = generateState;
-
-    return userStateTransitionInputs.every((row) => {
-      const isNextStateValid =
-        (!row.nextState.editable || 
-          (row.nextState.value.length === parseInt(numFlipFlops) &&
-          /^[01]+$/.test(row.nextState.value)));
-      const isOutputValid =
-        (!row.output.editable || /^[01]$/.test(row.output.value));
-
-      return isNextStateValid && isOutputValid;
-    });
-  }, [userStateTransitionInputs, generateState]);
+    return userStateTransitionInputs.every((row) => 
+      row.nextState.value.length > 0 && row.output.value.length > 0 // Allow incomplete but non-empty values
+    );
+  }, [userStateTransitionInputs]);
 
   // Update button state when user inputs change
   useEffect(() => {
@@ -714,7 +705,15 @@ const CircuitToState = () => {
       if (isValidNextState) {
         setUserStateTransitionInputs((prevInputs) => {
           const updatedInputs = [...prevInputs];
-          updatedInputs[rowIndex][column].value = value;
+
+          // Check if the length is correct
+          const isTooShort = value.length > 0 && value.length < parseInt(numFlipFlops);
+
+          updatedInputs[rowIndex][column] = {
+            ...updatedInputs[rowIndex][column],
+            value: value, // Update input value
+            focusTooltip: isTooShort ? `Enter ${numFlipFlops} bits` : "",
+          };
           return updatedInputs;
         });
       } else {
@@ -786,12 +785,24 @@ const CircuitToState = () => {
   // Validate user inputs in the state transition table
   const validateStateTransitionInputs = () => {
     let allCorrect = true;
+    const { numFlipFlops } = generateState;
 
     const updatedInputs = userStateTransitionInputs.map((row, index) => {
       const updatedRow = { ...row };
 
-      // For next state: if already given-up, leave it as is.
+      // Get the correct answers for this row
       const correctNextState = hiddenStateTransitionCorrectAnswers.nextState[index];
+      const correctOutput = hiddenStateTransitionCorrectAnswers.output[index];
+
+      // Validate Next State column 
+      if (row.nextState.value.length !== parseInt(numFlipFlops)) {
+        allCorrect = false;
+        updatedRow.nextState = {
+          value: row.nextState.value,
+          status: "incorrect",
+          editable: true,
+        };
+      } else
       if (row.nextState.status === "given-up") {
         updatedRow.nextState = row.nextState;
       } else
@@ -811,7 +822,6 @@ const CircuitToState = () => {
       }
 
       // Validate output Z
-      const correctOutput = hiddenStateTransitionCorrectAnswers.output[index];
       if (row.output.status === "given-up") {
         updatedRow.output = row.output;
       } else
@@ -1173,22 +1183,31 @@ const CircuitToState = () => {
                     <td className="currentState-column">{row.currentState}</td>
                     <td className="inputX-column">{row.input}</td>
                     <td className="nextState-column">
-                      <input
-                        type="text"
-                        value={row.nextState.value}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) =>
-                          row.nextState.editable &&
-                          handleStateTransitionInputChange(rowIndex, "nextState", e.target.value)
-                        }
-                        disabled={!row.nextState.editable}
-                        className={
-                          row.nextState.status === "given-up" ? "input-givenup" :
-                          row.nextState.status === "correct" ? "input-correct" : 
-                          row.nextState.status === "incorrect" ? "input-incorrect" :
-                          "input-default"
-                        }
-                      />
+                      <div className="input-wrapper">
+                        <input
+                          type="text"
+                          value={row.nextState.value}
+                          onFocus={(e) => {
+                            e.target.select();
+                            // Trigger tooltip when user focuses
+                            handleStateTransitionInputChange(rowIndex, "nextState", row.nextState.value);
+                          }}
+                          onChange={(e) =>
+                            row.nextState.editable &&
+                            handleStateTransitionInputChange(rowIndex, "nextState", e.target.value)
+                          }
+                          disabled={!row.nextState.editable}
+                          className={
+                            row.nextState.status === "given-up" ? "input-givenup" :
+                            row.nextState.status === "correct" ? "input-correct" : 
+                            row.nextState.status === "incorrect" ? "input-incorrect" :
+                            "input-default"
+                          }
+                        />
+                        {row.nextState.focusTooltip && (
+                          <span className="tooltip-focus">{row.nextState.focusTooltip}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="outputZ-column">
                       <input
@@ -1217,7 +1236,7 @@ const CircuitToState = () => {
                 <button
                   className={`next-btn ${isGenerateStateDiagramButtonEnabled ? 'active' : 'disabled'}`}
                   disabled={!isGenerateStateDiagramButtonEnabled}
-                  onClick={validateStateTransitionInputs}
+                  onClick={validateStateTransitionInputs} // checks both length & correctness
                 >
                   Generate State Diagram
                 </button>
