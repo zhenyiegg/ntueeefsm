@@ -578,39 +578,50 @@ const STCConversion = ({
 
             let isCorrect = false;
 
-            // Allow X inputs in all fields
             if (row.isUsed === false) {
-                // For unused states, X values are always correct
-                if (/^X+$/.test(userAnswer)) {
-                    isCorrect = true;
-                } else if (userAnswer === correctValue) {
-                    isCorrect = true;
-                } else if (column === "nextState" || column === "excitation") {
-                    // For nextState and excitation, check if there are valid X patterns
-                    if (
-                        /^[01X]+$/.test(userAnswer) &&
-                        userAnswer.includes("X")
-                    ) {
+                // For unused states
+                if (column === "input") {
+                    // Input values should always match the correct value, even for unused states
+                    isCorrect = userAnswer === correctValue;
+                } else {
+                    // For other columns of unused states, X values are always correct
+                    if (/^X+$/.test(userAnswer)) {
                         isCorrect = true;
-                    }
-                } else if (column === "input" || column === "output") {
-                    // For input or output, also allow X in patterns
-                    if (
-                        /^[01X]+$/.test(userAnswer) &&
-                        userAnswer.includes("X")
-                    ) {
+                    } else if (userAnswer === correctValue) {
                         isCorrect = true;
+                    } else if (
+                        column === "nextState" ||
+                        column === "excitation"
+                    ) {
+                        // For nextState and excitation, check if there are valid X patterns
+                        if (
+                            /^[01X]+$/.test(userAnswer) &&
+                            userAnswer.includes("X")
+                        ) {
+                            isCorrect = true;
+                        }
+                    } else if (column === "output") {
+                        // For output, also allow X in patterns
+                        if (
+                            /^[01X]+$/.test(userAnswer) &&
+                            userAnswer.includes("X")
+                        ) {
+                            isCorrect = true;
+                        }
                     }
                 }
             } else {
-                // For used states, still allow some flexibility with X
+                // For used states, require exact match or valid partial X patterns
+                // All-X answers should NOT be automatically correct for used states
                 if (userAnswer === correctValue) {
                     isCorrect = true;
                 }
                 // Allow using X in place of a bit that doesn't matter
                 else if (
                     /^[01X]+$/.test(userAnswer) &&
-                    userAnswer.length === correctValue.length
+                    userAnswer.length === correctValue.length &&
+                    userAnswer !== "X".repeat(userAnswer.length) && // Prevent all-X from being correct
+                    column !== "input" // Don't allow X patterns for input fields
                 ) {
                     // Allow partial X patterns if they match where they matter
                     let potentiallyCorrect = true;

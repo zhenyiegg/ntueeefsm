@@ -358,6 +358,19 @@ html, body, #root, .App {
     margin: 0 auto;
 }
 
+/* Add specific styling for input containers within the excitation table */
+.excitation-table .input-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Ensure Next State column inputs are centered in the excitation table */
+.excitation-table td:nth-child(3) .input-container {
+    justify-content: center;
+}
+
 /* Add specific input-container for selects to ensure proper placement */
 .state-transition-table .input-container select.table-input {
     margin: 0 auto;
@@ -410,6 +423,13 @@ html, body, #root, .App {
 /* Adjust nextState input width */
 td:nth-child(3) .table-input {
     width: 140px; /* Increased from 120px to accommodate longer state format */
+}
+
+/* Adjust excitation table's Next State column input width and centering */
+.excitation-table td:nth-child(3) .table-input {
+    width: 140px;
+    margin: 0 auto;
+    display: block;
 }
 
 .table-input:focus {
