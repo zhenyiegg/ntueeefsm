@@ -24,6 +24,9 @@ const StateToCircuit = () => {
     const [showTableInfo, setShowTableInfo] = useState(false);
     const [showPaper, setShowPaper] = useState(false);
     const [hasGivenUp, setHasGivenUp] = useState({ transitionTable: false });
+    const [incorrectAttempts, setIncorrectAttempts] = useState({
+        transitionTable: 0,
+    });
 
     // Add click-outside handler
     useEffect(() => {
@@ -205,6 +208,7 @@ const StateToCircuit = () => {
     const handleConfirm = () => {
         const newValidation = {};
         let allCorrect = true;
+        let hasIncorrect = false;
 
         // Check all blank cells
         blankCells.forEach((key) => {
@@ -219,11 +223,20 @@ const StateToCircuit = () => {
             // If any blank cell is empty or incorrect, allCorrect should be false
             if (!isCorrect) {
                 allCorrect = false;
+                hasIncorrect = true;
             }
         });
 
         setCellValidation(newValidation);
         setIsTableComplete(allCorrect);
+
+        // Increment incorrect attempts counter if any answers are incorrect
+        if (hasIncorrect) {
+            setIncorrectAttempts((prev) => ({
+                ...prev,
+                transitionTable: prev.transitionTable + 1,
+            }));
+        }
     };
 
     // Add focus handler
@@ -520,7 +533,8 @@ const StateToCircuit = () => {
                                     onClick={handleGiveUp}
                                     disabled={
                                         hasGivenUp.transitionTable ||
-                                        isTableComplete
+                                        isTableComplete ||
+                                        incorrectAttempts.transitionTable < 2
                                     }
                                 >
                                     Give Up

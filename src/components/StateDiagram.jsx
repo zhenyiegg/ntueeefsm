@@ -394,6 +394,64 @@ const StateDiagram = ({
                 transitionGroups[key].push(data);
             });
 
+            // Helper function to check if a line crosses a circle
+            const doesLineCrossCircle = (
+                lineStart,
+                lineEnd,
+                circlePos,
+                circleRadius
+            ) => {
+                // Vector from line start to circle center
+                const dx = circlePos.x - lineStart.x;
+                const dy = circlePos.y - lineStart.y;
+
+                // Vector representing the line
+                const lineVectorX = lineEnd.x - lineStart.x;
+                const lineVectorY = lineEnd.y - lineStart.y;
+
+                // Length of the line
+                const lineLength = Math.sqrt(
+                    lineVectorX * lineVectorX + lineVectorY * lineVectorY
+                );
+
+                // Normalize the line vector
+                const unitLineVectorX = lineVectorX / lineLength;
+                const unitLineVectorY = lineVectorY / lineLength;
+
+                // Project vector from line start to circle center onto the line
+                const projection = dx * unitLineVectorX + dy * unitLineVectorY;
+
+                // Get the closest point on the line to the circle center
+                const closestPointX =
+                    lineStart.x +
+                    unitLineVectorX *
+                        Math.max(0, Math.min(lineLength, projection));
+                const closestPointY =
+                    lineStart.y +
+                    unitLineVectorY *
+                        Math.max(0, Math.min(lineLength, projection));
+
+                // Distance from closest point to circle center
+                const distX = closestPointX - circlePos.x;
+                const distY = closestPointY - circlePos.y;
+                const distance = Math.sqrt(distX * distX + distY * distY);
+
+                // Check if the closest point is inside the circle and on the line segment
+                return (
+                    distance < circleRadius &&
+                    projection > 0 &&
+                    projection < lineLength
+                );
+            };
+
+            // Function to calculate custom connection points on the circle's edge based on angle
+            const getConnectionPoint = (center, radius, angle) => {
+                return {
+                    x: center.x + radius * Math.cos(angle),
+                    y: center.y + radius * Math.sin(angle),
+                };
+            };
+
             Object.values(transitionGroups).forEach((group) => {
                 const firstTransition = group[0];
 
@@ -407,34 +465,163 @@ const StateDiagram = ({
                         s.get("stateNumber") === firstTransition.toStateNumber
                 );
 
+                // Skip if either state is not found
+                if (!state || !nextState) return;
+
                 // Create single transition link for this direction
                 const transition = new shapes.standard.Link();
-                transition.source(state);
-                transition.target(nextState);
+
+                // Get centers of source and target states
+                const sourceCenter = {
+                    x: state.position().x + state.size().width / 2,
+                    y: state.position().y + state.size().height / 2,
+                };
+
+                const targetCenter = {
+                    x: nextState.position().x + nextState.size().width / 2,
+                    y: nextState.position().y + nextState.size().height / 2,
+                };
+
+                const stateRadius = state.size().width / 2;
 
                 if (firstTransition.fromState !== firstTransition.toState) {
-                    // Single curve for transitions between different states
-                    const curvatureFactor =
-                        flipFlopType === "JK" || flipFlopType === "T" ? 40 : 20;
-                    const curveOffset = curvatureFactor;
+                    // Check if the direct path crosses any other states
+                    const potentialObstacles = activeStates.filter(
+                        (s) =>
+                            s.get("stateNumber") !==
+                                firstTransition.fromStateNumber &&
+                            s.get("stateNumber") !==
+                                firstTransition.toStateNumber
+                    );
 
-                    const midPoint = {
-                        x: (state.position().x + nextState.position().x) / 2,
-                        y: (state.position().y + nextState.position().y) / 2,
-                    };
+                    let isDirectPathBlocked = false;
+                    for (const obstacle of potentialObstacles) {
+                        const obstacleCenter = {
+                            x:
+                                obstacle.position().x +
+                                obstacle.size().width / 2,
+                            y:
+                                obstacle.position().y +
+                                obstacle.size().height / 2,
+                        };
 
-                    const dx = nextState.position().x - state.position().x;
-                    const dy = nextState.position().y - state.position().y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const normal = {
-                        x: -dy / distance,
-                        y: dx / distance,
-                    };
+                        if (
+                            doesLineCrossCircle(
+                                sourceCenter,
+                                targetCenter,
+                                obstacleCenter,
+                                stateRadius * 0.9
+                            )
+                        ) {
+                            isDirectPathBlocked = true;
+                            break;
+                        }
+                    }
 
-                    const offsetX = midPoint.x + normal.x * curveOffset;
-                    const offsetY = midPoint.y + normal.y * curveOffset;
+                    // If the direct path is blocked, use diagonal connection points and add vertices for routing
+                    if (isDirectPathBlocked) {
+                        // Determine diagonal angles for better routing
+                        const diagonalAngles = {
+                            topRight: Math.PI * 0.25,
+                            bottomRight: Math.PI * 0.75,
+                            bottomLeft: Math.PI * 1.25,
+                            topLeft: Math.PI * 1.75,
+                        };
 
-                    transition.vertices([{ x: offsetX, y: offsetY }]);
+                        // Determine which diagonal to use for source and target based on their relative positions
+                        let sourceOffset, targetOffset;
+
+                        if (targetCenter.x > sourceCenter.x) {
+                            if (targetCenter.y > sourceCenter.y) {
+                                // Target is to bottom-right
+                                sourceOffset = diagonalAngles.bottomRight;
+                                targetOffset = diagonalAngles.topLeft;
+                            } else {
+                                // Target is to top-right
+                                sourceOffset = diagonalAngles.topRight;
+                                targetOffset = diagonalAngles.bottomLeft;
+                            }
+                        } else {
+                            if (targetCenter.y > sourceCenter.y) {
+                                // Target is to bottom-left
+                                sourceOffset = diagonalAngles.bottomLeft;
+                                targetOffset = diagonalAngles.topRight;
+                            } else {
+                                // Target is to top-left
+                                sourceOffset = diagonalAngles.topLeft;
+                                targetOffset = diagonalAngles.bottomRight;
+                            }
+                        }
+
+                        // Get connection points
+                        const sourcePoint = getConnectionPoint(
+                            sourceCenter,
+                            stateRadius,
+                            sourceOffset
+                        );
+                        const targetPoint = getConnectionPoint(
+                            targetCenter,
+                            stateRadius,
+                            targetOffset
+                        );
+
+                        // Set custom source and target points
+                        transition.source(sourcePoint);
+                        transition.target(targetPoint);
+
+                        // Calculate intermediate points for routing around obstacles
+                        // We'll create a curved path using multiple vertices
+                        const controlPoint1 = {
+                            x:
+                                sourcePoint.x +
+                                (targetPoint.x - sourcePoint.x) * 0.33,
+                            y:
+                                sourcePoint.y +
+                                (targetPoint.y - sourcePoint.y) * 0.33,
+                        };
+
+                        const controlPoint2 = {
+                            x:
+                                sourcePoint.x +
+                                (targetPoint.x - sourcePoint.x) * 0.66,
+                            y:
+                                sourcePoint.y +
+                                (targetPoint.y - sourcePoint.y) * 0.66,
+                        };
+
+                        // Add vertices for a smoother curve
+                        transition.vertices([controlPoint1, controlPoint2]);
+                    } else {
+                        // Direct path is clear, use standard connection with a slight curve
+                        transition.source(state);
+                        transition.target(nextState);
+
+                        const curvatureFactor =
+                            flipFlopType === "JK" || flipFlopType === "T"
+                                ? 40
+                                : 20;
+                        const curveOffset = curvatureFactor;
+
+                        const midPoint = {
+                            x: (sourceCenter.x + targetCenter.x) / 2,
+                            y: (sourceCenter.y + targetCenter.y) / 2,
+                        };
+
+                        const dx = targetCenter.x - sourceCenter.x;
+                        const dy = targetCenter.y - sourceCenter.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const normal = {
+                            x: -dy / distance,
+                            y: dx / distance,
+                        };
+
+                        const offsetX = midPoint.x + normal.x * curveOffset;
+                        const offsetY = midPoint.y + normal.y * curveOffset;
+
+                        transition.vertices([{ x: offsetX, y: offsetY }]);
+                    }
+
+                    // Set connector type
                     transition.connector("smooth");
                 } else {
                     // Self-loops still need individual positioning
@@ -444,6 +631,8 @@ const StateDiagram = ({
                         0,
                         1 // Only one loop per direction now
                     );
+                    transition.source(state);
+                    transition.target(nextState);
                     transition.vertices(loopVertices);
                     transition.connector("smooth");
                 }

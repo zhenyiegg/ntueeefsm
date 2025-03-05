@@ -63,6 +63,12 @@ const STCConversion = ({
         equations: false,
     });
 
+    // Add states for tracking incorrect attempts
+    const [incorrectAttempts, setIncorrectAttempts] = useState({
+        excitationTable: 0,
+        equations: 0,
+    });
+
     // Add this helper function near the top of your component
     const measureText = (text, font) => {
         const canvas = document.createElement("canvas");
@@ -584,6 +590,7 @@ const STCConversion = ({
     const handleExcitationConfirm = () => {
         const newValidation = {};
         let allCorrect = true;
+        let hasIncorrect = false;
 
         // Process all blank cells to check if they are correct
         excitationBlankCells.forEach((key) => {
@@ -661,11 +668,20 @@ const STCConversion = ({
 
             if (!isCorrect) {
                 allCorrect = false;
+                hasIncorrect = true;
             }
         });
 
         setExcitationValidation(newValidation);
         setIsExcitationComplete(allCorrect);
+
+        // Increment incorrect attempts counter if any answers are incorrect
+        if (hasIncorrect) {
+            setIncorrectAttempts((prev) => ({
+                ...prev,
+                excitationTable: prev.excitationTable + 1,
+            }));
+        }
 
         // If all correct, enable the equations section
         if (allCorrect) {
@@ -823,7 +839,9 @@ const STCConversion = ({
                         className="give-up-button"
                         onClick={() => handleGiveUp("excitationTable")}
                         disabled={
-                            hasGivenUp.excitationTable || isExcitationComplete
+                            hasGivenUp.excitationTable ||
+                            isExcitationComplete ||
+                            incorrectAttempts.excitationTable < 2
                         }
                     >
                         Give Up
@@ -1047,6 +1065,7 @@ const STCConversion = ({
         const newHints = { ...showHints };
         const newAttempts = { ...hintAttempts };
         let allCorrect = true;
+        let hasAnyIncorrect = false; // Changed from hasIncorrect to hasAnyIncorrect to make the naming clearer
 
         Object.keys(simplifiedEquations).forEach((key) => {
             const eqn = simplifiedEquations[key];
@@ -1079,9 +1098,11 @@ const STCConversion = ({
 
             newValidation[mintermKey] = areMintermsCorrect;
 
-            if (!areMintermsCorrect && userMinterms !== "") {
+            if (!areMintermsCorrect) {
                 newHints[mintermKey] = true;
                 newAttempts[mintermKey] = (newAttempts[mintermKey] || 0) + 1;
+                allCorrect = false;
+                hasAnyIncorrect = true; // Set to true if any field is incorrect, even if it's empty
             }
 
             // Check maxterms
@@ -1093,9 +1114,10 @@ const STCConversion = ({
                 correctMaxterms.replace(/\s/g, "");
             newValidation[maxtermKey] = areMaxtermsCorrect;
 
-            if (!areMaxtermsCorrect && userMaxterms !== "") {
+            if (!areMaxtermsCorrect) {
                 newHints[maxtermKey] = true;
                 newAttempts[maxtermKey] = (newAttempts[maxtermKey] || 0) + 1;
+                hasAnyIncorrect = true; // Set to true if any field is incorrect, even if it's empty
             }
 
             // Check simplified expression
@@ -1106,9 +1128,10 @@ const STCConversion = ({
                 userSop.replace(/\s/g, "") === correctSop.replace(/\s/g, "");
             newValidation[sopKey] = isSopCorrect;
 
-            if (!isSopCorrect && userSop !== "") {
+            if (!isSopCorrect) {
                 newHints[sopKey] = true;
                 newAttempts[sopKey] = (newAttempts[sopKey] || 0) + 1;
+                hasAnyIncorrect = true; // Set to true if any field is incorrect, even if it's empty
             }
 
             if (!areMintermsCorrect || !areMaxtermsCorrect || !isSopCorrect) {
@@ -1120,6 +1143,14 @@ const STCConversion = ({
         setShowHints(newHints);
         setHintAttempts(newAttempts);
         setIsEquationsComplete(allCorrect);
+
+        // Increment incorrect attempts counter if any answers are incorrect or missing
+        if (hasAnyIncorrect) {
+            setIncorrectAttempts((prev) => ({
+                ...prev,
+                equations: prev.equations + 1,
+            }));
+        }
     };
 
     // Add helper function to get flip-flop variable names
@@ -1321,7 +1352,11 @@ const STCConversion = ({
                     <button
                         className="give-up-button"
                         onClick={() => handleGiveUp("equations")}
-                        disabled={hasGivenUp.equations || isEquationsComplete}
+                        disabled={
+                            hasGivenUp.equations ||
+                            isEquationsComplete ||
+                            incorrectAttempts.equations < 2
+                        }
                     >
                         Give Up
                     </button>
