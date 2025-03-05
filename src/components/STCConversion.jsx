@@ -376,9 +376,95 @@ const STCConversion = ({
             }
         });
 
+        // Add output equation (Z) for both Mealy and Moore machines
+        const outputMinterms = [];
+
+        // For Moore machines, the output depends only on the current state
+        // For Mealy machines, the output depends on both current state and input
+        if (diagramType === "Moore") {
+            // Create a set to keep track of states with output 1
+            const statesWithOutput1 = new Set();
+
+            // First pass: identify which states have output 1
+            transitionTable.forEach((entry) => {
+                if (entry.output === "1") {
+                    // Extract state code and add to set
+                    const stateCodeMatch =
+                        entry.presentState.match(/\(([01]+)\)/);
+                    const presentStateCode = stateCodeMatch
+                        ? stateCodeMatch[1]
+                        : "";
+                    statesWithOutput1.add(presentStateCode);
+                }
+            });
+
+            // Second pass: generate minterms for all input combinations for those states
+            const possibleInputs = [];
+            for (let i = 0; i < Math.pow(2, numInputs); i++) {
+                possibleInputs.push(i.toString(2).padStart(numInputs, "0"));
+            }
+
+            // Generate minterms for all state+input combinations where state has output 1
+            statesWithOutput1.forEach((stateCode) => {
+                possibleInputs.forEach((inputVal) => {
+                    const vars = stateCode + inputVal;
+                    const index = parseInt(vars, 2);
+                    outputMinterms.push(index);
+                });
+            });
+        } else {
+            // Mealy machine - output depends on both state and input
+            transitionTable.forEach((entry) => {
+                // Extract the state code from something like "S1 (01)" -> "01"
+                const stateCodeMatch = entry.presentState.match(/\(([01]+)\)/);
+                const presentStateCode = stateCodeMatch
+                    ? stateCodeMatch[1]
+                    : "";
+
+                if (entry.output === "1") {
+                    // Create a combined binary string of state bits + input bits
+                    const vars = presentStateCode + entry.input;
+                    const index = parseInt(vars, 2);
+                    outputMinterms.push(index);
+                }
+            });
+        }
+
+        // Calculate number of variables for output equation
+        const numVarsForOutput =
+            transitionTable.length > 0
+                ? transitionTable[0].presentState.match(/\(([01]+)\)/)?.[1]
+                      ?.length +
+                  (diagramType === "Moore"
+                      ? numInputs
+                      : transitionTable[0].input.length)
+                : 0;
+
+        // Add Z equation to the equations list
+        if (numVarsForOutput > 0) {
+            eqns["Z"] = {
+                mintermIndices: outputMinterms,
+                minimalSoP: simplifyBooleanFunction(
+                    outputMinterms,
+                    numVarsForOutput,
+                    validIndices,
+                    maxBits
+                ),
+                canonicalSoM: getCanonicalSumOfMinterms(
+                    outputMinterms,
+                    numVarsForOutput
+                ),
+                canonicalPoM: getCanonicalProductOfMaxterms(
+                    outputMinterms,
+                    numVarsForOutput,
+                    validIndices
+                ),
+            };
+        }
+
         setSimplifiedEquations(eqns);
         setIsGenerated(true);
-    }, [transitionTable, flipFlopType, numInputs]);
+    }, [transitionTable, flipFlopType, numInputs, diagramType]);
 
     // Add useEffect to reset states when transitionTable changes
     useEffect(() => {
@@ -1155,14 +1241,16 @@ const STCConversion = ({
 
     // Add helper function to get flip-flop variable names
     const getFlipFlopName = (ffIndex, ffType) => {
+        if (ffIndex === "Z") return "Z"; // Special case for output equation
+
         switch (ffType) {
             case "D":
                 return `D${ffIndex}`;
             case "T":
                 return `T${ffIndex}`;
             case "JK":
-                // For JK, we return both J and K names since they're handled separately
-                return `${ffIndex}`; // The J/K prefix is already in the key (e.g., Q0_J, Q0_K)
+                // For JK, we return just the index since J/K are added separately where needed
+                return `Q${ffIndex}`;
             default:
                 return `Q${ffIndex}`;
         }
@@ -1188,16 +1276,18 @@ const STCConversion = ({
             measureText(value, "1rem monospace") + padding
         );
 
-        // Extract the flip-flop index from the key (e.g., "Q0" -> "0")
-        const ffIndex = key.match(/\d+/)[0];
-
-        // Get the proper flip-flop name
+        // Get the proper display name
         let displayName;
-        if (key.includes("_J")) {
+        if (key === "Z") {
+            displayName = "Z";
+        } else if (key.includes("_J")) {
+            const ffIndex = key.match(/\d+/)[0];
             displayName = `J${ffIndex}`;
         } else if (key.includes("_K")) {
+            const ffIndex = key.match(/\d+/)[0];
             displayName = `K${ffIndex}`;
         } else {
+            const ffIndex = key.match(/\d+/)[0];
             displayName = getFlipFlopName(ffIndex, flipFlopType);
         }
 
@@ -1393,9 +1483,13 @@ const STCConversion = ({
                 <div className="equations-list">
                     {Object.keys(simplifiedEquations)
                         .sort((a, b) => {
-                            // Extract the numeric part from the keys
-                            const numA = parseInt(a.match(/\d+/)[0]);
-                            const numB = parseInt(b.match(/\d+/)[0]);
+                            // Handle Z equation (it should come after all flip-flop equations)
+                            if (a === "Z") return 1;
+                            if (b === "Z") return -1;
+
+                            // Extract the numeric part from the keys for flip-flop equations
+                            const numA = parseInt(a.match(/\d+/)?.[0] || "0");
+                            const numB = parseInt(b.match(/\d+/)?.[0] || "0");
                             // Sort in descending order (higher numbers first)
                             return numB - numA;
                         })
@@ -1408,7 +1502,9 @@ const STCConversion = ({
                             return (
                                 <div key={key} className="equation-block">
                                     <h4>
-                                        {key.includes("_")
+                                        {key === "Z"
+                                            ? "Output Equation (Z)"
+                                            : key.includes("_")
                                             ? `${getFlipFlopName(
                                                   key.match(/\d+/)[0],
                                                   flipFlopType
