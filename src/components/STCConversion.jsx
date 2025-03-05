@@ -1065,7 +1065,7 @@ const STCConversion = ({
         const newHints = { ...showHints };
         const newAttempts = { ...hintAttempts };
         let allCorrect = true;
-        let hasIncorrect = false;
+        let hasAnyIncorrect = false; // Changed from hasIncorrect to hasAnyIncorrect to make the naming clearer
 
         Object.keys(simplifiedEquations).forEach((key) => {
             const eqn = simplifiedEquations[key];
@@ -1098,11 +1098,11 @@ const STCConversion = ({
 
             newValidation[mintermKey] = areMintermsCorrect;
 
-            if (!areMintermsCorrect && userMinterms !== "") {
+            if (!areMintermsCorrect) {
                 newHints[mintermKey] = true;
                 newAttempts[mintermKey] = (newAttempts[mintermKey] || 0) + 1;
                 allCorrect = false;
-                hasIncorrect = true;
+                hasAnyIncorrect = true; // Set to true if any field is incorrect, even if it's empty
             }
 
             // Check maxterms
@@ -1114,9 +1114,10 @@ const STCConversion = ({
                 correctMaxterms.replace(/\s/g, "");
             newValidation[maxtermKey] = areMaxtermsCorrect;
 
-            if (!areMaxtermsCorrect && userMaxterms !== "") {
+            if (!areMaxtermsCorrect) {
                 newHints[maxtermKey] = true;
                 newAttempts[maxtermKey] = (newAttempts[maxtermKey] || 0) + 1;
+                hasAnyIncorrect = true; // Set to true if any field is incorrect, even if it's empty
             }
 
             // Check simplified expression
@@ -1127,9 +1128,10 @@ const STCConversion = ({
                 userSop.replace(/\s/g, "") === correctSop.replace(/\s/g, "");
             newValidation[sopKey] = isSopCorrect;
 
-            if (!isSopCorrect && userSop !== "") {
+            if (!isSopCorrect) {
                 newHints[sopKey] = true;
                 newAttempts[sopKey] = (newAttempts[sopKey] || 0) + 1;
+                hasAnyIncorrect = true; // Set to true if any field is incorrect, even if it's empty
             }
 
             if (!areMintermsCorrect || !areMaxtermsCorrect || !isSopCorrect) {
@@ -1142,8 +1144,8 @@ const STCConversion = ({
         setHintAttempts(newAttempts);
         setIsEquationsComplete(allCorrect);
 
-        // Increment incorrect attempts counter if any answers are incorrect
-        if (hasIncorrect) {
+        // Increment incorrect attempts counter if any answers are incorrect or missing
+        if (hasAnyIncorrect) {
             setIncorrectAttempts((prev) => ({
                 ...prev,
                 equations: prev.equations + 1,
