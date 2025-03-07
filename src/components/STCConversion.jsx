@@ -1250,7 +1250,7 @@ const STCConversion = ({
                 return `T${ffIndex}`;
             case "JK":
                 // For JK, we return just the index since J/K are added separately where needed
-                return `Q${ffIndex}`;
+                return `${ffIndex}`;
             default:
                 return `Q${ffIndex}`;
         }
@@ -1505,12 +1505,23 @@ const STCConversion = ({
                                         {key === "Z"
                                             ? "Output Equation (Z)"
                                             : key.includes("_")
-                                            ? `${getFlipFlopName(
-                                                  key.match(/\d+/)[0],
-                                                  flipFlopType
-                                              )}${
-                                                  key.includes("_J") ? "J" : "K"
-                                              } Equation`
+                                            ? flipFlopType === "JK"
+                                                ? `${
+                                                      key.includes("_J")
+                                                          ? "J"
+                                                          : "K"
+                                                  }${getFlipFlopName(
+                                                      key.match(/\d+/)[0],
+                                                      flipFlopType
+                                                  )} Equation`
+                                                : `${getFlipFlopName(
+                                                      key.match(/\d+/)[0],
+                                                      flipFlopType
+                                                  )}${
+                                                      key.includes("_J")
+                                                          ? "J"
+                                                          : "K"
+                                                  } Equation`
                                             : `${getFlipFlopName(
                                                   key.match(/\d+/)[0],
                                                   flipFlopType
