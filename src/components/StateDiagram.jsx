@@ -859,7 +859,15 @@ const StateDiagram = ({
                 window.removeEventListener("resize", cropToContent);
             };
         }
-    }, [shouldGenerate, getLoopVertices]);
+    }, [
+        shouldGenerate,
+        getLoopVertices,
+        diagramType,
+        flipFlopType,
+        numInputs,
+        numStates,
+        onDiagramGenerated,
+    ]);
 
     const closeModal = (e) => {
         // Prevent any default behavior that might cause scrolling
@@ -898,7 +906,16 @@ const StateDiagram = ({
             >
                 {selectedTransition && (
                     <div>
-                        <h2>Transition Details</h2>
+                        <div className="modal-header">
+                            <h2>Transition Details</h2>
+                            <button
+                                className="modal-close-button"
+                                onClick={closeModal}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
                         <p>
                             <strong>
                                 {selectedTransition[0].fromState} ➡️{" "}
@@ -922,7 +939,6 @@ const StateDiagram = ({
                                 </div>
                             ))}
                         </div>
-                        <button onClick={closeModal}>Close</button>
                     </div>
                 )}
             </Modal>

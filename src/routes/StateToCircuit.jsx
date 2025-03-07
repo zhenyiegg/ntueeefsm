@@ -41,6 +41,8 @@ const StateToCircuit = () => {
     });
     // Add state for settings popup
     const [showSettings, setShowSettings] = useState(false);
+    const [isDIYMode, setIsDIYMode] = useState(false);
+    const [difficulty, setDifficulty] = useState("medium");
 
     // Add click-outside handler
     useEffect(() => {
@@ -491,6 +493,14 @@ const StateToCircuit = () => {
         setShowSettings(!showSettings);
     };
 
+    const handleDIYToggle = () => {
+        setIsDIYMode(!isDIYMode);
+    };
+
+    const handleDifficultyChange = (e) => {
+        setDifficulty(e.target.value);
+    };
+
     return (
         <div className="state-to-circuit-container">
             <header>
@@ -598,11 +608,49 @@ const StateToCircuit = () => {
                             </button>
                         </div>
                         <div className="settings-popup-content">
-                            <p>
-                                Configure additional settings for the
-                                application here.
-                            </p>
-                            {/* Add settings options here */}
+                            {/* DIY Mode Toggle */}
+                            <div className="settings-option">
+                                <div className="settings-option-text">
+                                    <h3>DIY Mode</h3>
+                                    <p>
+                                        Toggle to enable DIY (Do It Yourself)
+                                        mode for a more hands-on learning
+                                        experience.
+                                    </p>
+                                </div>
+                                <div className="settings-option-control">
+                                    <label className="toggle-switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={isDIYMode}
+                                            onChange={handleDIYToggle}
+                                        />
+                                        <span className="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Difficulty Setting */}
+                            <div className="settings-option">
+                                <div className="settings-option-text">
+                                    <h3>Difficulty Level</h3>
+                                    <p>
+                                        Choose the difficulty level for
+                                        exercises and challenges.
+                                    </p>
+                                </div>
+                                <div className="settings-option-control">
+                                    <select
+                                        value={difficulty}
+                                        onChange={handleDifficultyChange}
+                                        className="difficulty-select"
+                                    >
+                                        <option value="easy">Easy</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="hard">Hard</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
