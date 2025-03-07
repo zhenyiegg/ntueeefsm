@@ -859,15 +859,7 @@ const StateDiagram = ({
                 window.removeEventListener("resize", cropToContent);
             };
         }
-    }, [
-        shouldGenerate,
-        numStates,
-        numInputs,
-        diagramType,
-        flipFlopType,
-        onDiagramGenerated,
-        getLoopVertices,
-    ]);
+    }, [shouldGenerate, getLoopVertices]);
 
     const closeModal = (e) => {
         // Prevent any default behavior that might cause scrolling

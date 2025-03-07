@@ -1,6 +1,6 @@
 //StateToCircuit.jsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
@@ -12,6 +12,13 @@ const StateToCircuit = () => {
     const [flipFlopType, setFlipFlopType] = useState("D");
     const [numStates, setNumStates] = useState(3);
     const [numInputs, setNumInputs] = useState(1);
+
+    // Add temporary configuration state variables
+    const [tempDiagramType, setTempDiagramType] = useState("Mealy");
+    const [tempFlipFlopType, setTempFlipFlopType] = useState("D");
+    const [tempNumStates, setTempNumStates] = useState(3);
+    const [tempNumInputs, setTempNumInputs] = useState(1);
+
     const [transitionTable, setTransitionTable] = useState([]);
     const [shouldGenerate, setShouldGenerate] = useState(false);
     const [shouldConvert, setShouldConvert] = useState(false);
@@ -45,7 +52,44 @@ const StateToCircuit = () => {
         };
     }, []);
 
+    // Ensure temporary config states are in sync with actual config states initially
+    useEffect(() => {
+        setTempDiagramType(diagramType);
+        setTempFlipFlopType(flipFlopType);
+        setTempNumStates(numStates);
+        setTempNumInputs(numInputs);
+    }, []);
+
+    // Add this code near the other useEffect hooks
+    useEffect(() => {
+        if (showPaper) {
+            // Use setTimeout to ensure rendering has completed
+            const timer = setTimeout(() => {
+                const container = document.querySelector(
+                    ".diagram-table-container"
+                );
+                const wrapper = document.querySelector(
+                    ".diagram-table-wrapper"
+                );
+
+                if (container && wrapper) {
+                    // Calculate the height based on the scale factor (0.65)
+                    const scaledHeight = container.offsetHeight * 0.65;
+                    wrapper.style.height = `${scaledHeight}px`;
+                }
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [showPaper, transitionTable.length, shouldGenerate]);
+
     const handleGenerate = () => {
+        // Apply the temporary configuration to the actual configuration
+        setDiagramType(tempDiagramType);
+        setFlipFlopType(tempFlipFlopType);
+        setNumStates(tempNumStates);
+        setNumInputs(tempNumInputs);
+
         setShowPaper(true);
         setShouldGenerate(true);
         setShouldConvert(false);
@@ -80,7 +124,13 @@ const StateToCircuit = () => {
                 Math.floor(Math.random() * numInputsOptions.length)
             ];
 
-        // Update the state variables
+        // Update both the temporary and actual configuration
+        setTempDiagramType(randomDiagramType);
+        setTempFlipFlopType(randomFlipFlopType);
+        setTempNumStates(randomNumStates);
+        setTempNumInputs(randomNumInputs);
+
+        // Also update the actual configuration
         setDiagramType(randomDiagramType);
         setFlipFlopType(randomFlipFlopType);
         setNumStates(randomNumStates);
@@ -439,8 +489,8 @@ const StateToCircuit = () => {
                 <div>
                     <label>Diagram Type: </label>
                     <select
-                        value={diagramType}
-                        onChange={(e) => setDiagramType(e.target.value)}
+                        value={tempDiagramType}
+                        onChange={(e) => setTempDiagramType(e.target.value)}
                     >
                         <option value="Mealy">Mealy</option>
                         <option value="Moore">Moore</option>
@@ -450,8 +500,8 @@ const StateToCircuit = () => {
                 <div>
                     <label>Flip-Flop Type: </label>
                     <select
-                        value={flipFlopType}
-                        onChange={(e) => setFlipFlopType(e.target.value)}
+                        value={tempFlipFlopType}
+                        onChange={(e) => setTempFlipFlopType(e.target.value)}
                     >
                         <option value="D">D Flip-Flop</option>
                         <option value="T">T Flip-Flop</option>
@@ -462,8 +512,10 @@ const StateToCircuit = () => {
                 <div>
                     <label>Number of States: </label>
                     <select
-                        value={numStates}
-                        onChange={(e) => setNumStates(parseInt(e.target.value))}
+                        value={tempNumStates}
+                        onChange={(e) =>
+                            setTempNumStates(parseInt(e.target.value))
+                        }
                     >
                         {[...Array(6)].map((_, i) => (
                             <option key={i + 3} value={i + 3}>
@@ -476,8 +528,10 @@ const StateToCircuit = () => {
                 <div>
                     <label>Number of Inputs: </label>
                     <select
-                        value={numInputs}
-                        onChange={(e) => setNumInputs(parseInt(e.target.value))}
+                        value={tempNumInputs}
+                        onChange={(e) =>
+                            setTempNumInputs(parseInt(e.target.value))
+                        }
                     >
                         {[...Array(2)].map((_, i) => (
                             <option key={i + 1} value={i + 1}>
@@ -504,139 +558,148 @@ const StateToCircuit = () => {
             </div>
 
             {showPaper && (
-                <div className="diagram-table-container">
-                    <div className="diagram-section">
-                        <StateDiagram
-                            diagramType={diagramType}
-                            flipFlopType={flipFlopType}
-                            numStates={numStates}
-                            numInputs={numInputs}
-                            shouldGenerate={shouldGenerate}
-                            onDiagramGenerated={handleDiagramGenerated}
-                        />
-                    </div>
-
-                    {transitionTable.length > 0 && (
-                        <div className="table-section">
-                            <h2>State Transition Table</h2>
-                            <div className="button-container">
-                                <button
-                                    className="info-button"
-                                    onClick={() =>
-                                        setShowTableInfo(!showTableInfo)
-                                    }
-                                >
-                                    <FontAwesomeIcon icon={faCircleInfo} />
-                                </button>
-                                <button
-                                    className="give-up-button"
-                                    onClick={handleGiveUp}
-                                    disabled={
-                                        hasGivenUp.transitionTable ||
-                                        isTableComplete ||
-                                        incorrectAttempts.transitionTable < 2
-                                    }
-                                >
-                                    Give Up
-                                </button>
-                            </div>
-                            {showTableInfo && (
-                                <div className="info-tooltip">
-                                    <h2>State Encoding Information</h2>
-                                    <p>States are encoded in binary format:</p>
-                                    <ul>
-                                        <li>
-                                            S0 to S{numStates - 1} are
-                                            represented using{" "}
-                                            {Math.ceil(Math.log2(numStates))}{" "}
-                                            bits
-                                        </li>
-                                        <li>
-                                            Format: S# (binary) - e.g., S0 (00),
-                                            S1 (01), etc.
-                                        </li>
-                                        <li>
-                                            Binary values increase sequentially
-                                            with state numbers
-                                        </li>
-                                    </ul>
-                                    <p>Fill in the blanks using:</p>
-                                    <ul>
-                                        <li>
-                                            Input/Output: Binary digits (0,1) or
-                                            pairs (00,01,10,11)
-                                        </li>
-                                        <li>
-                                            Next State: State format S# (##) -
-                                            e.g., S0 (00)
-                                        </li>
-                                    </ul>
-                                </div>
-                            )}
-                            <table className="state-transition-table">
-                                <thead>
-                                    <tr>
-                                        <th>Present State</th>
-                                        <th>Input</th>
-                                        <th>Next State</th>
-                                        <th>
-                                            {diagramType === "Mealy"
-                                                ? "Output"
-                                                : "State Output"}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transitionTable.map((row, rowIndex) => (
-                                        <tr key={rowIndex}>
-                                            <td>{row.presentState}</td>
-                                            <td>
-                                                {renderCell(
-                                                    row,
-                                                    rowIndex,
-                                                    "input",
-                                                    row.input
-                                                )}
-                                            </td>
-                                            <td>
-                                                {renderCell(
-                                                    row,
-                                                    rowIndex,
-                                                    "nextState",
-                                                    row.nextState
-                                                )}
-                                            </td>
-                                            <td>
-                                                {renderCell(
-                                                    row,
-                                                    rowIndex,
-                                                    "output",
-                                                    row.output
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            <div className="convert-button-container">
-                                {isTableComplete ? (
-                                    <button
-                                        onClick={handleConvert}
-                                        className="convert-button"
-                                    >
-                                        Next
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleConfirm}
-                                        className="confirm-button"
-                                    >
-                                        Confirm
-                                    </button>
-                                )}
-                            </div>
+                <div className="diagram-table-wrapper">
+                    <div className="diagram-table-container">
+                        <div className="diagram-section">
+                            <StateDiagram
+                                diagramType={diagramType}
+                                flipFlopType={flipFlopType}
+                                numStates={numStates}
+                                numInputs={numInputs}
+                                shouldGenerate={shouldGenerate}
+                                onDiagramGenerated={handleDiagramGenerated}
+                            />
                         </div>
-                    )}
+
+                        {transitionTable.length > 0 && (
+                            <div className="table-section">
+                                <h2>State Transition Table</h2>
+                                <div className="button-container">
+                                    <button
+                                        className="info-button"
+                                        onClick={() =>
+                                            setShowTableInfo(!showTableInfo)
+                                        }
+                                    >
+                                        <FontAwesomeIcon icon={faCircleInfo} />
+                                    </button>
+                                    <button
+                                        className="give-up-button"
+                                        onClick={handleGiveUp}
+                                        disabled={
+                                            hasGivenUp.transitionTable ||
+                                            isTableComplete ||
+                                            incorrectAttempts.transitionTable <
+                                                2
+                                        }
+                                    >
+                                        Give Up
+                                    </button>
+                                </div>
+                                {showTableInfo && (
+                                    <div className="info-tooltip">
+                                        <h2>State Encoding Information</h2>
+                                        <p>
+                                            States are encoded in binary format:
+                                        </p>
+                                        <ul>
+                                            <li>
+                                                S0 to S{numStates - 1} are
+                                                represented using{" "}
+                                                {Math.ceil(
+                                                    Math.log2(numStates)
+                                                )}{" "}
+                                                bits
+                                            </li>
+                                            <li>
+                                                Format: S# (binary) - e.g., S0
+                                                (00), S1 (01), etc.
+                                            </li>
+                                            <li>
+                                                Binary values increase
+                                                sequentially with state numbers
+                                            </li>
+                                        </ul>
+                                        <p>Fill in the blanks using:</p>
+                                        <ul>
+                                            <li>
+                                                Input/Output: Binary digits
+                                                (0,1) or pairs (00,01,10,11)
+                                            </li>
+                                            <li>
+                                                Next State: State format S# (##)
+                                                - e.g., S0 (00)
+                                            </li>
+                                        </ul>
+                                    </div>
+                                )}
+                                <table className="state-transition-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Present State</th>
+                                            <th>Input</th>
+                                            <th>Next State</th>
+                                            <th>
+                                                {diagramType === "Mealy"
+                                                    ? "Output"
+                                                    : "State Output"}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {transitionTable.map(
+                                            (row, rowIndex) => (
+                                                <tr key={rowIndex}>
+                                                    <td>{row.presentState}</td>
+                                                    <td>
+                                                        {renderCell(
+                                                            row,
+                                                            rowIndex,
+                                                            "input",
+                                                            row.input
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        {renderCell(
+                                                            row,
+                                                            rowIndex,
+                                                            "nextState",
+                                                            row.nextState
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        {renderCell(
+                                                            row,
+                                                            rowIndex,
+                                                            "output",
+                                                            row.output
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
+                                    </tbody>
+                                </table>
+                                <div className="convert-button-container">
+                                    {isTableComplete ? (
+                                        <button
+                                            onClick={handleConvert}
+                                            className="convert-button"
+                                        >
+                                            Next
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleConfirm}
+                                            className="confirm-button"
+                                        >
+                                            Confirm
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
