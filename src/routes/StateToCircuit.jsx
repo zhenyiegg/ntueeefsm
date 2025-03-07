@@ -1,11 +1,16 @@
 //StateToCircuit.jsx
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faCircleInfo } from "@fortawesome/free-solid-svg-icons"; // FontAwesome Arrow and Info
+import {
+    faArrowRight,
+    faCircleInfo,
+    faGear,
+    faTimes,
+} from "@fortawesome/free-solid-svg-icons"; // Added faGear and faTimes icons
 
 const StateToCircuit = () => {
     const [diagramType, setDiagramType] = useState("Mealy");
@@ -34,15 +39,20 @@ const StateToCircuit = () => {
     const [incorrectAttempts, setIncorrectAttempts] = useState({
         transitionTable: 0,
     });
+    // Add state for settings popup
+    const [showSettings, setShowSettings] = useState(false);
 
     // Add click-outside handler
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (
                 !event.target.closest(".info-button") &&
-                !event.target.closest(".info-tooltip")
+                !event.target.closest(".info-tooltip") &&
+                !event.target.closest(".settings-button") &&
+                !event.target.closest(".settings-popup")
             ) {
                 setShowTableInfo(false);
+                setShowSettings(false);
             }
         };
 
@@ -58,7 +68,7 @@ const StateToCircuit = () => {
         setTempFlipFlopType(flipFlopType);
         setTempNumStates(numStates);
         setTempNumInputs(numInputs);
-    }, []);
+    }, [diagramType, flipFlopType, numStates, numInputs]);
 
     // Add this code near the other useEffect hooks
     useEffect(() => {
@@ -476,6 +486,11 @@ const StateToCircuit = () => {
         );
     };
 
+    // Toggle settings popup
+    const toggleSettings = () => {
+        setShowSettings(!showSettings);
+    };
+
     return (
         <div className="state-to-circuit-container">
             <header>
@@ -554,8 +569,44 @@ const StateToCircuit = () => {
                     >
                         Auto-Generate
                     </button>
+                    <button
+                        onClick={toggleSettings}
+                        className="settings-button"
+                    >
+                        <FontAwesomeIcon icon={faGear} />
+                    </button>
                 </div>
             </div>
+
+            {/* Settings Popup */}
+            {showSettings && (
+                <div
+                    className="settings-popup-overlay"
+                    onClick={toggleSettings}
+                >
+                    <div
+                        className="settings-popup"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="settings-popup-header">
+                            <h2>Settings</h2>
+                            <button
+                                className="close-button"
+                                onClick={toggleSettings}
+                            >
+                                <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                        </div>
+                        <div className="settings-popup-content">
+                            <p>
+                                Configure additional settings for the
+                                application here.
+                            </p>
+                            {/* Add settings options here */}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showPaper && (
                 <div className="diagram-table-wrapper">
