@@ -792,6 +792,12 @@ const StateDiagram = ({
                                 stroke: "green",
                                 "stroke-width": 4,
                             },
+                            // Also highlight the label rectangle in green
+                            ".label rect": {
+                                stroke: "green",
+                                "stroke-width": 2,
+                                fill: "#e6ffe6", // Light green background
+                            },
                         });
                     }
                 }, 300);
@@ -806,11 +812,18 @@ const StateDiagram = ({
                     content: "",
                     position: { x: 0, y: 0 },
                 });
-                // Remove the highlight by resetting to original styles
+
+                // Reset the arrow style
                 linkView.model.attr({
                     line: {
-                        stroke: "#000000",
-                        "stroke-width": 2,
+                        stroke: "#000", // Default color
+                        "stroke-width": 2, // Default width
+                    },
+                    // Reset the label rectangle style
+                    ".label rect": {
+                        stroke: "black",
+                        "stroke-width": 1,
+                        fill: "white", // Reset to default
                     },
                 });
             });
@@ -846,15 +859,7 @@ const StateDiagram = ({
                 window.removeEventListener("resize", cropToContent);
             };
         }
-    }, [
-        shouldGenerate,
-        numStates,
-        numInputs,
-        diagramType,
-        flipFlopType,
-        onDiagramGenerated,
-        getLoopVertices,
-    ]);
+    }, [shouldGenerate, getLoopVertices]);
 
     const closeModal = (e) => {
         // Prevent any default behavior that might cause scrolling

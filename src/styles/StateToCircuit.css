@@ -105,17 +105,44 @@ html, body, #root, .App {
   box-sizing: border-box;
 }
 
+/* Create a container for the scaled diagram */
+.diagram-table-wrapper {
+  width: 100%;
+  /* The wrapper needs to be properly sized based on the scaled content */
+  height: auto;
+  position: relative;
+  /* Add margin to create space between this and the next element */
+  margin-bottom: 20px;
+  /* Overflow handling */
+  overflow: visible;
+}
+
 /* Update the flex container for diagram and table */
 .diagram-table-container {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
-  width: 100%;
-  margin: 0;
+  width: 100%; 
+  margin: 0 auto;
   justify-content: center;
   transform: scale(0.65); /* Reduced from 0.8 to 0.65 */
   transform-origin: top center;
-  margin-bottom: -350px; /* Increased from -250px to compensate for smaller scale */
+  position: relative;
+}
+
+/* Ensure parent of diagram-table-container has proper spacing */
+.diagram-table-container + * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Create a wrapper for diagram-table-container that correctly calculates the post-transform height */
+.diagram-table-container::after {
+  content: "";
+  display: block;
+  /* This padding-bottom is approximately 65% (scale factor) of the height to maintain proper spacing */
+  padding-bottom: 65%;
+  position: relative;
 }
 
 .diagram-section {
@@ -320,8 +347,7 @@ html, body, #root, .App {
     flex: 1;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
     min-width: 0; /* Allow container to shrink */
     max-width: 100%; /* Ensure it doesn't overflow */
     overflow-x: auto; /* Add horizontal scrolling if needed */
@@ -342,10 +368,9 @@ html, body, #root, .App {
 
 /* Input container for tooltip positioning */
 .input-container {
-    position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    flex: 1;
+    position: relative;
     min-width: 100px;
     max-width: 1000px; /* Increased from 800px to match equation-input */
 }
@@ -489,9 +514,11 @@ td:nth-child(3) .table-input {
     padding: 1.5rem;
     border-radius: 12px;
     border: 3px solid #b084cc;
-    margin-top: 20px;
+    margin-top: 10px;
     margin-bottom: 20px;
     position: relative;
+    /* Ensure this container doesn't overlap with any scaled content */
+    clear: both;
 }
 
 .excitation-table-container h3 {
@@ -932,9 +959,10 @@ td:nth-child(4) .table-input.select {
 }
 
 .zero-checkbox-container {
-    display: inline-block;
-    margin-right: 12px;
+    display: inline-flex;
+    align-items: center;
     vertical-align: middle;
+    margin-left: 5px;
 }
 
 .zero-checkbox-label {
@@ -968,5 +996,15 @@ td:nth-child(4) .table-input.select {
 .zero-checkbox-label span {
     user-select: none;
     font-weight: 500;
+}
+
+/* Style for the "Or" text */
+.equation-or-text {
+    margin: 0 5px;
+    font-style: italic;
+    font-weight: 500;
+    color: #555;
+    user-select: none;
+    align-self: center;
 }
 
