@@ -1193,11 +1193,33 @@ const STCConversion = ({
 
             // Check maxterms
             const maxtermKey = `${key}-maxterms`;
+            const maxtermZeroKey = `${maxtermKey}-isZero`;
+            const isMaxtermZero = equationAnswers[maxtermZeroKey] || false;
             const userMaxterms = equationAnswers[maxtermKey] || "";
-            const correctMaxterms = eqn.canonicalPoM.match(/\((.*?)\)/)[1];
-            const areMaxtermsCorrect =
-                userMaxterms.replace(/\s/g, "") ===
-                correctMaxterms.replace(/\s/g, "");
+
+            // Extract correct maxterms or determine if there are none
+            const hasNoMaxterms =
+                !eqn.canonicalPoM ||
+                !eqn.canonicalPoM.includes("(") ||
+                eqn.canonicalPoM.match(/\((.*?)\)/)[1].trim() === "";
+            const correctMaxterms = hasNoMaxterms
+                ? ""
+                : eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+
+            // For the 1 case (when there are no maxterms), if checkbox is checked and field is "1", it's correct
+            let areMaxtermsCorrect;
+
+            if (hasNoMaxterms) {
+                // When there are no maxterms, ONLY accept the checkbox being checked
+                areMaxtermsCorrect = isMaxtermZero && userMaxterms === "1";
+            } else {
+                // When there are maxterms, checkbox should NOT be checked and value should match
+                areMaxtermsCorrect =
+                    !isMaxtermZero &&
+                    userMaxterms.replace(/\s/g, "") ===
+                        correctMaxterms.replace(/\s/g, "");
+            }
+
             newValidation[maxtermKey] = areMaxtermsCorrect;
 
             if (!areMaxtermsCorrect) {
@@ -1310,8 +1332,8 @@ const STCConversion = ({
         // Combine all variables
         const allVars = [...stateVars, ...inputVars].join(", ");
 
-        // Check if this equation has a "is zero" checkbox (only for minterms)
-        const isZeroCheckbox = field === "minterms";
+        // Render individual equation forms with proper styling for maxterms and minterms
+        const isZeroCheckbox = field === "minterms" || field === "maxterms";
         const isZeroKey = `${fullKey}-isZero`;
         const isZero = equationAnswers[isZeroKey] || false;
 
@@ -1326,61 +1348,6 @@ const STCConversion = ({
                 </span>
                 <span className="equation-value">
                     {displayName}({allVars}) ={" "}
-                    {isZeroCheckbox && (
-                        <div className="zero-checkbox-container">
-                            <label className="zero-checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    className="zero-checkbox"
-                                    checked={isZero}
-                                    onChange={(e) => {
-                                        // Set the isZero property for this equation
-                                        setEquationAnswers((prev) => ({
-                                            ...prev,
-                                            [isZeroKey]: e.target.checked,
-                                        }));
-
-                                        // If checked, set the value to "0"
-                                        if (e.target.checked) {
-                                            setEquationAnswers((prev) => ({
-                                                ...prev,
-                                                [fullKey]: "0",
-                                            }));
-
-                                            // Update tooltip when checked
-                                            setEquationTooltip((prev) => ({
-                                                ...prev,
-                                                [fullKey]:
-                                                    "Zero selected: indicates function is always 0 (no minterms)",
-                                            }));
-                                        } else {
-                                            // If unchecked, clear the value
-                                            setEquationAnswers((prev) => ({
-                                                ...prev,
-                                                [fullKey]: "",
-                                            }));
-
-                                            // Update tooltip when unchecked
-                                            const eqn =
-                                                simplifiedEquations[key];
-                                            const hasNoMinterms =
-                                                eqn?.mintermIndices.length ===
-                                                0;
-
-                                            setEquationTooltip((prev) => ({
-                                                ...prev,
-                                                [fullKey]: hasNoMinterms
-                                                    ? "When there are no minterms, check the '0' checkbox to indicate Sum of Minterms is 0"
-                                                    : "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)",
-                                            }));
-                                        }
-                                    }}
-                                    disabled={isCorrect || isGivenUp}
-                                />
-                                <span>0</span>
-                            </label>
-                        </div>
-                    )}
                     {(!isZeroCheckbox || !isZero) && field === "minterms" && (
                         <span>Σm(</span>
                     )}
@@ -1422,6 +1389,105 @@ const STCConversion = ({
                             </div>
                         )}
                     </div>
+                    {/* Add "Or" text before the checkbox */}
+                    {isZeroCheckbox &&
+                        (field === "minterms" || field === "maxterms") && (
+                            <>
+                                <span className="equation-or-text">Or</span>
+                                <div className="zero-checkbox-container">
+                                    <label
+                                        className={`zero-checkbox-label ${
+                                            field === "maxterms"
+                                                ? "maxterm"
+                                                : ""
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            className="zero-checkbox"
+                                            checked={isZero}
+                                            onChange={(e) => {
+                                                // Set the isZero property for this equation
+                                                setEquationAnswers((prev) => ({
+                                                    ...prev,
+                                                    [isZeroKey]:
+                                                        e.target.checked,
+                                                }));
+
+                                                // If checked, set the value to "0" for minterms or "1" for maxterms
+                                                if (e.target.checked) {
+                                                    setEquationAnswers(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [fullKey]:
+                                                                field ===
+                                                                "minterms"
+                                                                    ? "0"
+                                                                    : "1",
+                                                        })
+                                                    );
+
+                                                    // Update tooltip when checked
+                                                    setEquationTooltip(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [fullKey]:
+                                                                field ===
+                                                                "minterms"
+                                                                    ? "Zero selected: indicates function is always 0 (no minterms)"
+                                                                    : "One selected: indicates function is always 1 (no maxterms)",
+                                                        })
+                                                    );
+                                                } else {
+                                                    // If unchecked, clear the value
+                                                    setEquationAnswers(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [fullKey]: "",
+                                                        })
+                                                    );
+
+                                                    // Update tooltip when unchecked
+                                                    const eqn =
+                                                        simplifiedEquations[
+                                                            key
+                                                        ];
+                                                    const hasNoTerms =
+                                                        field === "minterms"
+                                                            ? eqn
+                                                                  ?.mintermIndices
+                                                                  .length === 0
+                                                            : eqn
+                                                                  ?.maxtermIndices
+                                                                  ?.length ===
+                                                              0;
+
+                                                    setEquationTooltip(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [fullKey]:
+                                                                hasNoTerms
+                                                                    ? field ===
+                                                                      "minterms"
+                                                                        ? "When there are no minterms, check the checkbox to indicate Sum of Minterms is 0"
+                                                                        : "When there are no maxterms, check the checkbox to indicate Product of Maxterms is 1"
+                                                                    : field ===
+                                                                      "minterms"
+                                                                    ? "Enter minterm indices separated by commas (e.g., 0, 1, 4, 5)"
+                                                                    : "Enter maxterm indices separated by commas (e.g., 0, 1, 4, 5)",
+                                                        })
+                                                    );
+                                                }
+                                            }}
+                                            disabled={isCorrect || isGivenUp}
+                                        />
+                                        <span>
+                                            = {field === "minterms" ? "0" : "1"}
+                                        </span>
+                                    </label>
+                                </div>
+                            </>
+                        )}
                 </span>
             </div>
         );
@@ -1619,7 +1685,7 @@ const STCConversion = ({
             Object.keys(simplifiedEquations).forEach((key) => {
                 const eqn = simplifiedEquations[key];
 
-                // Handle mintermIndices - check if it's the empty case (function is 0)
+                // Handle minterms
                 const mintermKey = `${key}-minterms`;
                 const isZeroKey = `${mintermKey}-isZero`;
                 const hasNoMinterms = eqn.mintermIndices.length === 0;
@@ -1640,9 +1706,25 @@ const STCConversion = ({
 
                 // Handle maxterms
                 const maxtermKey = `${key}-maxterms`;
+                const maxtermZeroKey = `${maxtermKey}-isZero`;
+
+                // Determine if maxterms is empty case (function is 1)
+                const hasNoMaxterms =
+                    !eqn.canonicalPoM ||
+                    !eqn.canonicalPoM.includes("(") ||
+                    eqn.canonicalPoM.match(/\((.*?)\)/)[1].trim() === "";
+
                 if (!equationValidation[maxtermKey]) {
-                    newAnswers[maxtermKey] =
-                        eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+                    if (hasNoMaxterms) {
+                        // Set the checkbox to checked and the value to "1" for empty maxterms
+                        newAnswers[maxtermZeroKey] = true;
+                        newAnswers[maxtermKey] = "1";
+                    } else {
+                        // Set normal maxterm indices and ensure checkbox is unchecked
+                        newAnswers[maxtermZeroKey] = false;
+                        newAnswers[maxtermKey] =
+                            eqn.canonicalPoM.match(/\((.*?)\)/)[1];
+                    }
                     // Don't set validation to true for given-up fields
                 }
 

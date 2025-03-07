@@ -347,8 +347,7 @@ html, body, #root, .App {
     flex: 1;
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
     min-width: 0; /* Allow container to shrink */
     max-width: 100%; /* Ensure it doesn't overflow */
     overflow-x: auto; /* Add horizontal scrolling if needed */
@@ -369,10 +368,9 @@ html, body, #root, .App {
 
 /* Input container for tooltip positioning */
 .input-container {
-    position: relative;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    flex: 1;
+    position: relative;
     min-width: 100px;
     max-width: 1000px; /* Increased from 800px to match equation-input */
 }
@@ -961,9 +959,10 @@ td:nth-child(4) .table-input.select {
 }
 
 .zero-checkbox-container {
-    display: inline-block;
-    margin-right: 12px;
+    display: inline-flex;
+    align-items: center;
     vertical-align: middle;
+    margin-left: 5px;
 }
 
 .zero-checkbox-label {
@@ -997,5 +996,15 @@ td:nth-child(4) .table-input.select {
 .zero-checkbox-label span {
     user-select: none;
     font-weight: 500;
+}
+
+/* Style for the "Or" text */
+.equation-or-text {
+    margin: 0 5px;
+    font-style: italic;
+    font-weight: 500;
+    color: #555;
+    user-select: none;
+    align-self: center;
 }
 
