@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "../styles/StateToCircuit.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
@@ -17,10 +17,62 @@ const UserInputState = ({
     const [showInfo, setShowInfo] = useState(false);
     const [isValid, setIsValid] = useState(false);
     const [diagramGenerated, setDiagramGenerated] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
+
+    // Function to get the state options for dropdowns
+    const getStateOptions = useCallback(() => {
+        return Array.from({ length: numStates }, (_, i) => {
+            const stateBits = Math.ceil(Math.log2(numStates));
+            const binaryCode = i.toString(2).padStart(stateBits, "0");
+            return `S${i} (${binaryCode})`;
+        });
+    }, [numStates]);
+
+    // Function to get input options based on number of inputs
+    const getInputOptions = useCallback(() => {
+        if (numInputs === 1) {
+            return ["0", "1"];
+        } else {
+            return ["00", "01", "10", "11"];
+        }
+    }, [numInputs]);
+
+    // Function to get output options
+    const getOutputOptions = useCallback(() => {
+        if (numInputs === 1) {
+            return ["0", "1"];
+        } else {
+            return ["0", "1", "00", "01", "10", "11"];
+        }
+    }, [numInputs]);
+
+    // Function to generate a basic transition table structure
+    const generateTransitionTable = useCallback(() => {
+        const newTable = [];
+        const stateOptions = getStateOptions();
+        const inputOptions = getInputOptions();
+
+        // Generate one row for each state-input combination
+        stateOptions.forEach((state, stateIndex) => {
+            inputOptions.forEach((input, inputIndex) => {
+                newTable.push({
+                    presentState: state,
+                    input: input,
+                    nextState: "",
+                    output: "",
+                });
+            });
+        });
+
+        setTransitionTable(newTable);
+        setUserInputs({}); // Reset user inputs when table structure changes
+        setDiagramGenerated(false); // Reset diagram generated state
+    }, [getStateOptions, getInputOptions]);
 
     // Reset diagram generated state when component mounts or when parameters change
     useEffect(() => {
         setDiagramGenerated(false);
+        setIsLocked(false);
     }, [numStates, numInputs, diagramType]);
 
     // Reset everything when resetFlag changes
@@ -28,14 +80,15 @@ const UserInputState = ({
         if (resetFlag > 0) {
             generateTransitionTable();
             setDiagramGenerated(false);
+            setIsLocked(false);
             setShowInfo(false);
         }
-    }, [resetFlag]);
+    }, [resetFlag, generateTransitionTable]);
 
     // Generate the transition table based on configuration
     useEffect(() => {
         generateTransitionTable();
-    }, [numStates, numInputs, diagramType]);
+    }, [generateTransitionTable]);
 
     // Add a click-outside handler to close the info tooltip
     useEffect(() => {
@@ -71,56 +124,6 @@ const UserInputState = ({
 
         setIsValid(allFilled);
     }, [userInputs, transitionTable]);
-
-    // Function to generate a basic transition table structure
-    const generateTransitionTable = () => {
-        const newTable = [];
-        const stateOptions = getStateOptions();
-        const inputOptions = getInputOptions();
-
-        // Generate one row for each state-input combination
-        stateOptions.forEach((state, stateIndex) => {
-            inputOptions.forEach((input, inputIndex) => {
-                newTable.push({
-                    presentState: state,
-                    input: input,
-                    nextState: "",
-                    output: "",
-                });
-            });
-        });
-
-        setTransitionTable(newTable);
-        setUserInputs({}); // Reset user inputs when table structure changes
-        setDiagramGenerated(false); // Reset diagram generated state
-    };
-
-    // Function to get the state options for dropdowns
-    const getStateOptions = () => {
-        return Array.from({ length: numStates }, (_, i) => {
-            const stateBits = Math.ceil(Math.log2(numStates));
-            const binaryCode = i.toString(2).padStart(stateBits, "0");
-            return `S${i} (${binaryCode})`;
-        });
-    };
-
-    // Function to get input options based on number of inputs
-    const getInputOptions = () => {
-        if (numInputs === 1) {
-            return ["0", "1"];
-        } else {
-            return ["00", "01", "10", "11"];
-        }
-    };
-
-    // Function to get output options
-    const getOutputOptions = () => {
-        if (numInputs === 1) {
-            return ["0", "1"];
-        } else {
-            return ["0", "1", "00", "01", "10", "11"];
-        }
-    };
 
     // Handle cell change
     const handleCellChange = (rowIndex, column, value) => {
@@ -160,6 +163,12 @@ const UserInputState = ({
         setDiagramGenerated(true);
     };
 
+    // Handle the Next button click
+    const handleNext = () => {
+        setIsLocked(true);
+        onNext();
+    };
+
     // Render a cell with appropriate dropdown
     const renderCell = (rowIndex, column) => {
         const key = `${rowIndex}-${column}`;
@@ -173,7 +182,10 @@ const UserInputState = ({
                         onChange={(e) =>
                             handleCellChange(rowIndex, column, e.target.value)
                         }
-                        className="table-input select"
+                        className={`table-input select ${
+                            isLocked ? "given-up" : ""
+                        }`}
+                        disabled={isLocked}
                     >
                         <option value=""></option>
                         {getStateOptions().map((state) => (
@@ -192,7 +204,10 @@ const UserInputState = ({
                         onChange={(e) =>
                             handleCellChange(rowIndex, column, e.target.value)
                         }
-                        className="table-input select"
+                        className={`table-input select ${
+                            isLocked ? "given-up" : ""
+                        }`}
+                        disabled={isLocked}
                     >
                         <option value=""></option>
                         {getOutputOptions().map((output) => (
@@ -220,10 +235,11 @@ const UserInputState = ({
                 <button
                     className="info-button"
                     onClick={() => setShowInfo(!showInfo)}
+                    disabled={isLocked}
                 >
                     <FontAwesomeIcon icon={faCircleInfo} />
                 </button>
-                {showInfo && (
+                {showInfo && !isLocked && (
                     <div className="info-tooltip">
                         <h3>Custom State Transition Table Help</h3>
                         <p>
@@ -274,18 +290,20 @@ const UserInputState = ({
                 <button
                     className={`generate-diagram-button ${
                         !isValid ? "disabled" : ""
-                    } ${diagramGenerated ? "generated" : ""}`}
+                    } ${diagramGenerated ? "generated" : ""} ${
+                        isLocked ? "given-up" : ""
+                    }`}
                     onClick={handleGenerateDiagram}
-                    disabled={!isValid}
+                    disabled={!isValid || isLocked}
                 >
                     {diagramGenerated ? "Update Diagram" : "Generate Diagram"}
                 </button>
                 <button
                     className={`next-button ${
                         !diagramGenerated ? "disabled" : ""
-                    }`}
-                    onClick={onNext}
-                    disabled={!diagramGenerated}
+                    } ${isLocked ? "given-up" : ""}`}
+                    onClick={handleNext}
+                    disabled={!diagramGenerated || isLocked}
                 >
                     Next
                 </button>

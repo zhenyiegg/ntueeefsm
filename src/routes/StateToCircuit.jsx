@@ -101,7 +101,7 @@ const StateToCircuit = () => {
 
             return () => clearTimeout(timer);
         }
-    }, [showPaper, transitionTable.length, shouldGenerate]);
+    }, [showPaper, transitionTable?.length, shouldGenerate]);
 
     const handleGenerate = () => {
         // Set diagram parameters from temporary values
@@ -120,6 +120,9 @@ const StateToCircuit = () => {
         setHasGivenUp({ transitionTable: false });
         setIncorrectAttempts({ transitionTable: 0 });
 
+        // Make sure we're resetting the conversion state
+        setShouldConvert(false);
+
         // Reset user input table and diagram if in User Input mode
         if (isUserInputMode) {
             setUserInputTransitionTable(null);
@@ -130,7 +133,6 @@ const StateToCircuit = () => {
         // Trigger the generation after updating state - don't clear the table first
         setTimeout(() => {
             setShouldGenerate(true);
-            setShouldConvert(false);
         }, 0);
     };
 
@@ -176,6 +178,9 @@ const StateToCircuit = () => {
         setBlankCells(new Set());
         setHasGivenUp({ transitionTable: false }); // Reset give up state
 
+        // Make sure we're resetting the conversion state
+        setShouldConvert(false);
+
         // Reset user input table and diagram if in User Input mode
         if (isUserInputMode) {
             setUserInputTransitionTable(null);
@@ -186,7 +191,6 @@ const StateToCircuit = () => {
         // Trigger the generation after updating state
         setTimeout(() => {
             setShouldGenerate(true);
-            setShouldConvert(false);
         }, 0);
     };
 
@@ -537,11 +541,32 @@ const StateToCircuit = () => {
             // Reset user input transition table
             setUserInputTransitionTable(null);
 
+            // Increment resetFlag to trigger reset in UserInputState
+            setUserInputResetFlag((prev) => prev + 1);
+
             // Don't show the paper/diagram yet - wait for Generate button click
             setShowPaper(false);
         } else {
-            // When turning off User Input mode, reset the user input transition table
+            // When turning off User Input mode, reset to default state just like when toggling to User Input mode
+            // Reset table and states
+            setTransitionTable([]);
+            setShouldGenerate(false);
+            setShouldConvert(false);
+            setUserAnswers({});
+            setCellValidation({});
+            setIsTableComplete(false);
+            setBlankCells(new Set());
+            setHasGivenUp({ transitionTable: false });
+            setIncorrectAttempts({ transitionTable: 0 });
+
+            // Reset user input transition table
             setUserInputTransitionTable(null);
+
+            // Increment resetFlag to trigger reset in UserInputState
+            setUserInputResetFlag((prev) => prev + 1);
+
+            // Don't show the paper/diagram yet - wait for Generate button click
+            setShowPaper(false);
         }
 
         setIsUserInputMode(!isUserInputMode);
@@ -643,6 +668,7 @@ const StateToCircuit = () => {
                         Auto-Generate
                     </button>
                     <div className="user-input-toggle">
+                        <span className="toggle-label">User Input</span>
                         <label className="toggle-switch">
                             <input
                                 type="checkbox"
@@ -651,7 +677,6 @@ const StateToCircuit = () => {
                             />
                             <span className="toggle-slider"></span>
                         </label>
-                        <span className="toggle-label">User Input</span>
                     </div>
                     <button
                         onClick={toggleSettings}
@@ -881,10 +906,14 @@ const StateToCircuit = () => {
                 <STCConversion
                     diagramType={diagramType}
                     flipFlopType={flipFlopType}
-                    transitionTable={transitionTable}
+                    transitionTable={
+                        isUserInputMode
+                            ? userInputTransitionTable
+                            : transitionTable
+                    }
                     numInputs={numInputs}
-                    cellValidation={cellValidation}
-                    blankCells={blankCells}
+                    cellValidation={isUserInputMode ? {} : cellValidation}
+                    blankCells={isUserInputMode ? new Set() : blankCells}
                 />
             )}
         </div>
