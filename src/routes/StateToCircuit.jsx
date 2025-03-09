@@ -11,6 +11,7 @@ import {
     faGear,
     faTimes,
 } from "@fortawesome/free-solid-svg-icons"; // Added faGear and faTimes icons
+import UserInputState from "../components/UserInputState";
 
 const StateToCircuit = () => {
     const [diagramType, setDiagramType] = useState("Mealy");
@@ -41,8 +42,15 @@ const StateToCircuit = () => {
     });
     // Add state for settings popup
     const [showSettings, setShowSettings] = useState(false);
-    const [isDIYMode, setIsDIYMode] = useState(false);
+    const [isUserInputMode, setIsUserInputMode] = useState(false);
     const [difficulty, setDifficulty] = useState("medium");
+
+    // Add userInputTransitionTable state
+    const [userInputTransitionTable, setUserInputTransitionTable] =
+        useState(null);
+
+    // Add resetFlag state to trigger resets in the UserInputState component
+    const [userInputResetFlag, setUserInputResetFlag] = useState(0);
 
     // Add click-outside handler
     useEffect(() => {
@@ -96,22 +104,34 @@ const StateToCircuit = () => {
     }, [showPaper, transitionTable.length, shouldGenerate]);
 
     const handleGenerate = () => {
-        // Apply the temporary configuration to the actual configuration
+        // Set diagram parameters from temporary values
         setDiagramType(tempDiagramType);
         setFlipFlopType(tempFlipFlopType);
         setNumStates(tempNumStates);
         setNumInputs(tempNumInputs);
 
+        // Show the paper after Generate is clicked
         setShowPaper(true);
-        setShouldGenerate(true);
-        setShouldConvert(false);
-        // Reset states
+
+        // Reset user answers and validation states
         setUserAnswers({});
         setCellValidation({});
-        setIsTableComplete(false);
-        setTooltipMessage({});
         setBlankCells(new Set());
-        setHasGivenUp({ transitionTable: false }); // Reset give up state
+        setHasGivenUp({ transitionTable: false });
+        setIncorrectAttempts({ transitionTable: 0 });
+
+        // Reset user input table and diagram if in User Input mode
+        if (isUserInputMode) {
+            setUserInputTransitionTable(null);
+            // Increment resetFlag to trigger reset in UserInputState
+            setUserInputResetFlag((prev) => prev + 1);
+        }
+
+        // Trigger the generation after updating state - don't clear the table first
+        setTimeout(() => {
+            setShouldGenerate(true);
+            setShouldConvert(false);
+        }, 0);
     };
 
     const handleAutoGenerate = () => {
@@ -155,6 +175,13 @@ const StateToCircuit = () => {
         setTooltipMessage({});
         setBlankCells(new Set());
         setHasGivenUp({ transitionTable: false }); // Reset give up state
+
+        // Reset user input table and diagram if in User Input mode
+        if (isUserInputMode) {
+            setUserInputTransitionTable(null);
+            // Increment resetFlag to trigger reset in UserInputState
+            setUserInputResetFlag((prev) => prev + 1);
+        }
 
         // Trigger the generation after updating state
         setTimeout(() => {
@@ -493,12 +520,48 @@ const StateToCircuit = () => {
         setShowSettings(!showSettings);
     };
 
-    const handleDIYToggle = () => {
-        setIsDIYMode(!isDIYMode);
+    const handleUserInputToggle = () => {
+        // If turning on User Input Mode, reset everything to defaults
+        if (!isUserInputMode) {
+            // Reset table and states
+            setTransitionTable([]);
+            setShouldGenerate(false);
+            setShouldConvert(false);
+            setUserAnswers({});
+            setCellValidation({});
+            setIsTableComplete(false);
+            setBlankCells(new Set());
+            setHasGivenUp({ transitionTable: false });
+            setIncorrectAttempts({ transitionTable: 0 });
+
+            // Reset user input transition table
+            setUserInputTransitionTable(null);
+
+            // Don't show the paper/diagram yet - wait for Generate button click
+            setShowPaper(false);
+        } else {
+            // When turning off User Input mode, reset the user input transition table
+            setUserInputTransitionTable(null);
+        }
+
+        setIsUserInputMode(!isUserInputMode);
     };
 
     const handleDifficultyChange = (e) => {
         setDifficulty(e.target.value);
+    };
+
+    // Handle function for when Generate Diagram is clicked in User Input mode
+    const handleUserInputDiagram = (transitionTable) => {
+        setUserInputTransitionTable(transitionTable);
+        // Make sure the paper is shown
+        setShowPaper(true);
+    };
+
+    // Handle function for when Next button is clicked in User Input mode
+    const handleUserInputNext = () => {
+        // Trigger the conversion process
+        setShouldConvert(true);
     };
 
     return (
@@ -579,6 +642,17 @@ const StateToCircuit = () => {
                     >
                         Auto-Generate
                     </button>
+                    <div className="user-input-toggle">
+                        <label className="toggle-switch">
+                            <input
+                                type="checkbox"
+                                checked={isUserInputMode}
+                                onChange={handleUserInputToggle}
+                            />
+                            <span className="toggle-slider"></span>
+                        </label>
+                        <span className="toggle-label">User Input</span>
+                    </div>
                     <button
                         onClick={toggleSettings}
                         className="settings-button"
@@ -608,42 +682,20 @@ const StateToCircuit = () => {
                             </button>
                         </div>
                         <div className="settings-popup-content">
-                            {/* DIY Mode Toggle */}
-                            <div className="settings-option">
-                                <div className="settings-option-text">
-                                    <h3>DIY Mode</h3>
-                                    <p>
-                                        Toggle to enable DIY (Do It Yourself)
-                                        mode for a more hands-on learning
-                                        experience.
-                                    </p>
-                                </div>
-                                <div className="settings-option-control">
-                                    <label className="toggle-switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={isDIYMode}
-                                            onChange={handleDIYToggle}
-                                        />
-                                        <span className="toggle-slider"></span>
-                                    </label>
-                                </div>
-                            </div>
-
                             {/* Difficulty Setting */}
                             <div className="settings-option">
                                 <div className="settings-option-text">
-                                    <h3>Difficulty Level</h3>
+                                    <h3>Difficulty</h3>
                                     <p>
-                                        Choose the difficulty level for
-                                        exercises and challenges.
+                                        Select the difficulty level for the
+                                        exercises.
                                     </p>
                                 </div>
                                 <div className="settings-option-control">
                                     <select
+                                        className="difficulty-select"
                                         value={difficulty}
                                         onChange={handleDifficultyChange}
-                                        className="difficulty-select"
                                     >
                                         <option value="easy">Easy</option>
                                         <option value="medium">Medium</option>
@@ -656,21 +708,31 @@ const StateToCircuit = () => {
                 </div>
             )}
 
+            {/* Only show paper when showPaper is true */}
             {showPaper && (
                 <div className="diagram-table-wrapper">
                     <div className="diagram-table-container">
-                        <div className="diagram-section">
-                            <StateDiagram
-                                diagramType={diagramType}
-                                flipFlopType={flipFlopType}
-                                numStates={numStates}
-                                numInputs={numInputs}
-                                shouldGenerate={shouldGenerate}
-                                onDiagramGenerated={handleDiagramGenerated}
-                            />
-                        </div>
+                        {/* Only show diagram in User Input mode if we have a transition table */}
+                        {(!isUserInputMode ||
+                            (isUserInputMode && userInputTransitionTable)) && (
+                            <div className="diagram-section">
+                                <StateDiagram
+                                    diagramType={diagramType}
+                                    flipFlopType={flipFlopType}
+                                    numStates={numStates}
+                                    numInputs={numInputs}
+                                    shouldGenerate={shouldGenerate}
+                                    onDiagramGenerated={handleDiagramGenerated}
+                                    isUserInputMode={isUserInputMode}
+                                    userInputTransitionTable={
+                                        userInputTransitionTable
+                                    }
+                                />
+                            </div>
+                        )}
 
-                        {transitionTable.length > 0 && (
+                        {/* Show original transition table if not in User Input Mode */}
+                        {transitionTable.length > 0 && !isUserInputMode && (
                             <div className="table-section">
                                 <h2>State Transition Table</h2>
                                 <div className="button-container">
@@ -797,6 +859,19 @@ const StateToCircuit = () => {
                                     )}
                                 </div>
                             </div>
+                        )}
+
+                        {/* Show User Input transition table if in User Input Mode */}
+                        {isUserInputMode && (
+                            <UserInputState
+                                diagramType={diagramType}
+                                numStates={numStates}
+                                numInputs={numInputs}
+                                isUserInputMode={isUserInputMode}
+                                onGenerateDiagram={handleUserInputDiagram}
+                                onNext={handleUserInputNext}
+                                resetFlag={userInputResetFlag}
+                            />
                         )}
                     </div>
                 </div>

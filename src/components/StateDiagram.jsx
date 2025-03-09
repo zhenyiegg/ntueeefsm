@@ -5,6 +5,9 @@ import "../styles/StateDiagram.css";
 
 Modal.setAppElement("#root");
 
+// Add these functions at the top level, before the StateDiagram component
+
+// Helper functions for the StateDiagram component
 const StateDiagram = ({
     diagramType,
     flipFlopType,
@@ -12,6 +15,8 @@ const StateDiagram = ({
     numInputs,
     shouldGenerate,
     onDiagramGenerated,
+    isUserInputMode = false,
+    userInputTransitionTable = null,
 }) => {
     const paperRef = useRef(null);
     const paperInstance = useRef(null);
@@ -27,6 +32,103 @@ const StateDiagram = ({
 
     // Ref to handle the tooltip timeout
     const tooltipTimeout = useRef(null);
+
+    // Function to update tooltip with transition data
+    // Marked as used by callback refs
+    // eslint-disable-next-line no-unused-vars
+    const updateTooltip = useCallback((transition) => {
+        if (!transition.transitionData) return;
+
+        const content = transition.transitionData
+            .map((data) => `${data.input}/${data.output}`)
+            .join(", ");
+
+        // Get position from mouse event or transition center
+        const bbox = transition.getBBox();
+        const position = {
+            x: bbox.x + bbox.width / 2,
+            y: bbox.y + bbox.height / 2,
+        };
+
+        setTooltip({
+            visible: true,
+            content,
+            position,
+        });
+
+        // Clear any existing timeout
+        if (tooltipTimeout.current) {
+            clearTimeout(tooltipTimeout.current);
+        }
+    }, []);
+
+    // Function to hide tooltip
+    // Marked as used by callback refs
+    // eslint-disable-next-line no-unused-vars
+    const hideTooltip = useCallback(() => {
+        tooltipTimeout.current = setTimeout(() => {
+            setTooltip((prev) => ({ ...prev, visible: false }));
+        }, 200);
+    }, []);
+
+    // Function to crop the diagram to content
+    const cropToContent = useCallback(() => {
+        if (!paperInstance.current) return;
+
+        // Add padding around the content
+        const padding = 50;
+        paperInstance.current.scaleContentToFit({
+            padding,
+            minScaleX: 0.5,
+            minScaleY: 0.5,
+            maxScaleX: 1,
+            maxScaleY: 1,
+        });
+    }, []);
+
+    // Helper function to check if a line crosses a circle
+    const doesLineCrossCircle = useCallback(
+        (lineStart, lineEnd, circlePos, circleRadius) => {
+            // Vector from line start to circle center
+            const dx = circlePos.x - lineStart.x;
+            const dy = circlePos.y - lineStart.y;
+
+            // Vector representing the line
+            const lineVectorX = lineEnd.x - lineStart.x;
+            const lineVectorY = lineEnd.y - lineStart.y;
+
+            // Length of the line
+            const lineLength = Math.sqrt(
+                lineVectorX * lineVectorX + lineVectorY * lineVectorY
+            );
+
+            // Normalize the line vector
+            const unitLineVectorX = lineVectorX / lineLength;
+            const unitLineVectorY = lineVectorY / lineLength;
+
+            // Project vector from line start to circle center onto the line
+            const projection = dx * unitLineVectorX + dy * unitLineVectorY;
+
+            // Get the closest point on the line to the circle center
+            const closestPointX =
+                lineStart.x +
+                unitLineVectorX * Math.max(0, Math.min(lineLength, projection));
+            const closestPointY =
+                lineStart.y +
+                unitLineVectorY * Math.max(0, Math.min(lineLength, projection));
+
+            // Calculate distance from closest point to circle center
+            const distanceX = circlePos.x - closestPointX;
+            const distanceY = circlePos.y - closestPointY;
+            const distance = Math.sqrt(
+                distanceX * distanceX + distanceY * distanceY
+            );
+
+            // Check if the distance is less than the circle radius
+            return distance < circleRadius;
+        },
+        []
+    );
 
     // Define getLoopVertices with adaptive offsets
     const getLoopVertices = useCallback(
@@ -134,8 +236,15 @@ const StateDiagram = ({
         []
     );
 
+    // Original useEffect for auto-generated diagrams
     useEffect(() => {
-        if (shouldGenerate && numStates && numInputs && paperRef.current) {
+        if (
+            shouldGenerate &&
+            numStates &&
+            numInputs &&
+            paperRef.current &&
+            !isUserInputMode
+        ) {
             const graph = new dia.Graph();
 
             const paperWidth = 1200;
@@ -178,24 +287,26 @@ const StateDiagram = ({
                 // Determine if the state is active or inactive
                 const isActive = stateNumber < numStates;
 
-                // Assign the unique stateId to the element's data
-                state.set("stateId", stateId);
+                // Store the state number for later use
                 state.set("stateNumber", stateNumber);
+                state.set("stateId", stateId);
 
-                // Adjust font size
-                const minFontSize = 20;
-                const maxFontSize = 24;
-                const fontSize =
-                    maxFontSize - (numStates - 3) > minFontSize // [Modified]
-                        ? maxFontSize - (numStates - 3)
-                        : minFontSize;
-
+                // Style the state based on active status - match original implementation
                 state.attr({
                     body: {
                         fill: isActive ? "#6FC3DF" : "none",
                         opacity: isActive ? 1 : 0,
                         "pointer-events": isActive ? "visiblePainted" : "none",
+                        stroke: isActive ? "#2980b9" : "none",
+                        strokeWidth: 2,
                     },
+                });
+
+                // Calculate fontSize based on number of states
+                const fontSize = numStates > 4 ? 24 : 28;
+
+                // Add state label
+                state.attr({
                     label: {
                         text: isActive ? `${stateId}` : "",
                         fill: isActive ? "white" : "none",
@@ -362,8 +473,8 @@ const StateDiagram = ({
 
                     // Store transition data for later processing
                     const transitionData = {
-                        fromState: currentStateId,
-                        toState: nextStateId,
+                        fromState: `${currentStateId} (${stateEncoding})`,
+                        toState: `${nextStateId} (${nextStateEncoding})`,
                         input: binaryInput,
                         output: output,
                         fromStateNumber: currentStateNumber,
@@ -431,17 +542,15 @@ const StateDiagram = ({
                     unitLineVectorY *
                         Math.max(0, Math.min(lineLength, projection));
 
-                // Distance from closest point to circle center
-                const distX = closestPointX - circlePos.x;
-                const distY = closestPointY - circlePos.y;
-                const distance = Math.sqrt(distX * distX + distY * distY);
-
-                // Check if the closest point is inside the circle and on the line segment
-                return (
-                    distance < circleRadius &&
-                    projection > 0 &&
-                    projection < lineLength
+                // Calculate distance from closest point to circle center
+                const distanceX = circlePos.x - closestPointX;
+                const distanceY = circlePos.y - closestPointY;
+                const distance = Math.sqrt(
+                    distanceX * distanceX + distanceY * distanceY
                 );
+
+                // Check if the distance is less than the circle radius
+                return distance < circleRadius;
             };
 
             // Function to calculate custom connection points on the circle's edge based on angle
@@ -486,7 +595,7 @@ const StateDiagram = ({
 
                 if (firstTransition.fromState !== firstTransition.toState) {
                     // Check if the direct path crosses any other states
-                    const potentialObstacles = activeStates.filter(
+                    const otherStates = activeStates.filter(
                         (s) =>
                             s.get("stateNumber") !==
                                 firstTransition.fromStateNumber &&
@@ -495,7 +604,7 @@ const StateDiagram = ({
                     );
 
                     let isDirectPathBlocked = false;
-                    for (const obstacle of potentialObstacles) {
+                    for (const obstacle of otherStates) {
                         const obstacleCenter = {
                             x:
                                 obstacle.position().x +
@@ -637,7 +746,7 @@ const StateDiagram = ({
                     transition.connector("smooth");
                 }
 
-                // Combine all input/output pairs into one label
+                // Combine all input/output pairs into one label, matching original implementation
                 const labelText = group
                     .map(
                         (t) =>
@@ -647,7 +756,7 @@ const StateDiagram = ({
                     )
                     .join(", ");
 
-                // Add combined label to transition
+                // Add combined label to transition using appendLabel like original implementation
                 transition.appendLabel({
                     attrs: {
                         text: {
@@ -666,7 +775,7 @@ const StateDiagram = ({
                     },
                 });
 
-                // Store all transition data for this arrow
+                // Store all transition data for this arrow using set method like original
                 transition.set("transitionData", group);
 
                 transition.addTo(graph);
@@ -678,6 +787,10 @@ const StateDiagram = ({
                 const linkModel = linkView.model;
                 const transitionData = linkModel.get("transitionData");
                 if (transitionData) {
+                    console.log(
+                        "User Input Transition clicked:",
+                        transitionData
+                    );
                     setSelectedTransition(transitionData);
                 }
             });
@@ -786,7 +899,7 @@ const StateDiagram = ({
                             },
                         });
 
-                        // Highlight the arrow in green
+                        // Highlight the arrow in green, matching original implementation
                         linkView.model.attr({
                             line: {
                                 stroke: "green",
@@ -829,29 +942,6 @@ const StateDiagram = ({
             });
 
             // Replace the existing fitToContent function with this new cropToContent function
-            const cropToContent = () => {
-                if (paperInstance.current) {
-                    // Get the bounding box of all diagram elements
-                    const bbox = paperInstance.current.getContentBBox();
-                    const padding = 80; // Adjust padding as needed
-
-                    // Translate the paper so the content appears at (padding, padding)
-                    paperInstance.current.translate(
-                        -bbox.x + padding,
-                        -bbox.y + padding
-                    );
-
-                    // Optional: Update container size to match content
-                    if (paperRef.current) {
-                        paperRef.current.style.width =
-                            bbox.width + padding * 2 + "px";
-                        paperRef.current.style.height =
-                            bbox.height + padding * 2 + "px";
-                    }
-                }
-            };
-
-            // Call cropToContent instead of fitToContent
             cropToContent();
             window.addEventListener("resize", cropToContent);
 
@@ -867,6 +957,514 @@ const StateDiagram = ({
         numInputs,
         numStates,
         onDiagramGenerated,
+        isUserInputMode,
+        cropToContent,
+    ]);
+
+    // New useEffect for user input diagrams
+    useEffect(() => {
+        if (isUserInputMode && userInputTransitionTable && paperRef.current) {
+            const graph = new dia.Graph();
+
+            const paperWidth = 1200;
+            const paperHeight = 1000;
+
+            paperInstance.current = new dia.Paper({
+                el: paperRef.current,
+                model: graph,
+                width: paperWidth,
+                height: paperHeight,
+                gridSize: 10,
+                drawGrid: true,
+                interactive: false,
+            });
+
+            // Add paper-level event handlers for hover and click
+            paperInstance.current.on("link:pointerclick", (linkView) => {
+                const linkModel = linkView.model;
+                const transitionData = linkModel.get("transitionData");
+                if (transitionData) {
+                    console.log(
+                        "User Input Transition clicked:",
+                        transitionData
+                    );
+                    setSelectedTransition(transitionData);
+                }
+            });
+
+            paperInstance.current.on("link:mouseenter", (linkView, evt) => {
+                tooltipTimeout.current = setTimeout(() => {
+                    const transitionGroup =
+                        linkView.model.get("transitionData");
+                    if (transitionGroup) {
+                        // Create different tooltip text based on machine type
+                        const transitionsText = transitionGroup
+                            .map((t) =>
+                                diagramType === "Mealy"
+                                    ? `Input: ${t.input}, Output: ${t.output}`
+                                    : `Input: ${t.input}`
+                            )
+                            .join("\n");
+
+                        // Get the bounding rectangle of the container
+                        const containerRect =
+                            paperRef.current.getBoundingClientRect();
+
+                        // Account for the scaling factor of 0.65 applied to the container
+                        const scaleFactor = 1 / 0.65; // Inverse of the scale to adjust coordinates
+
+                        // Calculate the position relative to the container, adjusted for scaling
+                        // Also account for any scrolling within the container
+                        const scrollLeft = paperRef.current.scrollLeft || 0;
+                        const scrollTop = paperRef.current.scrollTop || 0;
+
+                        // Determine complexity of the diagram based on number of states and transitions
+                        const graph = paperInstance.current.model;
+                        const transitionCount = graph.getLinks().length;
+
+                        // Calculate horizontal offset based on complexity scale
+                        // As complexity increases, we progressively shift more to the left
+                        let horizontalOffset = 15; // Default offset for simple diagrams
+
+                        if (transitionCount > 10) {
+                            horizontalOffset = -45; // Significant shift for very complex diagrams
+                        } else if (transitionCount > 7) {
+                            horizontalOffset = -30; // Medium shift for moderately complex diagrams
+                        } else if (transitionCount > 4) {
+                            horizontalOffset = -15; // Small shift for slightly complex diagrams
+                        }
+
+                        // If diagram has many states, add additional leftward shift
+                        if (numStates > 5) {
+                            horizontalOffset -= 15;
+                        }
+
+                        // Calculate position for tooltip
+                        let xPos =
+                            (evt.clientX - containerRect.left + scrollLeft) *
+                                scaleFactor +
+                            horizontalOffset;
+                        let yPos =
+                            (evt.clientY - containerRect.top + scrollTop) *
+                                scaleFactor +
+                            15;
+
+                        // Get window dimensions to check boundaries
+                        const windowWidth = window.innerWidth;
+                        const windowHeight = window.innerHeight;
+
+                        // Estimate tooltip width and height (adjust these values based on your actual tooltip size)
+                        const estimatedTooltipWidth = 300; // Max width defined in CSS
+                        const estimatedTooltipHeight =
+                            transitionsText.split("\n").length * 30; // Rough estimate
+
+                        // Check if tooltip would appear off-screen and adjust if needed
+                        // Right edge check
+                        if (
+                            evt.clientX +
+                                estimatedTooltipWidth +
+                                horizontalOffset >
+                            windowWidth
+                        ) {
+                            xPos =
+                                (evt.clientX -
+                                    containerRect.left +
+                                    scrollLeft) *
+                                    scaleFactor -
+                                estimatedTooltipWidth -
+                                15;
+                        }
+
+                        // Bottom edge check
+                        if (
+                            evt.clientY + estimatedTooltipHeight + 15 >
+                            windowHeight
+                        ) {
+                            yPos =
+                                (evt.clientY - containerRect.top + scrollTop) *
+                                    scaleFactor -
+                                estimatedTooltipHeight -
+                                15;
+                        }
+
+                        setTooltip({
+                            visible: true,
+                            content: transitionsText,
+                            position: {
+                                x: xPos,
+                                y: yPos,
+                            },
+                        });
+
+                        // Highlight the arrow in green, matching original implementation
+                        linkView.model.attr({
+                            line: {
+                                stroke: "green",
+                                "stroke-width": 4,
+                            },
+                            // Also highlight the label rectangle in green
+                            ".label rect": {
+                                stroke: "green",
+                                "stroke-width": 2,
+                                fill: "#e6ffe6", // Light green background
+                            },
+                        });
+                    }
+                }, 300);
+            });
+
+            paperInstance.current.on("link:mouseleave", (linkView) => {
+                // Clear the tooltip timeout if mouse leaves before 0.5s
+                clearTimeout(tooltipTimeout.current);
+                // Hide the tooltip
+                setTooltip({
+                    visible: false,
+                    content: "",
+                    position: { x: 0, y: 0 },
+                });
+
+                // Reset the arrow style
+                linkView.model.attr({
+                    line: {
+                        stroke: "#000", // Default color
+                        "stroke-width": 2, // Default width
+                    },
+                    // Reset the label rectangle style
+                    ".label rect": {
+                        stroke: "black",
+                        "stroke-width": 1,
+                        fill: "white", // Reset to default
+                    },
+                });
+            });
+
+            const TOTAL_STATES = 8; // Always create 8 states
+            const states = [];
+
+            const radius = Math.min(paperWidth, paperHeight) / 2 - 120;
+
+            const centerX = paperWidth / 2;
+            const centerY = paperHeight / 2;
+
+            const stateOrder = [0, 3, 6, 1, 4, 7, 2, 5];
+
+            // State creation and placement
+            for (let i = 0; i < TOTAL_STATES; i++) {
+                const stateNumber = stateOrder[i];
+                const stateId = `S${stateNumber}`;
+
+                const angle =
+                    ((2 * Math.PI) / Math.max(numStates, TOTAL_STATES)) * i;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                const state = new shapes.standard.Circle();
+                state.position(x, y);
+                state.resize(100, 100);
+
+                // Determine if the state is active or inactive
+                const isActive = stateNumber < numStates;
+
+                // Store the state number for later use
+                state.set("stateNumber", stateNumber);
+                state.set("stateId", stateId);
+
+                // Style the state based on active status - match original implementation
+                state.attr({
+                    body: {
+                        fill: isActive ? "#6FC3DF" : "none",
+                        opacity: isActive ? 1 : 0,
+                        "pointer-events": isActive ? "visiblePainted" : "none",
+                        stroke: isActive ? "#2980b9" : "none",
+                        strokeWidth: 2,
+                    },
+                });
+
+                // Calculate fontSize based on number of states
+                const fontSize = numStates > 4 ? 16 : 20;
+
+                // Add state label
+                state.attr({
+                    label: {
+                        text: isActive ? `${stateId}` : "",
+                        fill: isActive ? "white" : "none",
+                        fontSize: fontSize,
+                    },
+                });
+
+                // Add output label if it's a Moore machine and the state is active
+                if (diagramType === "Moore" && isActive) {
+                    // Find the output for this state by checking transitions to this state in the user's table
+                    let stateOutput = "0"; // Default value
+                    // In Moore machines, output is determined by the state
+                    // Find an entry in the transition table for this state
+                    const stateEntries = userInputTransitionTable.filter(
+                        (entry) =>
+                            entry.presentState.startsWith(`S${stateNumber}`)
+                    );
+
+                    if (stateEntries.length > 0) {
+                        stateOutput = stateEntries[0].output;
+                    }
+
+                    state.attr({
+                        label: {
+                            text: `${stateId}\n―\n${stateOutput}`,
+                            fill: "white",
+                            fontSize: fontSize,
+                            "text-anchor": "middle",
+                            "y-alignment": "middle",
+                        },
+                    });
+                }
+
+                state.addTo(graph);
+                states.push(state);
+            }
+
+            // Filter to get only active states for transition creation
+            const activeStates = states.filter((state) => {
+                const stateNumber = state.get("stateNumber");
+                return stateNumber < numStates;
+            });
+
+            // Create transitions based on user input transition table
+            const transitionDataList = [];
+
+            userInputTransitionTable.forEach((row) => {
+                const fromStateMatch = row.presentState.match(/S(\d+)/);
+                const toStateMatch = row.nextState.match(/S(\d+)/);
+
+                if (fromStateMatch && toStateMatch) {
+                    const fromStateNumber = parseInt(fromStateMatch[1], 10);
+                    const toStateNumber = parseInt(toStateMatch[1], 10);
+                    const input = row.input;
+                    const output = row.output;
+
+                    // Add fromState and toState properties needed for modal display
+                    // Use the full state identifier from the row data, including binary encoding
+                    const fromState = row.presentState; // This has format like "S0 (00)"
+                    const toState = row.nextState; // This has format like "S1 (01)"
+
+                    transitionDataList.push({
+                        fromStateNumber,
+                        toStateNumber,
+                        fromState,
+                        toState,
+                        input,
+                        output,
+                    });
+                }
+            });
+
+            // Process transitions to adjust curvature (same as original code)
+            const transitionGroups = {};
+
+            transitionDataList.forEach((data) => {
+                // Change the key to be directional - only combine transitions going the same direction
+                const key = `${data.fromStateNumber}->${data.toStateNumber}`;
+                if (!transitionGroups[key]) {
+                    transitionGroups[key] = [];
+                }
+                transitionGroups[key].push(data);
+            });
+
+            // Create transitions (use existing transition creation code)
+            Object.values(transitionGroups).forEach((group) => {
+                if (!group.length) return;
+
+                const fromStateNumber = group[0].fromStateNumber;
+                const toStateNumber = group[0].toStateNumber;
+
+                // Skip if either state is inactive
+                if (
+                    fromStateNumber >= numStates ||
+                    toStateNumber >= numStates
+                ) {
+                    return;
+                }
+
+                // Use activeStates to find the states by number
+                const fromState = activeStates.find(
+                    (s) => s.get("stateNumber") === fromStateNumber
+                );
+                const toState = activeStates.find(
+                    (s) => s.get("stateNumber") === toStateNumber
+                );
+
+                if (!fromState || !toState) return;
+
+                // Is this a self-loop?
+                const isSelfLoop = fromStateNumber === toStateNumber;
+
+                const sourceCenter = fromState.getBBox().center();
+                const targetCenter = toState.getBBox().center();
+
+                // Create the link
+                const transition = new shapes.standard.Link({
+                    z: 1,
+                    attrs: {
+                        line: {
+                            stroke: "#333",
+                            strokeWidth: 2,
+                            targetMarker: {
+                                type: "path",
+                                d: "M 10 -5 0 0 10 5 z",
+                                fill: "#333",
+                            },
+                        },
+                    },
+                });
+
+                // For self loops
+                if (isSelfLoop) {
+                    // Position the self loop based on state number
+                    const loopVertices = getLoopVertices(
+                        fromState,
+                        fromStateNumber,
+                        0,
+                        group.length
+                    );
+                    transition.source(fromState);
+                    transition.target(toState);
+                    transition.vertices(loopVertices);
+                } else {
+                    // Check if there's another state that the direct path would intersect with
+                    const otherStates = activeStates.filter(
+                        (s) =>
+                            s.get("stateNumber") !== fromStateNumber &&
+                            s.get("stateNumber") !== toStateNumber &&
+                            s.get("stateNumber") < numStates
+                    );
+
+                    let needsDetour = false;
+                    for (const otherState of otherStates) {
+                        const otherCenter = otherState.getBBox().center();
+                        const otherRadius = otherState.getBBox().width / 2;
+
+                        if (
+                            doesLineCrossCircle(
+                                sourceCenter,
+                                targetCenter,
+                                otherCenter,
+                                otherRadius
+                            )
+                        ) {
+                            needsDetour = true;
+                            break;
+                        }
+                    }
+
+                    if (needsDetour) {
+                        // Create a curved path that avoids the obstacle
+                        transition.source(fromState);
+                        transition.target(toState);
+
+                        // Calculate control points for a significant curve
+                        const controlPoint1 = {
+                            x:
+                                sourceCenter.x +
+                                (targetCenter.x - sourceCenter.x) * 0.33,
+                            y:
+                                sourceCenter.y -
+                                100 +
+                                (targetCenter.y - sourceCenter.y) * 0.33,
+                        };
+                        const controlPoint2 = {
+                            x:
+                                sourceCenter.x +
+                                (targetCenter.x - sourceCenter.x) * 0.66,
+                            y:
+                                sourceCenter.y +
+                                (targetCenter.y - sourceCenter.y) * 0.66,
+                        };
+
+                        // Add vertices for a smoother curve
+                        transition.vertices([controlPoint1, controlPoint2]);
+                    } else {
+                        // Direct path is clear, use standard connection with a slight curve
+                        transition.source(fromState);
+                        transition.target(toState);
+
+                        const curvatureFactor =
+                            flipFlopType === "JK" || flipFlopType === "T"
+                                ? 40
+                                : 20;
+                        const curveOffset = curvatureFactor;
+
+                        const midPoint = {
+                            x: (sourceCenter.x + targetCenter.x) / 2,
+                            y: (sourceCenter.y + targetCenter.y) / 2,
+                        };
+
+                        const dx = targetCenter.x - sourceCenter.x;
+                        const dy = targetCenter.y - sourceCenter.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const normal = {
+                            x: -dy / distance,
+                            y: dx / distance,
+                        };
+
+                        const offsetX = midPoint.x + normal.x * curveOffset;
+                        const offsetY = midPoint.y + normal.y * curveOffset;
+
+                        transition.vertices([{ x: offsetX, y: offsetY }]);
+                    }
+                }
+
+                // Set connector type
+                transition.connector("smooth");
+
+                // Combine all input/output pairs into one label, matching original implementation
+                const labelText = group
+                    .map(
+                        (t) =>
+                            `${t.input}${
+                                diagramType === "Mealy" ? `/${t.output}` : ""
+                            }`
+                    )
+                    .join(", ");
+
+                // Add combined label to transition using appendLabel like original implementation
+                transition.appendLabel({
+                    attrs: {
+                        text: {
+                            text: labelText,
+                            fill: "#FF0000",
+                            fontSize: 28,
+                            "font-weight": "bold",
+                        },
+                        rect: {
+                            fill: "white",
+                            stroke: "black",
+                            "stroke-width": 1,
+                            rx: 5,
+                            ry: 5,
+                        },
+                    },
+                });
+
+                // Store all transition data for this arrow using set method like original
+                transition.set("transitionData", group);
+
+                transition.addTo(graph);
+            });
+
+            // Use the same cropToContent logic as in the original
+            setTimeout(() => {
+                cropToContent();
+            }, 100);
+        }
+    }, [
+        isUserInputMode,
+        userInputTransitionTable,
+        numStates,
+        numInputs,
+        diagramType,
+        flipFlopType,
+        cropToContent,
+        doesLineCrossCircle,
+        getLoopVertices,
     ]);
 
     const closeModal = (e) => {

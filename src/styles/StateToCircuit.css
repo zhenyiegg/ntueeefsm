@@ -4,6 +4,8 @@ html, body, #root, .App {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
+  overflow-x: hidden; /* Prevent horizontal scrollbar */
+  width: 100vw; /* Force full viewport width */
 }
 
 /* Main container for the StateToCircuit component */
@@ -13,7 +15,9 @@ html, body, #root, .App {
   align-items: center;
   justify-content: flex-start;
   min-height: 100vh;
-  overflow-y: auto;
+  width: 100%; /* Ensure width is constrained */
+  max-width: 100%; /* Prevent overflow */
+  overflow-x: hidden; /* Hide horizontal overflow */
   padding: 0;
   padding-bottom: 20px; /* Add bottom padding */
   box-sizing: border-box;
@@ -96,6 +100,8 @@ html, body, #root, .App {
   justify-content: center;
   align-items: flex-start;
   margin-bottom: 20px;
+  overflow: hidden; /* Prevent content from causing overflow */
+  position: relative; /* Establish positioning context */
 }
 
 /* State diagram container styles - for when states are shown */
@@ -114,7 +120,8 @@ html, body, #root, .App {
   /* Add margin to create space between this and the next element */
   margin-bottom: 20px;
   /* Overflow handling */
-  overflow: visible;
+  overflow: hidden; /* Changed from visible to hidden to contain any potential overflow */
+  box-sizing: border-box; /* Ensure padding is included in width calculation */
 }
 
 /* Update the flex container for diagram and table */
@@ -128,6 +135,8 @@ html, body, #root, .App {
   transform: scale(0.65); /* Reduced from 0.8 to 0.65 */
   transform-origin: top center;
   position: relative;
+  height: auto; /* Allow height to adjust naturally */
+  box-sizing: border-box; /* Ensure padding is included in width calculation */
 }
 
 /* Ensure parent of diagram-table-container has proper spacing */
@@ -293,7 +302,7 @@ html, body, #root, .App {
 }
 
 .auto-generate-button:hover {
-  background-color: #2171a6; /* Keep darker blue */
+  background-color: #4a148c;
 }
 
 /* Update equations container for left alignment */
@@ -1209,5 +1218,184 @@ td:nth-child(4) .table-input.select {
 
 .difficulty-select option {
     padding: 10px;
+}
+
+/* User Input Toggle in main interface */
+.user-input-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 10px;
+}
+
+.user-input-toggle .toggle-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+}
+
+.user-input-toggle .toggle-switch {
+    width: 50px;
+    height: 24px;
+}
+
+.user-input-toggle .toggle-slider {
+    background-color: #ccc;
+    border-radius: 34px;
+}
+
+.user-input-toggle .toggle-slider:before {
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+}
+
+.user-input-toggle .toggle-switch input:checked + .toggle-slider {
+    background-color: #ff3333; /* Red for active state */
+}
+
+.user-input-toggle .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+
+/* Section Header with Info Button */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    margin: 0;
+}
+
+/* Table Header Container with positioned info button */
+.table-header-container {
+    position: relative;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.table-header-container h2 {
+    margin: 0;
+}
+
+.table-header-container .info-button {
+    position: relative; 
+    z-index: 10;
+}
+
+.table-header-container .info-tooltip {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 300px;
+    z-index: 1000;
+    margin-top: 5px;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 2px solid #6FC3DF;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-size: 0.9rem;
+    color: #333;
+    animation: fadeInTooltip 0.2s ease-in-out;
+}
+
+.table-header-container .info-tooltip h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.table-header-container .info-tooltip p,
+.table-header-container .info-tooltip ul {
+    margin: 0.5rem 0;
+}
+
+.table-header-container .info-tooltip ul {
+    padding-left: 1.5rem;
+}
+
+.table-header-container .info-tooltip li {
+    margin-bottom: 0.3rem;
+}
+
+/* Generate Button Container */
+.generate-button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* Generate Diagram Button */
+.generate-diagram-button {
+    padding: 10px 20px;
+    background-color: #6FC3DF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.generate-diagram-button:hover {
+    background-color: #5CACCE;
+}
+
+.generate-diagram-button.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.generate-diagram-button.disabled:hover {
+    background-color: #ccc;
+}
+
+.generate-diagram-button.generated {
+    background-color: #27ae60;
+}
+
+.generate-diagram-button.generated:hover {
+    background-color: #219955;
+}
+
+/* Next Button */
+.next-button {
+    padding: 10px 20px;
+    background-color: #ff3333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-left: 15px;
+}
+
+.next-button:hover {
+    background-color: #e62e2e;
+}
+
+.next-button.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.next-button.disabled:hover {
+    background-color: #ccc;
 }
 
