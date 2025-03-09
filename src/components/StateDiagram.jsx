@@ -963,7 +963,14 @@ const StateDiagram = ({
 
     // New useEffect for user input diagrams
     useEffect(() => {
-        if (isUserInputMode && userInputTransitionTable && paperRef.current) {
+        // Add a check to ensure userInputTransitionTable is not null and has length
+        if (
+            isUserInputMode &&
+            userInputTransitionTable &&
+            Array.isArray(userInputTransitionTable) &&
+            userInputTransitionTable.length > 0 &&
+            paperRef.current
+        ) {
             const graph = new dia.Graph();
 
             const paperWidth = 1200;

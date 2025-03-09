@@ -101,7 +101,7 @@ const StateToCircuit = () => {
 
             return () => clearTimeout(timer);
         }
-    }, [showPaper, transitionTable.length, shouldGenerate]);
+    }, [showPaper, transitionTable?.length, shouldGenerate]);
 
     const handleGenerate = () => {
         // Set diagram parameters from temporary values
@@ -120,6 +120,9 @@ const StateToCircuit = () => {
         setHasGivenUp({ transitionTable: false });
         setIncorrectAttempts({ transitionTable: 0 });
 
+        // Make sure we're resetting the conversion state
+        setShouldConvert(false);
+
         // Reset user input table and diagram if in User Input mode
         if (isUserInputMode) {
             setUserInputTransitionTable(null);
@@ -130,7 +133,6 @@ const StateToCircuit = () => {
         // Trigger the generation after updating state - don't clear the table first
         setTimeout(() => {
             setShouldGenerate(true);
-            setShouldConvert(false);
         }, 0);
     };
 
@@ -176,6 +178,9 @@ const StateToCircuit = () => {
         setBlankCells(new Set());
         setHasGivenUp({ transitionTable: false }); // Reset give up state
 
+        // Make sure we're resetting the conversion state
+        setShouldConvert(false);
+
         // Reset user input table and diagram if in User Input mode
         if (isUserInputMode) {
             setUserInputTransitionTable(null);
@@ -186,7 +191,6 @@ const StateToCircuit = () => {
         // Trigger the generation after updating state
         setTimeout(() => {
             setShouldGenerate(true);
-            setShouldConvert(false);
         }, 0);
     };
 
@@ -881,10 +885,14 @@ const StateToCircuit = () => {
                 <STCConversion
                     diagramType={diagramType}
                     flipFlopType={flipFlopType}
-                    transitionTable={transitionTable}
+                    transitionTable={
+                        isUserInputMode
+                            ? userInputTransitionTable
+                            : transitionTable
+                    }
                     numInputs={numInputs}
-                    cellValidation={cellValidation}
-                    blankCells={blankCells}
+                    cellValidation={isUserInputMode ? {} : cellValidation}
+                    blankCells={isUserInputMode ? new Set() : blankCells}
                 />
             )}
         </div>
