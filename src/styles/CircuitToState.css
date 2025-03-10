@@ -75,6 +75,7 @@ select:focus {
 .generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled {
   background-color: #c0bdbd;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .tooltipBtn-container {
@@ -83,6 +84,7 @@ select:focus {
 }
 
 .tooltipBtn {
+  visibility: visible;
   position: absolute;
   bottom: 120%; /* above the button */
   left: 50%;
@@ -94,7 +96,6 @@ select:focus {
   font-size: 12px;
   white-space: nowrap;
   opacity: 0.8;
-  visibility: visible;
   z-index: 10;
 }
 
@@ -130,7 +131,11 @@ canvas {
   line-height: 1.6;
 }
 
-.minMaxterms-section {
+.instruction-section.active p {
+  margin: 0;
+}
+
+.equation-section {
   text-align: center;
   padding: 0 16px;
   background: #b1b1b120;
@@ -141,25 +146,25 @@ canvas {
   width: 65%;
 }
 
-.minMaxterms-section.active {
+.equation-section.active {
   color: #333;
   line-height: 1.6;
   background: #f9f1ff;
   border: 2px solid #c2a3eb;
 }
 
-.minMaxterms-section h3 {
+.equation-section h3 {
   text-align: center;
   font-size: 16px;
 }
 
-.minMaxterms-section .minMaxterm-item {
+.equation-section .equation-item {
   display: inline-block; 
   margin-right: 1.25rem; 
   white-space: nowrap; 
 }
 
-.minMaxterms-section p {
+.equation-section p {
   overflow-wrap: break-word; 
   word-wrap: break-word; 
   word-break: break-word;
@@ -382,7 +387,7 @@ table tr:hover {
       width: 80%;
   }
 
-  .minMaxterms-section, .minMaxterms-section.active {
+  .equation-section, .equation-section.active {
     width: 80%;
   }
 }

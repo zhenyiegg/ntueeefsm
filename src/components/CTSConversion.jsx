@@ -371,6 +371,32 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             },
           });
 
+          linkView.model.labels([{
+            position: 0.35,
+            attrs: {
+              text: {
+                text: labels,
+                fill: "black",
+                fontSize: 18,
+                textAnchor: "middle", 
+                yAlignment: "middle",
+              },
+              rect: {
+                fill: "#d1b3ff", 
+                stroke: "#5e35b1", 
+                strokeWidth: 1,
+                rx: 2, 
+                ry: 2, 
+                refWidth: 6, 
+                refHeight: 2, 
+                refX: -3, 
+                refY: -2,
+                width: "auto", 
+                height: "auto", 
+              },
+            },
+          }]);
+
           const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}`;
           const transitionLabel = `${from} ➔ ${to}`;
           const inputLabel = `X${numInputs === 2 ? "1X0" : "0"}`;
@@ -399,6 +425,32 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
               targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" }, 
             },
           });
+
+          linkView.model.labels([{
+            position: 0.35,
+            attrs: {
+              text: {
+                text: labels,
+                fill: "black",
+                fontSize: 18,
+                textAnchor: "middle", 
+                yAlignment: "middle",
+              },
+              rect: {
+                fill: "#ffffff", 
+                stroke: "#000000", 
+                strokeWidth: 1,
+                rx: 2, 
+                ry: 2, 
+                refWidth: 6, 
+                refHeight: 2, 
+                refX: -3, 
+                refY: -2,
+                width: "auto", 
+                height: "auto", 
+              },
+            },
+          }]);
 
           setTooltipVisible(false);
 
