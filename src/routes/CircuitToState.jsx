@@ -7,9 +7,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; 
 
 const CircuitToState = () => {
-  // States for generated data and user inputs
-  const [minMaxterms, setMinMaxterms] = useState([]);
-  const [minMaxtermOutputZ, setMinMaxtermOutputZ] = useState("");
+
+  const [logicEquation, setLogicEquation] = useState([]);
   const [isGenerated, setIsGenerated] = useState(false);
 
   const [excitationTable, setExcitationTable] = useState([]);
@@ -55,6 +54,7 @@ const CircuitToState = () => {
     flipFlopType: "",
     numFlipFlops: "",
     fsmType: "",
+    preFillOption: "",
   });
 
   // State for finalized dropdown selections after clicking Generate
@@ -63,6 +63,7 @@ const CircuitToState = () => {
     flipFlopType: "",
     numFlipFlops: "",
     fsmType: "",
+    preFillOption: "",
   });
 
   // Helper: Check if all dropdowns are selected
@@ -70,7 +71,8 @@ const CircuitToState = () => {
     dropdownState.numInputs &&
     dropdownState.flipFlopType &&
     dropdownState.numFlipFlops &&
-    dropdownState.fsmType;
+    dropdownState.fsmType &&
+    dropdownState.preFillOption;
   
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -100,7 +102,7 @@ const CircuitToState = () => {
 
       // Proceed with generation...
       setGenerateState({ ...dropdownState }); 
-      generateMinMaxterms({ ...dropdownState }); 
+      generateEquations({ ...dropdownState }); 
       setIsGenerated(true);
     }
   };
@@ -118,9 +120,9 @@ const CircuitToState = () => {
       flipFlopType: getRandomDropdownValue(["D", "T", "JK"]),
       numFlipFlops: getRandomDropdownValue(["2", "3"]),
       fsmType: getRandomDropdownValue(["Mealy", "Moore"]),
+      preFillOption: getRandomDropdownValue(["random", "none"]),
     };
   
-    // Valid combination (disable 3 flip-flops for 2 inputs)
     if (randomDropdownState.numInputs === "2" && randomDropdownState.numFlipFlops === "3") {
       randomDropdownState.numFlipFlops = "2";
     }
@@ -138,10 +140,8 @@ const CircuitToState = () => {
 
     setDropdownState(randomDropdownState); 
     setGenerateState(randomDropdownState); 
-    generateMinMaxterms(randomDropdownState); 
+    generateEquations(randomDropdownState); 
     setIsGenerated(true); 
-
-    verifyGeneratedTables();
   };
 
   // Helper to check if all input fields are filled
@@ -287,91 +287,11 @@ const CircuitToState = () => {
     return terms;
   };
 
-  /*  Automated Verification:
-   *  Checking Excitation Table
-   *  Checking State Transition Table
-   */
-  
-  const verifyGeneratedTables = useCallback(() => {
-    console.log("🔍 Running verifyGeneratedTables() to validate correctness...");
+  // Generate Logic Equations
+  const generateEquations = (state) => {
+    const { numInputs, flipFlopType, numFlipFlops, fsmType, preFillOption } = state || dropdownState;
 
-    let excitationTableValid = true;
-    let stateTransitionTableValid = true;
-  
-    // Verify Excitation Table Logic
-    excitationTable.forEach((row, rowIndex) => {
-      Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
-        const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
-  
-        const expectedValue = isMinterm
-          ? terms.includes(rowIndex) ? "1" : "0" // Minterms expect "1"
-          : terms.includes(rowIndex) ? "0" : "1"; // Maxterms expect "0"
-
-        console.log("➡️ [Excitation Table] Row", rowIndex, "Flip-Flop", flipFlop);
-        console.log(`   - Stored F/F Input: ${row.flipFlopInputs[flipFlop]}, Expected: ${expectedValue}`);
-        console.log(`   - ${isMinterm ? "Σm" : "ΠM"} Flip-Flop Object:`, row.flipFlopInputs);
-          
-        if (row.flipFlopInputs[flipFlop] !== expectedValue) {
-          console.error(
-            `Excitation Table Error: Flip-Flop ${flipFlop} at row ${rowIndex} should be ${expectedValue}.`
-          );
-          excitationTableValid = false;
-        }
-      });
-    });
-  
-    // Verify State Transition Table Logic
-    stateTransitionTable.forEach((row, rowIndex) => {
-      const expectedNextState = computeNextState(
-        generateState.flipFlopType,
-        row.currentState,
-        hiddenExcitationCorrectAnswers,
-        rowIndex,
-        parseInt(generateState.numFlipFlops)
-      );
-
-      console.log("➡️ [State Transition Table] Row", rowIndex, "Current State:", row.currentState);
-      console.log(`   - Stored Next State: ${row.nextState}, Expected: ${expectedNextState}`);
-  
-      if (row.nextState !== expectedNextState) {
-        console.error(
-          `State Transition Table Error: Next State at row ${rowIndex} should be ${expectedNextState}.`
-        );
-        stateTransitionTableValid = false;
-      }
-
-      // Verify Output Z
-      const expectedOutput = hiddenStateTransitionCorrectAnswers.output[rowIndex];
-
-      console.log(`   - Stored Output: ${row.output}, Expected: ${expectedOutput}`);
-  
-      if (row.output !== expectedOutput) {
-        console.error(
-          `State Transition Table Error: Output Z at row ${rowIndex} should be ${expectedOutput}.`
-        );
-        stateTransitionTableValid = false;
-      }
-    });
-  
-    if (excitationTableValid && stateTransitionTableValid) {
-      console.log("✅ Verification Passed: All logic in the tables is correct!\n");
-    } else {
-      console.log("❌ Verification Failed: Errors detected. See logs for details.\n");
-    }
-  }, [excitationTable, stateTransitionTable, hiddenExcitationCorrectAnswers, hiddenStateTransitionCorrectAnswers, generateState]);
-
-  // Runs verification after stateTransitionTable and excitationTable are updated
-  useEffect(() => {
-    if (isGenerated && excitationTable.length > 0 && stateTransitionTable.length > 0) {
-      verifyGeneratedTables();
-    }
-  }, [isGenerated, excitationTable, stateTransitionTable, verifyGeneratedTables]);
-
-  // Generate minterms, hidden correct answers and populate tables 
-  const generateMinMaxterms = (state) => {
-    const { numInputs, flipFlopType, numFlipFlops, fsmType } = state || dropdownState;
-
-    if (!numInputs || !flipFlopType || !numFlipFlops || !fsmType) {
+    if (!numInputs || !flipFlopType || !numFlipFlops || !fsmType || !preFillOption) {
       // Safety check if dropdowns are incomplete
       return;
     }
@@ -383,24 +303,23 @@ const CircuitToState = () => {
     // Reset completion states
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
-
     setGenerateState(state || dropdownState); // Finalize the dropdown selections
 
-    let maxValue, minMinMaxterms, maxMinMaxterms;
+    let maxValue, minTerms, maxTerms;
 
     if (numFlipFlops === "2" && numInputs === "1") {
       maxValue = 8; // 0 to 7
-      minMinMaxterms = 4;
-      maxMinMaxterms = 6;
+      minTerms = 4;
+      maxTerms = 6;
     } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
       maxValue = 16; // 0 to 15
-      minMinMaxterms = 6;
-      maxMinMaxterms = 10;
+      minTerms = 6;
+      maxTerms = 10;
     }
 
-    let maxMinMaxtermsForOutput = maxMinMaxterms;
+    let maxTermsForOutput = maxTerms;
     if (fsmType === "Moore" && numFlipFlops === "2" && numInputs === "2") {
-      maxMinMaxtermsForOutput = 16; // Allow up to 16 terms for Output Z
+      maxTermsForOutput = 16; 
     }
 
     const generatedTerms = [];
@@ -441,7 +360,7 @@ const CircuitToState = () => {
       const ensureRowZeroHasOne = index === 0; // Only enforce for the first row (current state 00/000)
 
       const terms = generateUniqueTerms(
-        getRandomNumber(minMinMaxterms, maxMinMaxterms),
+        getRandomNumber(minTerms, maxTerms),
         maxValue,
         ensureRowZeroHasOne,
         isMinterm
@@ -458,13 +377,15 @@ const CircuitToState = () => {
         </>
       );
   
-      generatedTerms.push({ flipFlop: formattedKey, terms, isMinterm, formattedTerms });
+      generatedTerms.push({ equation: formattedKey, terms, isMinterm, formattedTerms });
   
       excitationCorrectAnswers[flipFlop] = {
         terms,
         isMinterm,
       };
     });
+
+    setHiddenExcitationCorrectAnswers(excitationCorrectAnswers);
 
     // Generate random minterms or maxterms for Output Z
     const isOutputMinterm = Math.random() < 0.5; // Randomly decide Σm or ΠM
@@ -489,8 +410,8 @@ const CircuitToState = () => {
 
       // Step 3: Calculate how many unique states to select
       let numSelectedStates = getRandomNumber(
-        Math.ceil(minMinMaxterms / rowsPerState), // Divide by rows per state to get unique state count
-        Math.floor(maxMinMaxtermsForOutput / rowsPerState) 
+        Math.ceil(minTerms / rowsPerState), // Divide by rows per state to get unique state count
+        Math.floor(maxTermsForOutput / rowsPerState) 
       );
     
       // Step 4: Randomly select only the required number of states
@@ -502,15 +423,15 @@ const CircuitToState = () => {
           outputTerms.push(...stateGroupedIndices[state]); // Include all rows for selected state
       });
 
-      // Step 6: Ensure total number of terms is within `minMinMaxterms` and `maxMinMaxtermsForOutput`
-      while (outputTerms.length > maxMinMaxtermsForOutput) {
+      // Step 6: Ensure total number of terms is within `minTerms` and `maxTermsForOutput`
+      while (outputTerms.length > maxTermsForOutput) {
         outputTerms.pop(); // Remove extra values
       }
-      while (outputTerms.length < minMinMaxterms) {
+      while (outputTerms.length < minTerms) {
         for (let i = 0; i < maxValue; i++) {
           if (!outputTerms.includes(i)) {
             outputTerms.push(i);
-            if (outputTerms.length >= minMinMaxterms) break;
+            if (outputTerms.length >= minTerms) break;
           }
         }
       }
@@ -521,28 +442,31 @@ const CircuitToState = () => {
       } else {
       // Default random generation for Mealy FSM (No restrictions per current state)
       outputTerms = generateUniqueTerms(
-        getRandomNumber(minMinMaxterms, maxMinMaxterms),
+        getRandomNumber(minTerms, maxTerms),
         maxValue
       );
     }
     
     const formattedOutputKey = formatKeyForDisplay("Z", numInputs, numFlipFlops);
 
-    const outputZFormattedTerms = isOutputMinterm ? (
+    const formattedOutputTerms = isOutputMinterm ? (
       <>
-        <strong>{formattedOutputKey}&nbsp;=&nbsp;</strong>
         <span className="minterm">Σ</span>m({outputTerms.join(",\u00A0")})</>
     ) : (
       <>
-        <strong>{formattedOutputKey}&nbsp;=&nbsp;</strong>
         <span className="maxterm">Π</span>M({outputTerms.join(",\u00A0")})
       </>
     );
 
+    const outputEquation = {
+      equation: formattedOutputKey,
+      terms: outputTerms,
+      isMinterm: isOutputMinterm,
+      formattedTerms: formattedOutputTerms,
+    };
+
     // Update states
-    setMinMaxterms(generatedTerms);
-    setMinMaxtermOutputZ(outputZFormattedTerms);
-    setHiddenExcitationCorrectAnswers(excitationCorrectAnswers);
+    setLogicEquation([...generatedTerms, outputEquation]);
     setIsGenerated(true);
 
     // Generate tables
@@ -599,86 +523,90 @@ const CircuitToState = () => {
       output: newStateTransitionTable.map((row) => row.output),
     });
 
+    // If "Random Pre-Fill" is selected, prefill random input fields
+    if (preFillOption === "random") {
+      // Randomly choose 25%, 50%, or 75% pre-fill percentage
+      const randomPreFillPercent = getRandomDropdownValue([0.25, 0.5, 0.75]);
+
+      const prefilledExcitation = newExcitationTable.map((row, rowIndex) => {
+        const updatedRow = { ...row };
+        Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
+          if (Math.random() < randomPreFillPercent) { 
+            updatedRow.flipFlopInputs[flipFlop] = {
+              value: row.flipFlopInputs[flipFlop], // Prefill with correct value
+              status: "correct",
+            };
+          } else {
+            updatedRow.flipFlopInputs[flipFlop] = {
+              value: "", // Leave blank for user input
+              status: "editable",
+            };
+          }
+        });
+        return updatedRow;
+      });
+
+      const prefilledStateTransition = newStateTransitionTable.map((row, rowIndex) => {
+        const updatedRow = { ...row };
+
+        if (Math.random() < randomPreFillPercent) { 
+          updatedRow.nextState = {
+            value: row.nextState,
+            status: "correct",
+            editable: false,
+          };
+        } else {
+          updatedRow.nextState = {
+            value: "",
+            status: "editable",
+            editable: true,
+          };
+        }
+
+        if (Math.random() < randomPreFillPercent) { // output Z
+          updatedRow.output = {
+            value: row.output,
+            status: "correct",
+            editable: false,
+          };
+        } else {
+          updatedRow.output = {
+            value: "",
+            status: "editable",
+            editable: true,
+          };
+        }
+
+        return updatedRow;
+      });
+
+      setUserExcitationInputs(prefilledExcitation);
+      setUserStateTransitionInputs(prefilledStateTransition);
+    } else {
+      // If "No Pre-Fill" is selected, leave all inputs empty for user
+      // Initialize user inputs
+      setUserExcitationInputs(
+        newExcitationTable.map((row) => ({
+          ...row,
+          flipFlopInputs: Object.keys(row.flipFlopInputs).reduce((acc, key) => {
+            acc[key] = { value: "", status: "editable" }; 
+            return acc;
+          }, {}),
+        }))
+      );
+
+      setUserStateTransitionInputs(
+        newStateTransitionTable.map((row) => ({
+          ...row,
+          nextState: { value: "", status: "editable", editable: true },
+          output: { value: "", status: "editable", editable: true },
+        }))
+      );
+    }
+
     setExcitationTable(newExcitationTable);
     setStateTransitionTable(newStateTransitionTable);
-
-    verifyGeneratedTables();
-    
-    // Initialize user inputs
-    setUserExcitationInputs(
-      newExcitationTable.map((row) => ({
-        ...row,
-        flipFlopInputs: Object.keys(row.flipFlopInputs).reduce((acc, key) => {
-          acc[key] = { value: "", status: "editable" }; 
-          return acc;
-        }, {}),
-      }))
-    );
-
-    setUserStateTransitionInputs(
-      newStateTransitionTable.map((row) => ({
-        ...row,
-        nextState: { value: "", status: "editable", editable: true },
-        output: { value: "", status: "editable", editable: true },
-      }))
-    );
   };
-
-  const popupRef = useRef(null);
-  const previouslyFocusedElement = useRef(null);
-
-  const showPopupMessage = (message) => {
-    previouslyFocusedElement.current = document.activeElement;
-    setPopupMessage(message);
-    setShowPopup(true);
-  };
-
-  const handleClosePopup = () => {
-    setShowPopup(false);
-    if (previouslyFocusedElement.current) {
-      previouslyFocusedElement.current.focus();
-    }
-  };
-
-  useEffect(() => {
-    if (showPopup && popupRef.current) {
-      popupRef.current.focus();
-    }
-  }, [showPopup]);
-
-  useEffect(() => {
-    if (showPopup) {
-      const handleKeyDown = (e) => {
-        e.preventDefault(); // Prevent default scrolling or focus shifting
-        e.stopPropagation(); // Stop the event from bubbling further
-        handleClosePopup();
-      };
-  
-      window.addEventListener("keydown", handleKeyDown, true);
-      
-      // Clean up the event listener when pop-up is hidden or component unmounts
-      return () => {
-        window.removeEventListener("keydown", handleKeyDown, true);
-      };
-    }
-  }, [showPopup]);
-  
-  useEffect(() => {
-    if (showPopup) {
-      const handleClick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClosePopup();
-      };
-  
-      window.addEventListener("click", handleClick, true);
-      
-      // Clean up the event listener when the popup is hidden or component unmounts
-      return () => {
-        window.removeEventListener("click", handleClick, true);
-      };
-    }
-  }, [showPopup]);
   
   // Handle user input change
   const handleExcitationInputChange = (rowIndex, flipFlop, value) => {
@@ -955,6 +883,62 @@ const CircuitToState = () => {
     return headers;
   };
 
+  const popupRef = useRef(null);
+  const previouslyFocusedElement = useRef(null);
+
+  const showPopupMessage = (message) => {
+    previouslyFocusedElement.current = document.activeElement;
+    setPopupMessage(message);
+    setShowPopup(true);
+  };
+
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    if (previouslyFocusedElement.current) {
+      previouslyFocusedElement.current.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (showPopup && popupRef.current) {
+      popupRef.current.focus();
+    }
+  }, [showPopup]);
+
+  useEffect(() => {
+    if (showPopup) {
+      const handleKeyDown = (e) => {
+        e.preventDefault(); // Prevent default scrolling or focus shifting
+        e.stopPropagation(); // Stop the event from bubbling further
+        handleClosePopup();
+      };
+  
+      window.addEventListener("keydown", handleKeyDown, true);
+      
+      // Clean up the event listener when pop-up is hidden or component unmounts
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown, true);
+      };
+    }
+  }, [showPopup]);
+  
+  useEffect(() => {
+    if (showPopup) {
+      const handleClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClosePopup();
+      };
+  
+      window.addEventListener("click", handleClick, true);
+      
+      // Clean up the event listener when the popup is hidden or component unmounts
+      return () => {
+        window.removeEventListener("click", handleClick, true);
+      };
+    }
+  }, [showPopup]);
+
   // Render
   return (
     <div className="container">
@@ -1021,10 +1005,19 @@ const CircuitToState = () => {
           <option value="Moore">Moore</option>
         </select>
 
+        <select
+          value={dropdownState.preFillOption}
+          onChange={(e) => handleDropdownChange("preFillOption", e.target.value)}
+        >
+          <option value="">Pre-Fill Option</option>
+          <option value="random">Random Pre-Fill</option>
+          <option value="none">No Pre-Fill</option>
+        </select>
+
         {/* Generate Button */}
         <div className="tooltipBtn-container">
           {showGenerateTooltip && (
-            <div className="tooltipBtn">Refresh logic functions</div>
+            <div className="tooltipBtn">Refresh logic equations</div>
           )}
           <button
             className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
@@ -1066,28 +1059,25 @@ const CircuitToState = () => {
       {isGenerated && (
         <div className="instruction-section active">
           <p>
-            Given the above circuit and the following logic functions, complete the excitation table and state transition table to obtain the state diagram.
+            Given the above circuit and the following logic equations, complete the excitation table and state transition table to obtain the state diagram.
           </p>
         </div>
       )}
 
       {/* Display Generated Minterms & Maxterms */}
-      <div className={`minMaxterms-section ${isGenerated ? "active" : ""}`}>
+      <div className={`equation-section ${isGenerated ? "active" : ""}`}>
         {!isGenerated ? (
-          <h3 style = {{color: "#cccccc"}}>Logic Functions</h3>
+          <h3 style = {{color: "#cccccc"}}>Logic Equations</h3>
         ) : (
           <>
             <p>
-              {minMaxterms.map(
-                ({ flipFlop, formattedTerms }) => (
-                  <span key={flipFlop} className="minMaxterm-item">
-                    <strong>{flipFlop}&nbsp;=&nbsp;</strong>{formattedTerms}
+              {logicEquation.map(
+                ({ equation, formattedTerms }) => (
+                  <span key={equation} className="equation-item">
+                    <strong>{equation}&nbsp;=&nbsp;</strong>{formattedTerms}
                   </span>
                 )
               )}
-            </p>
-            <p>
-              {minMaxtermOutputZ}
             </p>
           </>
         )}
