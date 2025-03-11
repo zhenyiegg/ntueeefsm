@@ -530,11 +530,37 @@ const CircuitToState = () => {
         preFillOption === "random75" ? 0.75 :
         preFillOption === "random50" ? 0.50 :
         preFillOption === "random25" ? 0.25 : 0;
-
+    
+      // Count total input fields
+      const totalExcitationFields = newExcitationTable.length * Object.keys(newExcitationTable[0].flipFlopInputs).length;
+      const totalStateFields = newStateTransitionTable.length * 2; // Next State + Output
+    
+      // Calculate how many fields to prefill
+      const preFillCountExcitation = Math.floor(totalExcitationFields * preFillPercent);
+      const preFillCountState = Math.floor(totalStateFields * preFillPercent);
+    
+      // Generate shuffled indices to prefill
+      const shuffleArray = (array) => {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      };
+    
+      const excitationIndices = shuffleArray(Array.from({ length: totalExcitationFields }, (_, i) => i)).slice(0, preFillCountExcitation);
+      const stateIndices = shuffleArray(Array.from({ length: totalStateFields }, (_, i) => i)).slice(0, preFillCountState);
+    
+      // Convert to sets for quick lookup
+      const selectedExcitation = new Set(excitationIndices);
+      const selectedState = new Set(stateIndices);
+    
+      // Prefill Excitation Table
       const prefilledExcitation = newExcitationTable.map((row, rowIndex) => {
         const updatedRow = { ...row };
-        Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
-          if (Math.random() < preFillPercent) { 
+        Object.keys(row.flipFlopInputs).forEach((flipFlop, colIndex) => {
+          const fieldIndex = rowIndex * Object.keys(row.flipFlopInputs).length + colIndex;
+          if (selectedExcitation.has(fieldIndex)) {
             updatedRow.flipFlopInputs[flipFlop] = {
               value: row.flipFlopInputs[flipFlop], // Prefill correct value
               status: "correct",
@@ -548,41 +574,25 @@ const CircuitToState = () => {
         });
         return updatedRow;
       });
-
+    
+      // Prefill State Transition Table
       const prefilledStateTransition = newStateTransitionTable.map((row, rowIndex) => {
         const updatedRow = { ...row };
-
-        if (Math.random() < preFillPercent) { // Next State
-          updatedRow.nextState = {
-            value: row.nextState,
-            status: "correct",
-            editable: false,
-          };
-        } else {
-          updatedRow.nextState = {
-            value: "",
-            status: "editable",
-            editable: true,
-          };
-        }
-
-        if (Math.random() < preFillPercent) { // output Z
-          updatedRow.output = {
-            value: row.output,
-            status: "correct",
-            editable: false,
-          };
-        } else {
-          updatedRow.output = {
-            value: "",
-            status: "editable",
-            editable: true,
-          };
-        }
-
+        
+        const nextStateIndex = rowIndex * 2; // Next State index
+        const outputIndex = rowIndex * 2 + 1; // Output index
+    
+        updatedRow.nextState = selectedState.has(nextStateIndex)
+          ? { value: row.nextState, status: "correct", editable: false }
+          : { value: "", status: "editable", editable: true };
+    
+        updatedRow.output = selectedState.has(outputIndex)
+          ? { value: row.output, status: "correct", editable: false }
+          : { value: "", status: "editable", editable: true };
+    
         return updatedRow;
       });
-
+    
       setUserExcitationInputs(prefilledExcitation);
       setUserStateTransitionInputs(prefilledStateTransition);
     } else {
@@ -596,7 +606,7 @@ const CircuitToState = () => {
           }, {}),
         }))
       );
-
+    
       setUserStateTransitionInputs(
         newStateTransitionTable.map((row) => ({
           ...row,
@@ -605,9 +615,10 @@ const CircuitToState = () => {
         }))
       );
     }
-
+    
     setExcitationTable(newExcitationTable);
     setStateTransitionTable(newStateTransitionTable);
+    
   };
   
   // Handle user input change
