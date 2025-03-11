@@ -120,9 +120,10 @@ const CircuitToState = () => {
       flipFlopType: getRandomDropdownValue(["D", "T", "JK"]),
       numFlipFlops: getRandomDropdownValue(["2", "3"]),
       fsmType: getRandomDropdownValue(["Mealy", "Moore"]),
-      preFillOption: getRandomDropdownValue(["random", "none"]),
+      preFillOption: getRandomDropdownValue(["random75", "random50","random25","none"]),
     };
   
+    // Valid combination (disable 3 flip-flops for 2 inputs)
     if (randomDropdownState.numInputs === "2" && randomDropdownState.numFlipFlops === "3") {
       randomDropdownState.numFlipFlops = "2";
     }
@@ -523,17 +524,19 @@ const CircuitToState = () => {
       output: newStateTransitionTable.map((row) => row.output),
     });
 
-    // If "Random Pre-Fill" is selected, prefill random input fields
-    if (preFillOption === "random") {
-      // Randomly choose 25%, 50%, or 75% pre-fill percentage
-      const randomPreFillPercent = getRandomDropdownValue([0.25, 0.5, 0.75]);
+    if (preFillOption && preFillOption.startsWith("random")) {
+      // Determine pre-fill percentage based on user choice
+      const preFillPercent =
+        preFillOption === "random75" ? 0.75 :
+        preFillOption === "random50" ? 0.50 :
+        preFillOption === "random25" ? 0.25 : 0;
 
       const prefilledExcitation = newExcitationTable.map((row, rowIndex) => {
         const updatedRow = { ...row };
         Object.keys(row.flipFlopInputs).forEach((flipFlop) => {
-          if (Math.random() < randomPreFillPercent) { 
+          if (Math.random() < preFillPercent) { 
             updatedRow.flipFlopInputs[flipFlop] = {
-              value: row.flipFlopInputs[flipFlop], // Prefill with correct value
+              value: row.flipFlopInputs[flipFlop], // Prefill correct value
               status: "correct",
             };
           } else {
@@ -549,7 +552,7 @@ const CircuitToState = () => {
       const prefilledStateTransition = newStateTransitionTable.map((row, rowIndex) => {
         const updatedRow = { ...row };
 
-        if (Math.random() < randomPreFillPercent) { 
+        if (Math.random() < preFillPercent) { // Next State
           updatedRow.nextState = {
             value: row.nextState,
             status: "correct",
@@ -563,7 +566,7 @@ const CircuitToState = () => {
           };
         }
 
-        if (Math.random() < randomPreFillPercent) { // output Z
+        if (Math.random() < preFillPercent) { // output Z
           updatedRow.output = {
             value: row.output,
             status: "correct",
@@ -583,8 +586,7 @@ const CircuitToState = () => {
       setUserExcitationInputs(prefilledExcitation);
       setUserStateTransitionInputs(prefilledStateTransition);
     } else {
-      // If "No Pre-Fill" is selected, leave all inputs empty for user
-      // Initialize user inputs
+      // No pre-fill: All input fields are empty
       setUserExcitationInputs(
         newExcitationTable.map((row) => ({
           ...row,
@@ -706,7 +708,7 @@ const CircuitToState = () => {
       setStateTransitionSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
     } else {
       // Increment attempt counter if not all correct
-      setExcitationAttemptCount(prev => prev + 1);
+      setExcitationAttemptCount(prev => prev + 1, 2);
     }
   };
 
@@ -777,7 +779,7 @@ const CircuitToState = () => {
       setShowStateDiagram(true);
     } else {
       // Increment attempt counter if answers are still incorrect
-      setStateTransitionAttemptCount(prev => prev + 1);
+      setStateTransitionAttemptCount(prev => prev + 1, 2);
     }
   };
 
@@ -1009,9 +1011,11 @@ const CircuitToState = () => {
           value={dropdownState.preFillOption}
           onChange={(e) => handleDropdownChange("preFillOption", e.target.value)}
         >
-          <option value="">Pre-Fill Option</option>
-          <option value="random">Random Pre-Fill</option>
-          <option value="none">No Pre-Fill</option>
+          <option value="">Difficulty</option>
+          <option value="random75">Easy</option>
+          <option value="random50">Medium</option>
+          <option value="random25">Hard</option>
+          <option value="none">Expert</option>
         </select>
 
         {/* Generate Button */}
