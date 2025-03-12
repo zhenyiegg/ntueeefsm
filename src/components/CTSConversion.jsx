@@ -28,12 +28,22 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
   }, []);
 
   useEffect(() => {
+
+    const paperHeight = (() => {
+      if (numFlipFlops === 2) {
+        return 800; // Shorter height for 2 flip-flops (either 1 or 2 inputs)
+      } else if (numFlipFlops === 3 && numInputs === 1) {
+        return 1000; 
+      }
+      return 1000; // Default height
+    })();
+
     const graph = new dia.Graph();
     const paper = new dia.Paper({
       el: document.getElementById("stateDiagram-container"),
       model: graph,
-      width: 1020,
-      height: 900,
+      width: 1000,
+      height: paperHeight,
       gridSize: 1,
       interactive: false,
     });
@@ -492,10 +502,12 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
   const calculateStatePositions = (states, numFlipFlops, numInputs) => {
     const positions = {};
     const canvasWidth = 700; 
-    const canvasHeight = 800; 
+    //const canvasHeight = 900; 
+    const baseHeight = numFlipFlops === 3 ? 860 : 700;
     const centerX = canvasWidth - 250 ; 
-    const centerY = canvasHeight / 2; 
-    const squareOffset = 180; // Distance from center to the square corners
+    const centerY = baseHeight / 2; 
+    //const squareOffset = 180; // Distance from center to the square corners
+    const squareOffset = 180;
   
     if (numFlipFlops === 2 && (numInputs === 1 || numInputs === 2)) {
       // Square arrangement for 4 states
@@ -603,7 +615,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       <div id="stateDiagram-info">
         <pre>{diagramInfo}</pre>
       </div>
-      <div id="stateDiagram-container" />
+      <div className="state-diagram-wrapper">
+        <div id="stateDiagram-container" />
+      </div>
       {tooltipVisible && (
         <div 
           className="tooltip-cts"

@@ -631,7 +631,7 @@ const CircuitToState = () => {
         return updatedInputs;
       });
     } else {
-      showPopupMessage("Flip-Flop inputs must be single binary values (0 as False and 1 as True).");
+      showPopupMessage("Flip-Flop inputs must be single-bit binary (0 or 1). ");
     }
   };
 
@@ -658,7 +658,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage(`With ${numFlipFlops} flip-flops, the Next State must be a ${numFlipFlops}-bit binary number (0 and 1).`);
+        showPopupMessage(`With ${numFlipFlops} flip-flops, Next State must be a ${numFlipFlops}-bit binary (each bit is 0 or 1).`);
       }
     } else if (column === "output") {
       // Allow only single binary digit for Output Z
@@ -671,7 +671,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage("With one output, Z must be a single binary value (0 or 1) only.");
+        showPopupMessage("With one output, Z must be a single-bit binary (0 or 1).");
       }
     }
   };
@@ -1061,23 +1061,16 @@ const CircuitToState = () => {
         </div>
       </div>
               
-      {/* Empty canvas until "Generate" is clicked */}
-      <CircuitDiagram 
-        numInputs={generateState.numInputs} 
-        flipFlopType={generateState.flipFlopType} 
-        numFlipFlops={generateState.numFlipFlops} 
-        fsmType={generateState.fsmType}
-        isGenerated={isGenerated}
-      />
-
-      {/* Display Instruction */}
-      {isGenerated && (
-        <div className="instruction-section active">
-          <p>
-            Given the above circuit and the following logic equations, complete the excitation table and state transition table to obtain the state diagram.
-          </p>
-        </div>
-      )}
+      <div className="circuit-container">
+        {/* Empty canvas until "Generate" is clicked */}
+        <CircuitDiagram 
+          numInputs={generateState.numInputs} 
+          flipFlopType={generateState.flipFlopType} 
+          numFlipFlops={generateState.numFlipFlops} 
+          fsmType={generateState.fsmType}
+          isGenerated={isGenerated}
+        />
+      </div>
 
       {/* Display Generated Minterms & Maxterms */}
       <div className={`equation-section ${isGenerated ? "active" : ""}`}>
@@ -1097,6 +1090,16 @@ const CircuitToState = () => {
           </>
         )}
       </div>
+
+      
+      {/* Display Instruction */}
+      {isGenerated && (
+        <div className="instruction-section active">
+          <p>
+            Using the given circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
+          </p>
+        </div>
+      )}
 
       {/* Excitation Table Section */}
       <div className={`content-box ${showExcitationTable ? "active" : ""}`}>
@@ -1263,18 +1266,16 @@ const CircuitToState = () => {
       {/* State Diagram Section */}
       <div className={`content-box stateDiagram-box ${showStateDiagram ? "active" : ""}`}>
         <h2>State Diagram</h2>
-        {showStateDiagram && (
-          <div className="state-diagram-placeholder">
-            {stateTransitionTable.length > 0 && (
-              <CTSConversion
-                stateTransitionTable={stateTransitionTable}
-                fsmType={generateState.fsmType}
-                numFlipFlops={parseInt(generateState.numFlipFlops)}
-                numInputs={parseInt(generateState.numInputs)}
-              />
-            )}
-          </div>
-        )}
+        <div className="state-container">
+          {showStateDiagram && stateTransitionTable.length > 0 && (
+            <CTSConversion
+              stateTransitionTable={stateTransitionTable}
+              fsmType={generateState.fsmType}
+              numFlipFlops={parseInt(generateState.numFlipFlops)}
+              numInputs={parseInt(generateState.numInputs)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
