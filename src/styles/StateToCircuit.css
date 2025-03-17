@@ -19,7 +19,7 @@ html, body, #root, .App {
   max-width: 100%; /* Prevent overflow */
   overflow-x: hidden; /* Hide horizontal overflow */
   padding: 0;
-  padding-bottom: 20px; /* Add bottom padding */
+  padding-bottom: 100px; /* Add bottom padding */
   box-sizing: border-box;
   max-width: 1800px; /* Adjusted: 1720px + 2*368px margin = 2456px total */
   width: 95%; /* 736px = 2 * 368px margins */
