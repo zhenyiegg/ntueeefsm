@@ -17,6 +17,7 @@ const STCConversion = ({
     numInputs, // pass this down from the parent (if you need it)
     cellValidation, // validation state from parent
     blankCells, // blank cells from parent
+    difficulty, // difficulty level from parent
 }) => {
     // We'll track how many bits we need for each state,
     // the simplified equations, and whether we should display the circuit.
@@ -780,9 +781,39 @@ const STCConversion = ({
         if (mergedExcitationTable) {
             const newBlankCells = new Set();
 
-            // Assign blanks to all states (both used and unused) consistently
-            mergedExcitationTable.forEach((row, rowIndex) => {
+            // Set blank cell probability based on difficulty
+            let blankProbability;
+            switch (difficulty) {
+                case "easy":
+                    blankProbability = 0.25; // 25% chance of being blank (75% pre-filled)
+                    break;
+                case "medium":
+                    blankProbability = 0.5; // 50% chance of being blank (50% pre-filled)
+                    break;
+                case "hard":
+                    blankProbability = 0.75; // 75% chance of being blank (25% pre-filled)
+                    break;
+                case "expert":
+                    // For expert mode, make all cells blank
+                    mergedExcitationTable.forEach((_, rowIndex) => {
+                        ["input", "nextState", "excitation", "output"].forEach(
+                            (column) => {
+                                newBlankCells.add(`${rowIndex}-${column}`);
+                            }
+                        );
+                    });
+                    setExcitationBlankCells(newBlankCells);
+                    return;
+                default:
+                    blankProbability = 0.5; // Default to medium
+            }
+
+            // For non-expert difficulties, use probability-based approach
+            mergedExcitationTable.forEach((_, rowIndex) => {
+                // Track blanks in this row (only used for easy/medium)
                 let blanksInRow = 0;
+
+                // Try each column in random order
                 const columns = [
                     "input",
                     "nextState",
@@ -790,14 +821,12 @@ const STCConversion = ({
                     "output",
                 ].sort(() => Math.random() - 0.5);
 
-                // Allow up to 3 blanks per row for all states
-                const maxBlanksInRow = 3;
-
                 for (const column of columns) {
-                    if (blanksInRow >= maxBlanksInRow) break;
+                    // Only apply max blanks per row limit for easy and medium difficulties
+                    if (difficulty !== "hard" && blanksInRow >= 2) break;
 
-                    // Use consistent probability for all states and columns
-                    if (Math.random() < 0.4) {
+                    // Chance of being blank based on difficulty
+                    if (Math.random() < blankProbability) {
                         newBlankCells.add(`${rowIndex}-${column}`);
                         blanksInRow++;
                     }
@@ -806,7 +835,7 @@ const STCConversion = ({
 
             setExcitationBlankCells(newBlankCells);
         }
-    }, [mergedExcitationTable]);
+    }, [mergedExcitationTable, difficulty]);
 
     // Update renderExcitationCell to adjust maxLength based on column and flip-flop type
     const renderExcitationCell = (row, rowIndex, column, value) => {
@@ -1314,13 +1343,11 @@ const STCConversion = ({
         }
 
         // Generate the variable list for the equation
-        // State variables in descending order (Q1, Q0) followed by input variables (X)
         const stateVars = Array.from(
             { length: numStateBits },
             (_, i) => `Q${numStateBits - 1 - i}`
         );
 
-        // Input variables
         const inputVars =
             numInputs > 1
                 ? Array.from(
@@ -1329,7 +1356,6 @@ const STCConversion = ({
                   )
                 : ["X"];
 
-        // Combine all variables
         const allVars = [...stateVars, ...inputVars].join(", ");
 
         // Render individual equation forms with proper styling for maxterms and minterms
@@ -1373,11 +1399,7 @@ const STCConversion = ({
                             }
                             onFocus={() => handleEquationFocus(key, field)}
                             onBlur={() => setFocusedEquationCell(null)}
-                            disabled={
-                                isCorrect ||
-                                isGivenUp ||
-                                (isZeroCheckbox && isZero)
-                            }
+                            disabled={isCorrect || isGivenUp}
                         />
                         {(field === "minterms" || field === "maxterms") &&
                             (!isZeroCheckbox || !isZero) && (
@@ -1400,7 +1422,7 @@ const STCConversion = ({
                                             field === "maxterms"
                                                 ? "maxterm"
                                                 : ""
-                                        }`}
+                                        } ${showGivenUp ? "given-up" : ""}`}
                                     >
                                         <input
                                             type="checkbox"
@@ -1828,9 +1850,9 @@ const STCConversion = ({
             {/* 3) Only show circuit diagram after clicking Next in equations */}
             {showCircuit && (
                 <>
-                    <h2>Generated Circuit Diagram</h2>
-                    {isGenerated && (
-                        <>
+                    <div className="circuit-diagram-container">
+                        <h2>Generated Circuit Diagram</h2>
+                        {isGenerated && (
                             <CircuitDiagram
                                 numInputs={
                                     numInputs ? numInputs.toString() : "1"
@@ -1840,9 +1862,9 @@ const STCConversion = ({
                                 fsmType={diagramType}
                                 isGenerated={true}
                             />
-                            {renderScore()}
-                        </>
-                    )}
+                        )}
+                    </div>
+                    {isGenerated && renderScore()}
                 </>
             )}
         </div>

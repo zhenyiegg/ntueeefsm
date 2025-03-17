@@ -351,7 +351,7 @@ const StateDiagram = ({
                 );
 
                 // For D flip-flop, we want to ensure the input value influences the next state
-                // but not completely determine it like before
+
                 if (flipFlopType === "D") {
                     // 70% chance to follow input value (for some predictability)
                     if (Math.random() < 0.7) {
@@ -1301,7 +1301,7 @@ const StateDiagram = ({
 
                 if (!fromState || !toState) return;
 
-                // Is this a self-loop?
+                // Self Loop Checker
                 const isSelfLoop = fromStateNumber === toStateNumber;
 
                 const sourceCenter = fromState.getBBox().center();
