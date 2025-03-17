@@ -5,12 +5,7 @@ import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-    faArrowRight,
-    faCircleInfo,
-    faGear,
-    faTimes,
-} from "@fortawesome/free-solid-svg-icons"; // Added faGear and faTimes icons
+import { faArrowRight, faCircleInfo } from "@fortawesome/free-solid-svg-icons"; // Removed faGear and faTimes icons
 import UserInputState from "../components/UserInputState";
 
 const StateToCircuit = () => {
@@ -41,7 +36,6 @@ const StateToCircuit = () => {
         transitionTable: 0,
     });
     // Add state for settings popup
-    const [showSettings, setShowSettings] = useState(false);
     const [isUserInputMode, setIsUserInputMode] = useState(false);
     const [difficulty, setDifficulty] = useState("medium");
 
@@ -57,12 +51,9 @@ const StateToCircuit = () => {
         const handleClickOutside = (event) => {
             if (
                 !event.target.closest(".info-button") &&
-                !event.target.closest(".info-tooltip") &&
-                !event.target.closest(".settings-button") &&
-                !event.target.closest(".settings-popup")
+                !event.target.closest(".info-tooltip")
             ) {
                 setShowTableInfo(false);
-                setShowSettings(false);
             }
         };
 
@@ -223,24 +214,53 @@ const StateToCircuit = () => {
         setTransitionTable(sortedTable);
         setShouldGenerate(false);
 
-        // Generate and store blank cell positions
+        // Generate and store blank cell positions based on difficulty
         const newBlankCells = new Set();
+
+        // Set blank cell probability based on difficulty
+        let blankProbability;
+        switch (difficulty) {
+            case "easy":
+                blankProbability = 0.25; // 25% chance of being blank (75% pre-filled)
+                break;
+            case "medium":
+                blankProbability = 0.5; // 50% chance of being blank (50% pre-filled)
+                break;
+            case "hard":
+                blankProbability = 0.75; // 75% chance of being blank (25% pre-filled)
+                break;
+            case "expert":
+                blankProbability = 1.0; // 100% chance of being blank (0% pre-filled)
+                break;
+            default:
+                blankProbability = 0.5; // Default to medium
+        }
+
         sortedTable.forEach((_, rowIndex) => {
-            // Track blanks in this row
-            let blanksInRow = 0;
-
-            // Try each column in random order
-            const columns = ["input", "nextState", "output"].sort(
-                () => Math.random() - 0.5
-            );
-
-            for (const column of columns) {
-                if (blanksInRow >= 2) break; // Max 2 blanks per row
-
-                // 30% chance of being blank
-                if (Math.random() < 0.3) {
+            // For expert mode, make all cells blank
+            if (difficulty === "expert") {
+                ["input", "nextState", "output"].forEach((column) => {
                     newBlankCells.add(`${rowIndex}-${column}`);
-                    blanksInRow++;
+                });
+            } else {
+                // For other difficulty levels, use probability-based approach
+                // Track blanks in this row (only used for easy/medium)
+                let blanksInRow = 0;
+
+                // Try each column in random order
+                const columns = ["input", "nextState", "output"].sort(
+                    () => Math.random() - 0.5
+                );
+
+                for (const column of columns) {
+                    // Only apply max blanks per row limit for easy and medium difficulties
+                    if (difficulty !== "hard" && blanksInRow >= 2) break;
+
+                    // Chance of being blank based on difficulty
+                    if (Math.random() < blankProbability) {
+                        newBlankCells.add(`${rowIndex}-${column}`);
+                        blanksInRow++;
+                    }
                 }
             }
         });
@@ -519,11 +539,6 @@ const StateToCircuit = () => {
         );
     };
 
-    // Toggle settings popup
-    const toggleSettings = () => {
-        setShowSettings(!showSettings);
-    };
-
     const handleUserInputToggle = () => {
         // If turning on User Input Mode, reset everything to defaults
         if (!isUserInputMode) {
@@ -570,10 +585,6 @@ const StateToCircuit = () => {
         }
 
         setIsUserInputMode(!isUserInputMode);
-    };
-
-    const handleDifficultyChange = (e) => {
-        setDifficulty(e.target.value);
     };
 
     // Handle function for when Generate Diagram is clicked in User Input mode
@@ -654,6 +665,20 @@ const StateToCircuit = () => {
                     </select>
                 </div>
 
+                <div>
+                    <label>Difficulty: </label>
+                    <select
+                        value={difficulty}
+                        onChange={(e) => setDifficulty(e.target.value)}
+                        className="difficulty-select"
+                    >
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+
                 <div className="button-group">
                     <button
                         onClick={handleGenerate}
@@ -678,60 +703,8 @@ const StateToCircuit = () => {
                             <span className="toggle-slider"></span>
                         </label>
                     </div>
-                    <button
-                        onClick={toggleSettings}
-                        className="settings-button"
-                    >
-                        <FontAwesomeIcon icon={faGear} />
-                    </button>
                 </div>
             </div>
-
-            {/* Settings Popup */}
-            {showSettings && (
-                <div
-                    className="settings-popup-overlay"
-                    onClick={toggleSettings}
-                >
-                    <div
-                        className="settings-popup"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="settings-popup-header">
-                            <h2>Settings</h2>
-                            <button
-                                className="close-button"
-                                onClick={toggleSettings}
-                            >
-                                <FontAwesomeIcon icon={faTimes} />
-                            </button>
-                        </div>
-                        <div className="settings-popup-content">
-                            {/* Difficulty Setting */}
-                            <div className="settings-option">
-                                <div className="settings-option-text">
-                                    <h3>Difficulty</h3>
-                                    <p>
-                                        Select the difficulty level for the
-                                        exercises.
-                                    </p>
-                                </div>
-                                <div className="settings-option-control">
-                                    <select
-                                        className="difficulty-select"
-                                        value={difficulty}
-                                        onChange={handleDifficultyChange}
-                                    >
-                                        <option value="easy">Easy</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="hard">Hard</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Only show paper when showPaper is true */}
             {showPaper && (
@@ -914,6 +887,7 @@ const StateToCircuit = () => {
                     numInputs={numInputs}
                     cellValidation={isUserInputMode ? {} : cellValidation}
                     blankCells={isUserInputMode ? new Set() : blankCells}
+                    difficulty={difficulty}
                 />
             )}
         </div>

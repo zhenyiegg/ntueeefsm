@@ -175,7 +175,7 @@ export function getCanonicalSumOfMinterms(mintermIndices, numVars) {
 }
 
 /**
- * Given a list of minterm decimal indices (where F=1), total
+ * Given a list of minterm decimal indices (where Function Output=1), total
  * number of variables, and validIndices, return the complementary maxterm indices
  * and produce a canonical product-of-maxterms string: "ΠM(0,2,4,...)"
  *
@@ -200,6 +200,10 @@ export function getCanonicalProductOfMaxterms(
     } else {
         // Backward compatibility: if validIndices is not provided, use original behavior
         maxtermIndices = allIndices.filter((i) => !mintermIndices.includes(i));
+    }
+
+    if (maxtermIndices.length === 0) {
+        return "1";
     }
 
     const sorted = maxtermIndices.sort((a, b) => a - b);

@@ -45,12 +45,19 @@ html, body, #root, .App {
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.control-panel > div {
+  min-width: 180px; /* Ensure each control has enough space */
 }
 
 .control-panel label {
   font-weight: bold;
   margin-right: 10px;
   color: #2980b9;
+  display: block; /* Make labels block for better alignment */
+  margin-bottom: 5px;
 }
 
 .control-panel select {
@@ -62,6 +69,7 @@ html, body, #root, .App {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 100%; /* Make all selects full width of their container */
 }
 
 .control-panel select:hover {
@@ -275,6 +283,7 @@ html, body, #root, .App {
   gap: 10px;
   align-items: center;
   margin-left: auto;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .generate-button,
@@ -886,12 +895,39 @@ td:nth-child(4) .table-input.select {
     border-color: #ff4444 !important;
 }
 
+.equation-input.given-up {
+    background-color: #f0f0f0 !important;
+    border-color: #999999 !important;
+    color: #666666 !important;
+    cursor: not-allowed;
+}
+
 .equation-input:disabled {
     background-color: #e6ffe6;
     border-color: #4CAF50;
     color: #333;
     cursor: not-allowed;
     opacity: 1;
+}
+
+/* Update zero-mode styles for given up state */
+.equation-input.zero-mode.given-up {
+    background-color: #f0f0f0 !important;
+    border-color: #999999 !important;
+    color: #666666 !important;
+    cursor: not-allowed;
+}
+
+/* Update zero checkbox styles for given up state */
+.zero-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.zero-checkbox-label.given-up {
+    background-color: #f0f0f0;
+    color: #666666;
+    cursor: not-allowed;
 }
 
 /* Update equations container title */
@@ -909,17 +945,17 @@ td:nth-child(4) .table-input.select {
     background: #ffffff;
     padding: 1.5rem;
     border-radius: 12px;
-    border: 3px solid #6FC3DF;
+    border: 3px solid #b084cc;
     margin-top: 20px;
     width: 100%;
     box-sizing: border-box;
 }
 
 .score-container h3 {
-    color: #2980b9;
+    color: #572b94;
     margin: 0 0 1rem 0;
     font-size: 1.3rem;
-    border-bottom: 2px solid #e3f2fd;
+    border-bottom: 2px solid #f9eeff;
     padding-bottom: 0.5rem;
 }
 
@@ -1412,5 +1448,99 @@ td:nth-child(4) .table-input.select {
 .generate-diagram-button.given-up:hover,
 .next-button.given-up:hover {
     background-color: #ccc !important;
+}
+
+/* Difficulty dropdown styles - moved from settings popup to main control panel */
+.difficulty-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #6FC3DF;
+  border-radius: 6px;
+  background-color: white;
+  color: #333;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.difficulty-select:hover {
+  border-color: #5aaabf;
+  box-shadow: 0 0 5px rgba(111, 195, 223, 0.3);
+}
+
+.difficulty-select:focus {
+  outline: none;
+  border-color: #2980b9;
+  box-shadow: 0 0 8px rgba(111, 195, 223, 0.5);
+}
+
+/* Remove settings button styles since we're not using it anymore */
+.settings-button,
+.settings-popup-overlay,
+.settings-popup,
+.settings-popup-header,
+.settings-popup-content,
+.settings-option,
+.settings-option-text,
+.settings-option-control,
+.close-button {
+  display: none;
+}
+
+/* User Input Toggle in main interface - adjust for better alignment */
+.user-input-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 10px;
+}
+
+.user-input-toggle .toggle-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .control-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+  
+  .button-group {
+    margin-left: 0;
+    justify-content: center;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .control-panel > div {
+    min-width: 100%;
+  }
+}
+
+/* Add styles for circuit diagram container */
+.circuit-diagram-container {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 3px solid #b084cc;
+    margin-top: 20px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.circuit-diagram-container h2 {
+    color: #572b94;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    border-bottom: 2px solid #f9eeff;
+    padding-bottom: 0.5rem;
 }
 
