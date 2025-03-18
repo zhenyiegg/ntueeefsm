@@ -48,7 +48,15 @@ const CircuitToState = () => {
   const [showGenerateTooltip, setShowGenerateTooltip] = useState(false);
   const [showAutoGenerateTooltip, setShowAutoGenerateTooltip] = useState(false);
 
-  // State for dropdown selections
+
+  const [customEquations, setCustomEquations] = useState([]); 
+  const [customEquationValidated, setCustomEquationValidated] = useState(false); 
+
+  const [isCustomEquationChecked, setIsCustomEquationChecked] = useState(false); 
+  const [isUsingCustomEquation, setIsUsingCustomEquation] = useState(false); 
+
+  const [showMooreInfo, setShowMooreInfo] = useState(false);
+
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
     flipFlopType: "",
@@ -89,7 +97,7 @@ const CircuitToState = () => {
   // Trigger generation manually on button click
   const handleGenerateButtonClick = () => {
     if (isFormComplete) {
-      // Reset attempt counters for a new exercise
+      // Reset attempt counters for new exercise
       setExcitationAttemptCount(0);
       setStateTransitionAttemptCount(0);
       setIsExcitationGivenUp(false);
@@ -97,13 +105,38 @@ const CircuitToState = () => {
 
       setIsExcitationTableComplete(false);
       setIsStateTransitionTableComplete(false);
-      setExcitationSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
+      setExcitationSubheader(null);
       setStateTransitionSubheader(null);
+
+      // Reset the user inputs for tables
+      setUserExcitationInputs([]);
+      setUserStateTransitionInputs([]);
+      setHiddenExcitationCorrectAnswers({});
+      setHiddenStateTransitionCorrectAnswers({ nextState: [], output: [] });
 
       // Proceed with generation...
       setGenerateState({ ...dropdownState }); 
-      generateEquations({ ...dropdownState }); 
-      setIsGenerated(true);
+
+      if (isCustomEquationChecked) {
+        setIsUsingCustomEquation(true);
+        setCustomEquationValidated(false); 
+        setIsGenerated(false); 
+        setShowExcitationTable(false); 
+        setShowStateTransitionTable(false); 
+        setShowStateDiagram(false); 
+        generateCustomEquationTemplate({ ...dropdownState });
+       
+      } else {
+        setIsUsingCustomEquation(false);
+        setCustomEquations([]); 
+        setCustomEquationValidated(false);
+        setIsGenerated(true);
+        setShowExcitationTable(true);
+        setShowStateTransitionTable(false);
+        setShowStateDiagram(false);
+        generateEquations({ ...dropdownState });
+        setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
+      }
     }
   };
 
@@ -123,7 +156,6 @@ const CircuitToState = () => {
       preFillOption: getRandomDropdownValue(["random75", "random50","random25","none"]),
     };
   
-    // Valid combination (disable 3 flip-flops for 2 inputs)
     if (randomDropdownState.numInputs === "2" && randomDropdownState.numFlipFlops === "3") {
       randomDropdownState.numFlipFlops = "2";
     }
@@ -136,14 +168,319 @@ const CircuitToState = () => {
 
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
-    setExcitationSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
+    setExcitationSubheader(null);
     setStateTransitionSubheader(null);
+
+    setUserExcitationInputs([]); 
+    setUserStateTransitionInputs([]);
+    setHiddenExcitationCorrectAnswers({});
+    setHiddenStateTransitionCorrectAnswers({ nextState: [], output: [] });
 
     setDropdownState(randomDropdownState); 
     setGenerateState(randomDropdownState); 
-    generateEquations(randomDropdownState); 
-    setIsGenerated(true); 
+
+    if (isCustomEquationChecked) {
+        setIsUsingCustomEquation(true);
+        setCustomEquationValidated(false);
+        setIsGenerated(false);
+        setShowExcitationTable(false);
+        setShowStateTransitionTable(false);
+        setShowStateDiagram(false);
+        generateCustomEquationTemplate(randomDropdownState);
+    } else {
+        setIsUsingCustomEquation(false);
+        setCustomEquations([]); 
+        setCustomEquationValidated(false);
+        setIsGenerated(true);
+        setShowStateTransitionTable(false);
+        setShowStateDiagram(false);
+        generateEquations(randomDropdownState);
+        setShowExcitationTable(true);
+        setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
+    }
   };
+
+  const handleCustomEquationCheckboxChange = () => {
+    setIsCustomEquationChecked((prev) => !prev); 
+    setIsUsingCustomEquation(false);
+  };
+
+  const generateCustomEquationTemplate = (state) => {
+    const { numInputs, flipFlopType, numFlipFlops } = state;
+
+    const allFlipFlops = [];
+    if (flipFlopType === "D" || flipFlopType === "T") {
+        for (let i = parseInt(numFlipFlops) - 1; i >= 0; i--) {
+            allFlipFlops.push(`${flipFlopType}${i}`);
+        }
+    } else if (flipFlopType === "JK") {
+        for (let i = parseInt(numFlipFlops) - 1; i >= 0; i--) {
+            allFlipFlops.push(`J${i}`, `K${i}`);
+        }
+    }
+
+    allFlipFlops.push("Z");
+
+    const formattedEquations = allFlipFlops.map((flipFlop) => ({
+      equation: flipFlop,
+      formattedEquation: formatKeyForDisplay(flipFlop, numInputs, numFlipFlops), 
+      terms: "",
+      type: "Σ", // Default to minterm
+    }));
+
+    setCustomEquations(formattedEquations);
+    setIsGenerated(false); 
+  };
+
+  const validateCustomEquations = () => {
+    const { numInputs, numFlipFlops, fsmType } = generateState;
+    const maxValue = numInputs === "1" && numFlipFlops === "2" ? 7 : 15; 
+
+    const updatedHiddenAnswers = {};
+    let correctedEquations = [...customEquations]; // Clone the equations array
+
+    // Auto-correct input before validation
+    correctedEquations = correctedEquations.map(eq => {
+        let correctedTerms = eq.terms
+            .replace(/\s+/g, "")   // Remove all spaces
+            .replace(/,+/g, ",")   // Remove extra commas
+            .replace(/,$/, "")     // Remove trailing comma
+
+        return { ...eq, terms: correctedTerms };
+    });
+
+    // Update the state first before validating
+    setCustomEquations(correctedEquations);
+
+    // Validate the corrected input
+    for (let eq of correctedEquations) {
+        if (eq.terms.trim() === "") {
+            showPopupMessage("Error: Terms cannot be empty.");
+            return;
+        }
+
+        if (!/^\d+(,\d+)*$/.test(eq.terms)) {
+            showPopupMessage("Error: Invalid characters detected. Use only numbers separated by commas. (e.g. 1,2,3)");
+            return;
+        }
+
+        let termsArray = eq.terms.split(",").map(Number); // Convert to an array of numbers
+        let uniqueTerms = [...new Set(termsArray)]; // Remove duplicates
+
+        // Check if there were duplicates
+        if (uniqueTerms.length !== termsArray.length) {
+            showPopupMessage("Error: Duplicate values detected.");
+            return;
+        }
+
+        if (uniqueTerms.some((num) => num < 0 || num > maxValue)) {
+            showPopupMessage(`Error: Allowed numbers are between 0 and ${maxValue}.`);
+            return;
+        }
+
+        // Moore FSM Validation
+        if (fsmType === "Moore" && eq.equation === "Z") {
+          let isValid = validateMooreOutput(uniqueTerms, numInputs, numFlipFlops);
+          if (!isValid) {
+            showPopupMessage("Error: For Moore FSM, the output Z must be the same for all current states.");
+            return;
+          }
+        }
+
+        // Sort the terms array in ascending order
+        const sortedTerms = [...uniqueTerms].sort((a, b) => a - b);
+
+        updatedHiddenAnswers[eq.equation] = {
+            terms: sortedTerms,
+            isMinterm: eq.type === "Σ",
+        };
+    }
+
+    setHiddenExcitationCorrectAnswers(updatedHiddenAnswers);
+
+    setCustomEquationValidated(true);
+    setIsGenerated(true);
+    setShowExcitationTable(true);
+    setShowStateTransitionTable(false);
+    setShowStateDiagram(false);
+    setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
+
+    generateTablesFromCustomEquations(updatedHiddenAnswers);
+  };
+
+  const validateMooreOutput = (terms, numInputs, numFlipFlops) => {
+    if ((numInputs === "1" && numFlipFlops === "2") || (numInputs === "1" && numFlipFlops === "3")) {
+      // Moore FSM: Validate pairs (0,1), (2,3), (4,5), (6,7), (8,9), (10,11), (12,13), (14,15)
+      for (let i = 0; i <= 15; i += 2) {
+        const hasFirst = terms.includes(i);
+        const hasSecond = terms.includes(i + 1);
+        if (hasFirst !== hasSecond) {
+          return false;
+        }
+      }
+    } else if (numInputs === "2" && numFlipFlops === "2") {
+      // Moore FSM: Validate groups of 4 (0-3), (4-7), (8-11), (12-15)
+      for (let i = 0; i <= 15; i += 4) {
+        const group = [i, i + 1, i + 2, i + 3];
+        const hasGroup = group.every(num => terms.includes(num));
+        const missingGroup = group.every(num => !terms.includes(num));
+
+        if (!hasGroup && !missingGroup) {
+          return false; 
+        }
+      }
+    }
+    return true; 
+  };
+
+  const generateTablesFromCustomEquations = (userCustomAnswers) => {
+    const { numFlipFlops, numInputs, fsmType, preFillOption } = generateState;
+    
+    const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
+    const binaryInputs = generateBinaryStates(parseInt(numInputs));
+  
+    const newExcitationTable = [];
+    const newStateTransitionTable = [];
+  
+    binaryStates.forEach((currentState, stateIndex) => {
+      binaryInputs.forEach((input, inputIndex) => {
+        const rowIndex = stateIndex * binaryInputs.length + inputIndex;
+  
+        const excitationRow = {
+          currentState,
+          input,
+          flipFlopInputs: {},
+        };
+  
+        const nextState = computeNextState(
+          generateState.flipFlopType,
+          currentState,
+          userCustomAnswers, 
+          rowIndex,
+          parseInt(numFlipFlops)
+        );
+
+        const zTerms = userCustomAnswers?.["Z"]?.terms || [];
+        const isZMinterm = userCustomAnswers?.["Z"]?.isMinterm;
+        const outputValue = isZMinterm
+            ? zTerms.includes(rowIndex) ? "1" : "0"
+            : zTerms.includes(rowIndex) ? "0" : "1";
+  
+        const transitionRow = {
+          currentState,
+          input,
+          nextState,
+          output: outputValue,
+        };
+  
+        Object.keys(userCustomAnswers).forEach((flipFlop) => {
+          if (flipFlop !== "Z") {
+            const terms = userCustomAnswers[flipFlop]?.terms || [];
+            const isMinterm = userCustomAnswers[flipFlop]?.isMinterm;
+            excitationRow.flipFlopInputs[flipFlop] = isMinterm
+              ? terms.includes(rowIndex) ? "1" : "0"
+              : terms.includes(rowIndex) ? "0" : "1";
+          }
+        });
+  
+        newExcitationTable.push(excitationRow);
+        newStateTransitionTable.push(transitionRow);
+      });
+    });
+  
+    setHiddenStateTransitionCorrectAnswers({
+      nextState: newStateTransitionTable.map((row) => row.nextState),
+      output: newStateTransitionTable.map((row) => row.output),
+    });
+
+    if (preFillOption && preFillOption.startsWith("random")) {
+      const preFillPercent =
+        preFillOption === "random75" ? 0.75 :
+        preFillOption === "random50" ? 0.50 :
+        preFillOption === "random25" ? 0.25 : 0;
+    
+      const totalExcitationFields = newExcitationTable.length * Object.keys(newExcitationTable[0].flipFlopInputs).length;
+      const totalStateFields = newStateTransitionTable.length * 2; // Next State + Output
+    
+      const preFillCountExcitation = Math.floor(totalExcitationFields * preFillPercent);
+      const preFillCountState = Math.floor(totalStateFields * preFillPercent);
+    
+      const shuffleArray = (array) => {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      };
+    
+      const excitationIndices = shuffleArray(Array.from({ length: totalExcitationFields }, (_, i) => i)).slice(0, preFillCountExcitation);
+      const stateIndices = shuffleArray(Array.from({ length: totalStateFields }, (_, i) => i)).slice(0, preFillCountState);
+    
+      const selectedExcitation = new Set(excitationIndices);
+      const selectedState = new Set(stateIndices);
+    
+      const prefilledExcitation = newExcitationTable.map((row, rowIndex) => {
+        const updatedRow = { ...row };
+        Object.keys(row.flipFlopInputs).forEach((flipFlop, colIndex) => {
+          const fieldIndex = rowIndex * Object.keys(row.flipFlopInputs).length + colIndex;
+          if (selectedExcitation.has(fieldIndex)) {
+            updatedRow.flipFlopInputs[flipFlop] = {
+              value: row.flipFlopInputs[flipFlop], 
+              status: "correct",
+            };
+          } else {
+            updatedRow.flipFlopInputs[flipFlop] = {
+              value: "",
+              status: "editable",
+            };
+          }
+        });
+        return updatedRow;
+      });
+    
+      const prefilledStateTransition = newStateTransitionTable.map((row, rowIndex) => {
+        const updatedRow = { ...row };
+        
+        const nextStateIndex = rowIndex * 2; 
+        const outputIndex = rowIndex * 2 + 1;
+    
+        updatedRow.nextState = selectedState.has(nextStateIndex)
+          ? { value: row.nextState, status: "correct", editable: false }
+          : { value: "", status: "editable", editable: true };
+    
+        updatedRow.output = selectedState.has(outputIndex)
+          ? { value: row.output, status: "correct", editable: false }
+          : { value: "", status: "editable", editable: true };
+    
+        return updatedRow;
+      });
+    
+      setUserExcitationInputs(prefilledExcitation);
+      setUserStateTransitionInputs(prefilledStateTransition);
+    } else {
+      // No pre-fill: All input fields are empty
+      setUserExcitationInputs(
+        newExcitationTable.map((row) => ({
+          ...row,
+          flipFlopInputs: Object.keys(row.flipFlopInputs).reduce((acc, key) => {
+            acc[key] = { value: "", status: "editable" }; 
+            return acc;
+          }, {}),
+        }))
+      );
+    
+      setUserStateTransitionInputs(
+        newStateTransitionTable.map((row) => ({
+          ...row,
+          nextState: { value: "", status: "editable", editable: true },
+          output: { value: "", status: "editable", editable: true },
+        }))
+      );
+    }
+    
+    setExcitationTable(newExcitationTable);
+    setStateTransitionTable(newStateTransitionTable);
+  };  
 
   // Helper to check if all input fields are filled
   const areAllExcitationInputsFilled = useCallback(() => {
@@ -152,7 +489,7 @@ const CircuitToState = () => {
     );
   }, [userExcitationInputs]);
 
-  // Helper to check if all input fields are filled
+
   const areAllStateTransitionInputsFilled = useCallback(() => {
     return userStateTransitionInputs.every((row) => 
       row.nextState.value.length > 0 && row.output.value.length > 0 // Allow incomplete but non-empty values
@@ -168,13 +505,13 @@ const CircuitToState = () => {
     setisGenerateStateDiagramButtonEnabled(areAllStateTransitionInputsFilled());
   }, [areAllStateTransitionInputsFilled]);
 
-  // Compute the next state based on flip-flop type and inputs
+  // Compute next state 
   const computeNextState = (flipFlopType, currentState, excitationAnswers, rowIndex, numFlipFlops) => {
     const currentStateBits = currentState.split("");
     const nextStateBits = [];
   
     for (let i = 0; i < numFlipFlops; i++) {
-      const flipFlopIndex = numFlipFlops - 1 - i; // Reverse the order
+      const flipFlopIndex = numFlipFlops - 1 - i; // Reverse order
       let flipFlopKey;
   
       if (flipFlopType === "JK") {
@@ -288,6 +625,20 @@ const CircuitToState = () => {
     return terms;
   };
 
+  // Helper to format keys for display
+  const formatKeyForDisplay = (key, numInputs, numFlipFlops) => {
+    if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T") || key === "Z") {
+      if (numInputs === "1" && numFlipFlops === "2") {
+        return `${key}(Q1,\u00A0Q0,\u00A0X0)`;
+      } else if (numInputs === "2" && numFlipFlops === "2") {
+        return `${key}(Q1,\u00A0Q0,\u00A0X1,\u00A0X0)`;
+      } else if (numInputs === "1" && numFlipFlops === "3") {
+        return `${key}(Q2,\u00A0Q1,\u00A0Q0,\u00A0X0)`;
+      }
+    }
+    return key; 
+  };
+
   // Generate Logic Equations
   const generateEquations = (state) => {
     const { numInputs, flipFlopType, numFlipFlops, fsmType, preFillOption } = state || dropdownState;
@@ -301,7 +652,6 @@ const CircuitToState = () => {
     setShowStateTransitionTable(false); 
     setShowStateDiagram(false);
 
-    // Reset completion states
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
     setGenerateState(state || dropdownState); // Finalize the dropdown selections
@@ -309,11 +659,11 @@ const CircuitToState = () => {
     let maxValue, minTerms, maxTerms;
 
     if (numFlipFlops === "2" && numInputs === "1") {
-      maxValue = 8; // 0 to 7
+      maxValue = 8; 
       minTerms = 4;
       maxTerms = 6;
     } else if ((numFlipFlops === "2" && numInputs === "2") || (numFlipFlops === "3" && numInputs === "1")) {
-      maxValue = 16; // 0 to 15
+      maxValue = 16; 
       minTerms = 6;
       maxTerms = 10;
     }
@@ -329,20 +679,6 @@ const CircuitToState = () => {
 
     const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
     const binaryInputs = generateBinaryStates(parseInt(numInputs));
-
-    // Helper to format keys for display
-    const formatKeyForDisplay = (key, numInputs, numFlipFlops) => {
-      if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T") || key === "Z") {
-        if (numInputs === "1" && numFlipFlops === "2") {
-          return `${key}(Q1,\u00A0Q0,\u00A0X0)`;
-        } else if (numInputs === "2" && numFlipFlops === "2") {
-          return `${key}(Q1,\u00A0Q0,\u00A0X1,\u00A0X0)`;
-        } else if (numInputs === "1" && numFlipFlops === "3") {
-          return `${key}(Q2,\u00A0Q1,\u00A0Q0,\u00A0X0)`;
-        }
-      }
-      return key; 
-    };
 
     // Generate minterms or maxterms for Flip-Flops
     if (flipFlopType === "D" || flipFlopType === "T") {
@@ -388,20 +724,17 @@ const CircuitToState = () => {
 
     setHiddenExcitationCorrectAnswers(excitationCorrectAnswers);
 
-    // Generate random minterms or maxterms for Output Z
+    // Generate random terms for Output Z
     const isOutputMinterm = Math.random() < 0.5; // Randomly decide Σm or ΠM
     let outputTerms = [];
 
-    // Apply different logic based on FSM Type
     if (fsmType === "Moore") {
-      // Step 1: Group row indices by current state
       const stateGroupedIndices = {};
       binaryStates.forEach((currentState) => {
         stateGroupedIndices[currentState] = [];
       });
 
-      // Step 2: Assign rows to their corresponding current state group
-      const rowsPerState = binaryInputs.length; // Determines how many rows each current state has
+      const rowsPerState = binaryInputs.length; 
       binaryStates.forEach((currentState, stateIndex) => {
         binaryInputs.forEach((input, inputIndex) => {
           const rowIndex = stateIndex * binaryInputs.length + inputIndex;
@@ -409,24 +742,20 @@ const CircuitToState = () => {
         });
       });
 
-      // Step 3: Calculate how many unique states to select
       let numSelectedStates = getRandomNumber(
-        Math.ceil(minTerms / rowsPerState), // Divide by rows per state to get unique state count
+        Math.ceil(minTerms / rowsPerState), 
         Math.floor(maxTermsForOutput / rowsPerState) 
       );
     
-      // Step 4: Randomly select only the required number of states
       let selectedStates = shuffleArray(Object.keys(stateGroupedIndices)).slice(0, numSelectedStates);
 
-      // Step 5: Collect all row indices for selected states
       outputTerms = [];
       selectedStates.forEach((state) => {
-          outputTerms.push(...stateGroupedIndices[state]); // Include all rows for selected state
+          outputTerms.push(...stateGroupedIndices[state]); 
       });
 
-      // Step 6: Ensure total number of terms is within `minTerms` and `maxTermsForOutput`
       while (outputTerms.length > maxTermsForOutput) {
-        outputTerms.pop(); // Remove extra values
+        outputTerms.pop();
       }
       while (outputTerms.length < minTerms) {
         for (let i = 0; i < maxValue; i++) {
@@ -437,11 +766,10 @@ const CircuitToState = () => {
         }
       }
 
-      // Step 7: Output terms are sorted in ascending order
       outputTerms.sort((a, b) => a - b);
 
       } else {
-      // Default random generation for Mealy FSM (No restrictions per current state)
+      // Default random generation for Mealy 
       outputTerms = generateUniqueTerms(
         getRandomNumber(minTerms, maxTerms),
         maxValue
@@ -525,21 +853,17 @@ const CircuitToState = () => {
     });
 
     if (preFillOption && preFillOption.startsWith("random")) {
-      // Determine pre-fill percentage based on user choice
       const preFillPercent =
         preFillOption === "random75" ? 0.75 :
         preFillOption === "random50" ? 0.50 :
         preFillOption === "random25" ? 0.25 : 0;
     
-      // Count total input fields
       const totalExcitationFields = newExcitationTable.length * Object.keys(newExcitationTable[0].flipFlopInputs).length;
       const totalStateFields = newStateTransitionTable.length * 2; // Next State + Output
     
-      // Calculate how many fields to prefill
       const preFillCountExcitation = Math.floor(totalExcitationFields * preFillPercent);
       const preFillCountState = Math.floor(totalStateFields * preFillPercent);
     
-      // Generate shuffled indices to prefill
       const shuffleArray = (array) => {
         for (let i = array.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -551,7 +875,6 @@ const CircuitToState = () => {
       const excitationIndices = shuffleArray(Array.from({ length: totalExcitationFields }, (_, i) => i)).slice(0, preFillCountExcitation);
       const stateIndices = shuffleArray(Array.from({ length: totalStateFields }, (_, i) => i)).slice(0, preFillCountState);
     
-      // Convert to sets for quick lookup
       const selectedExcitation = new Set(excitationIndices);
       const selectedState = new Set(stateIndices);
     
@@ -567,7 +890,7 @@ const CircuitToState = () => {
             };
           } else {
             updatedRow.flipFlopInputs[flipFlop] = {
-              value: "", // Leave blank for user input
+              value: "", 
               status: "editable",
             };
           }
@@ -652,7 +975,7 @@ const CircuitToState = () => {
 
           updatedInputs[rowIndex][column] = {
             ...updatedInputs[rowIndex][column],
-            value: value, // Update input value
+            value: value, 
             focusTooltip: isTooShort ? `Enter ${numFlipFlops} bits` : "",
           };
           return updatedInputs;
@@ -676,7 +999,7 @@ const CircuitToState = () => {
     }
   };
 
-  // Validate excitation inputs and reveal state transition table if all are correct
+  // Validate excitation inputs 
   const validateExcitationInputs = () => {
     let allCorrect = true;
 
@@ -716,7 +1039,7 @@ const CircuitToState = () => {
       setIsExcitationTableComplete(true);
       setShowStateTransitionTable(true);
       setExcitationSubheader("Completed!");
-      setStateTransitionSubheader("Fill in the blanks with binary \"0\" and \"1\" values.");
+      setStateTransitionSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
     } else {
       // Increment attempt counter if not all correct
       setExcitationAttemptCount(prev => prev + 1, 2);
@@ -1029,6 +1352,16 @@ const CircuitToState = () => {
           <option value="none">Expert</option>
         </select>
 
+        <div className="checkbox-container">
+        <input
+            type="checkbox"
+            id="customEquationCheckbox"
+            checked={isCustomEquationChecked}
+            onChange={handleCustomEquationCheckboxChange} 
+          />
+          <label htmlFor="customEquationCheckbox" className="custom-label">Custom Equation</label>
+        </div>
+
         {/* Generate Button */}
         <div className="tooltipBtn-container">
           {showGenerateTooltip && (
@@ -1072,81 +1405,172 @@ const CircuitToState = () => {
         />
       </div>
 
-      {/* Display Generated Minterms & Maxterms */}
-      <div className={`equation-section ${isGenerated ? "active" : ""}`}>
-        {!isGenerated ? (
-          <h3 style = {{color: "#cccccc"}}>Logic Equations</h3>
-        ) : (
-          <>
-            <p>
-              {logicEquation.map(
-                ({ equation, formattedTerms }) => (
-                  <span key={equation} className="equation-item">
-                    <strong>{equation}&nbsp;=&nbsp;</strong>{formattedTerms}
-                  </span>
-                )
-              )}
-            </p>
-          </>
-        )}
-      </div>
+      {isUsingCustomEquation && !customEquationValidated && (
+        <div className="content-box">
+          <h2 className="customEq-title">
+            Custom Equation
+            <span 
+              className="info-icon" 
+              onMouseEnter={() => setShowMooreInfo(true)}
+              onMouseLeave={() => setShowMooreInfo(false)}
+            >
+              ℹ️
+            </span>
+          </h2>
+          {showMooreInfo && (
+            <div className="customEq-tooltip">
+              <p>
+                <b>Number Ranges:</b>
+              </p>
+              <ul>
+                <li><b>1 input & 2 or 3 flip-flops:</b> Enter values between <b>0-7</b>.</li>
+                <li><b>2 inputs & 2 flip-flops:</b> Enter values between <b>0-15</b>.</li>
+              </ul>
+              <p>
+                <b>Moore FSM:</b> Output Z is the same for all states, regardless of input
+                X.
+              </p>
+              <ul>
+                <li><b>1 input & 2 or 3 flip-flops:</b> Enter pairs, e.g. <b>(0,1)</b> <b>(2,3)</b> <b>(4,5)</b></li>
+                <li><b>2 inputs & 2 flip-flops:</b> Enter groups of four, e.g. <b>(0,1,2,3)</b> <b>(4,5,6,7)</b></li>
+              </ul>
+              <p><b>Include all numbers</b> in the pair/group for moore.</p>
+            </div>
+          )}
+          <p className="customEq-subtitle">Select minterms (Σm) or maxterms (<span className="maxterm">Π</span>M) and enter terms separated by commas.</p>
 
-      
+          {customEquations.map((eq, index) => (
+            <div key={index} className="custom-equation">
+              <strong>{eq.formattedEquation} = </strong> {/* Display formatted key */}
+              <select
+                className="custom-select"
+                value={eq.type}
+                onChange={(e) => {
+                  const updated = [...customEquations];
+                  updated[index].type = e.target.value;
+                  setCustomEquations(updated);
+                }}
+              >
+                <option value="Σ">Σm</option>
+                <option value="Π">ΠM</option> 
+              </select>
+              <div className="custom-input">
+              (
+                <input
+                  type="text"
+                  value={eq.terms}
+                  onChange={(e) => {
+                    const updated = [...customEquations];
+                    updated[index].terms = e.target.value;
+                    setCustomEquations(updated);
+                  }}
+                />
+                )
+              </div>
+            </div>
+          ))}
+          <button className="ok-btn" onClick={validateCustomEquations}>OK</button>
+        </div>
+      )}
+
+      {/* Display Generated Minterms & Maxterms */}
+      {customEquationValidated ? (
+        <div className={`equation-section ${isGenerated ? "active" : ""}`}>
+          <p>
+            {customEquations.map(({ formattedEquation, terms, type }) => (
+              <span key={formattedEquation} className="equation-item">
+                <strong>{formattedEquation}&nbsp;=&nbsp;</strong>
+                {type === "Σ" ? (
+                  <span>Σm</span> 
+                ) : (
+                  <span>
+                    <span style={{ fontFamily: "Times New Roman", fontSize: "1.15em" }}>Π</span>M
+                  </span> 
+                )}
+                (
+                  {terms} 
+                )
+              </span>
+            ))}
+          </p>
+        </div>
+      ) : isGenerated ? (
+        <div className={`equation-section ${isGenerated ? "active" : ""}`}>
+          {!isGenerated ? (
+            <h3 style = {{color: "#cccccc"}}>Logic Equations</h3>
+          ) : (
+            <>
+              <p>
+                {logicEquation.map(
+                  ({ equation, formattedTerms }) => (
+                    <span key={equation} className="equation-item">
+                      <strong>{equation}&nbsp;=&nbsp;</strong>{formattedTerms}
+                    </span>
+                  )
+                )}
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+
       {/* Display Instruction */}
       {isGenerated && (
         <div className="instruction-section active">
           <p>
-            Using the given circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
+            Using the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
           </p>
         </div>
       )}
 
       {/* Excitation Table Section */}
-      <div className={`content-box ${showExcitationTable ? "active" : ""}`}>
+      <div className={`content-box excitation-box ${showExcitationTable ? "active" : ""}`}>
         <h2>Excitation Table</h2>
-        <p>{excitationSubheader}</p>
-        {excitationTable.length > 0 && (
+        {excitationTable.length > 0 && showExcitationTable && (
+          <>
+          <p>{excitationSubheader}</p>
           <div>
-            {showExcitationTable && (
-            <table border="1">
-              <thead>
-                <tr>
-                  {generateExcitationTableHeaders().map((header, index) => (
-                    <th key={index}>{header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {userExcitationInputs.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    <td className="currentState-column">{row.currentState}</td>
-                    <td className="inputX-column">{row.input}</td>
-                    {Object.entries(row.flipFlopInputs).map(
-                      ([flipFlop, { value, status }], colIndex) => (
-                        <td key={colIndex} className="flipFlop-column">
-                          <input
-                            type="text"
-                            value={value}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) =>
-                              handleExcitationInputChange(rowIndex, flipFlop, e.target.value)
-                            }
-                            disabled={status === "correct" || status === "given-up"}
-                            className={
-                              status === "given-up" ? "input-givenup" :
-                              status === "correct" ? "input-correct" : 
-                              status === "incorrect" ? "input-incorrect" :
-                              "input-default"
-                            }
-                          />
-                        </td>
-                      )
-                    )}
+            <div className="table-container">
+              <table border="1">
+                <thead>
+                  <tr>
+                    {generateExcitationTableHeaders().map((header, index) => (
+                      <th key={index}>{header}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            )}
+                </thead>
+                <tbody>
+                  {userExcitationInputs.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      <td className="currentState-column">{row.currentState}</td>
+                      <td className="inputX-column">{row.input}</td>
+                      {Object.entries(row.flipFlopInputs).map(
+                        ([flipFlop, { value, status }], colIndex) => (
+                          <td key={colIndex} className="flipFlop-column">
+                            <input
+                              type="text"
+                              value={value}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) =>
+                                handleExcitationInputChange(rowIndex, flipFlop, e.target.value)
+                              }
+                              disabled={status === "correct" || status === "given-up"}
+                              className={
+                                status === "given-up" ? "input-givenup" :
+                                status === "correct" ? "input-correct" : 
+                                status === "incorrect" ? "input-incorrect" :
+                                "input-default"
+                              }
+                            />
+                          </td>
+                        )
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
             {!isExcitationTableComplete && (
               <div className="button-group">
                 <button
@@ -1168,6 +1592,7 @@ const CircuitToState = () => {
               </div>
             )}
           </div>
+          </>
         )}
       </div>
 
@@ -1244,7 +1669,7 @@ const CircuitToState = () => {
                 <button
                   className={`next-btn ${isGenerateStateDiagramButtonEnabled ? 'active' : 'disabled'}`}
                   disabled={!isGenerateStateDiagramButtonEnabled}
-                  onClick={validateStateTransitionInputs} // checks both length & correctness
+                  onClick={validateStateTransitionInputs} 
                 >
                   Generate State Diagram
                 </button>

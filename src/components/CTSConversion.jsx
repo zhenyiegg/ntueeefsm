@@ -33,7 +33,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       if (numFlipFlops === 2) {
         return 800; // Shorter height for 2 flip-flops (either 1 or 2 inputs)
       } else if (numFlipFlops === 3 && numInputs === 1) {
-        return 1000; 
+        return 860; 
       }
       return 1000; // Default height
     })();
@@ -56,12 +56,12 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     // Position "Any state" oval above the diagram
     const anyStatePos = (() => {
       if (numFlipFlops === 2) {
-        return { x: 400, y: 50 }; 
+        return { x: 350, y: 40 }; 
       } else if (numFlipFlops === 3) {
         if (numInputs === 1) {
-          return { x: 750, y: 50 }; 
+          return { x: 750, y: 40 }; 
         } else {
-          return { x: 750, y: 50 }; 
+          return { x: 750, y: 40 }; 
         }
       }
       return { x: 350, y: 50 }; // Default fallback
@@ -503,10 +503,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     const positions = {};
     const canvasWidth = 700; 
     //const canvasHeight = 900; 
-    const baseHeight = numFlipFlops === 3 ? 860 : 700;
+    const baseHeight = numFlipFlops === 3 ? 750 : 710;
     const centerX = canvasWidth - 250 ; 
     const centerY = baseHeight / 2; 
-    //const squareOffset = 180; // Distance from center to the square corners
     const squareOffset = 180;
   
     if (numFlipFlops === 2 && (numInputs === 1 || numInputs === 2)) {
@@ -517,7 +516,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       positions["01"] = { x: centerX + squareOffset, y: centerY + squareOffset }; // Bottom-right
     } else if (numFlipFlops === 3) {
       // Circular arrangement for 8 states in octagonal shape
-      const radius = 300; 
+      const radius = 260; 
       const orderedStates = ["000", "001", "010", "011", "100", "101", "110", "111"];
       orderedStates.forEach((state, index) => {
         const angle = ((index * 2 * Math.PI) / orderedStates.length) - Math.PI / 2; // Start at top
