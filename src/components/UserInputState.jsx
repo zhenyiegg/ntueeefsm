@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "../styles/StateToCircuit.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { faCircleInfo, faDownload } from "@fortawesome/free-solid-svg-icons";
 
 const UserInputState = ({
     diagramType,
@@ -223,6 +223,45 @@ const UserInputState = ({
         return null;
     };
 
+    // Function to handle CSV download
+    const downloadCSV = () => {
+        // Create CSV header
+        let csvContent = "Present State,Input,Next State,Output\n";
+
+        // Add each row to CSV
+        transitionTable.forEach((row) => {
+            const nextStateKey = `${transitionTable.indexOf(row)}-nextState`;
+            const outputKey = `${transitionTable.indexOf(row)}-output`;
+            const nextState = userInputs[nextStateKey] || "";
+            const output = userInputs[outputKey] || "";
+
+            // Create a CSV row and escape any commas in the data
+            const csvRow = [row.presentState, row.input, nextState, output]
+                .map((value) => `"${value}"`)
+                .join(",");
+
+            csvContent += csvRow + "\n";
+        });
+
+        // Create a hidden download link
+        const encodedUri = encodeURI(
+            "data:text/csv;charset=utf-8," + csvContent
+        );
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+            "download",
+            `state_transition_table_${new Date()
+                .toISOString()
+                .slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+
+        // Trigger download and remove link
+        link.click();
+        document.body.removeChild(link);
+    };
+
     // Don't need to check isUserInputMode since component is conditionally rendered
     if (transitionTable.length === 0) {
         return null;
@@ -232,13 +271,23 @@ const UserInputState = ({
         <div className="table-section">
             <div className="table-header-container">
                 <h2>Custom State Transition Table</h2>
-                <button
-                    className="info-button"
-                    onClick={() => setShowInfo(!showInfo)}
-                    disabled={isLocked}
-                >
-                    <FontAwesomeIcon icon={faCircleInfo} />
-                </button>
+                <div className="button-container">
+                    <button
+                        className="info-button"
+                        onClick={() => setShowInfo(!showInfo)}
+                        disabled={isLocked}
+                    >
+                        <FontAwesomeIcon icon={faCircleInfo} />
+                    </button>
+                    <button
+                        className="download-button"
+                        onClick={() => downloadCSV()}
+                        disabled={!diagramGenerated || isLocked}
+                        title="Download as CSV"
+                    >
+                        <FontAwesomeIcon icon={faDownload} />
+                    </button>
+                </div>
                 {showInfo && !isLocked && (
                     <div className="info-tooltip">
                         <h3>Custom State Transition Table Help</h3>

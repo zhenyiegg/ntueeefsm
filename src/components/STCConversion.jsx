@@ -1,6 +1,6 @@
 /* STCConversion.jsx */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     simplifyBooleanFunction,
     getCanonicalSumOfMinterms,
@@ -8,7 +8,8 @@ import {
 } from "./kmap"; // K-map solver
 import CircuitDiagram from "./CircuitDiagram"; // <-- Reuse your P5 circuit component
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { faCircleInfo, faDownload } from "@fortawesome/free-solid-svg-icons";
+import "../styles/StateToCircuit.css";
 
 const STCConversion = ({
     diagramType, // e.g. "Mealy" or "Moore"
@@ -951,6 +952,14 @@ const STCConversion = ({
                         <FontAwesomeIcon icon={faCircleInfo} />
                     </button>
                     <button
+                        className="download-button"
+                        onClick={downloadExcitationTableCSV}
+                        title="Download as CSV"
+                        disabled={!isExcitationComplete}
+                    >
+                        <FontAwesomeIcon icon={faDownload} />
+                    </button>
+                    <button
                         className="give-up-button"
                         onClick={() => handleGiveUp("excitationTable")}
                         disabled={
@@ -1528,6 +1537,14 @@ const STCConversion = ({
                         <FontAwesomeIcon icon={faCircleInfo} />
                     </button>
                     <button
+                        className="download-button"
+                        onClick={downloadEquationsCSV}
+                        title="Download as CSV"
+                        disabled={!isEquationsComplete}
+                    >
+                        <FontAwesomeIcon icon={faDownload} />
+                    </button>
+                    <button
                         className="give-up-button"
                         onClick={() => handleGiveUp("equations")}
                         disabled={
@@ -1818,7 +1835,17 @@ const STCConversion = ({
         const { score, total, percentage } = calculateScore();
         return (
             <div className="score-container">
-                <h3>Your Score</h3>
+                <div className="score-header">
+                    <h3>Your Score</h3>
+                    <button
+                        className="complete-download-button"
+                        onClick={downloadAllDataCSV}
+                        title="Download Complete Project Data as CSV"
+                    >
+                        <FontAwesomeIcon icon={faDownload} /> Download Complete
+                        Project
+                    </button>
+                </div>
                 <div className="score-details">
                     <p>
                         <span className="score-number">{score}</span> /{" "}
@@ -1837,6 +1864,402 @@ const STCConversion = ({
                 </div>
             </div>
         );
+    };
+
+    // Function to download excitation table as CSV
+    const downloadExcitationTableCSV = () => {
+        if (!mergedExcitationTable) return;
+
+        // Create CSV header
+        const bitIndices = Array.from(
+            { length: numStateBits },
+            (_, i) => numStateBits - 1 - i
+        );
+        const presentStateBits = bitIndices.map((i) => `Q${i}`).join("");
+        const nextStateBits = bitIndices.map((i) => `Q${i}*`).join("");
+        const inputBits = Array.from(
+            { length: numInputs },
+            (_, i) => `X${i}`
+        ).join("");
+
+        let excitationHeader;
+        if (flipFlopType === "D") {
+            excitationHeader = bitIndices.map((i) => `D${i}`).join(",");
+        } else if (flipFlopType === "T") {
+            excitationHeader = bitIndices.map((i) => `T${i}`).join(",");
+        } else if (flipFlopType === "JK") {
+            excitationHeader = bitIndices.map((i) => `J${i},K${i}`).join(",");
+        }
+
+        let csvContent = `Present State (${presentStateBits}),Input (${
+            inputBits || "X"
+        }),Next State (${nextStateBits}),${excitationHeader},Output (Z)\n`;
+
+        // Add each row to CSV
+        mergedExcitationTable.forEach((row, rowIndex) => {
+            // Get user input for blank cells or use original values
+            const inputKey = `${rowIndex}-input`;
+            const nextStateKey = `${rowIndex}-nextState`;
+            const excitationKey = `${rowIndex}-excitation`;
+            const outputKey = `${rowIndex}-output`;
+
+            const input = excitationBlankCells.has(inputKey)
+                ? excitationAnswers[inputKey] || ""
+                : row.input;
+            const nextState = excitationBlankCells.has(nextStateKey)
+                ? excitationAnswers[nextStateKey] || ""
+                : row.nextState;
+            const excitation = excitationBlankCells.has(excitationKey)
+                ? excitationAnswers[excitationKey] || ""
+                : row.excitation;
+            const output = excitationBlankCells.has(outputKey)
+                ? excitationAnswers[outputKey] || ""
+                : row.output;
+
+            // Create a CSV row and escape any commas in the data
+            let excitationValues = excitation;
+            if (flipFlopType === "JK") {
+                // For JK flip-flops, split the excitation value (e.g., "1X X0") into separate columns
+                const jkPairs = excitation.split(" ");
+                excitationValues = jkPairs
+                    .map((pair) => `"${pair[0]}","${pair[1]}"`)
+                    .join(",");
+            } else {
+                // For D or T flip-flops, split the excitation value into individual bits
+                excitationValues = excitation
+                    .split("")
+                    .map((bit) => `"${bit}"`)
+                    .join(",");
+            }
+
+            const csvRow = [
+                `"${row.presentState}"`,
+                `"${input}"`,
+                `"${nextState}"`,
+                excitationValues,
+                `"${output}"`,
+            ].join(",");
+
+            csvContent += csvRow + "\n";
+        });
+
+        // Create a hidden download link
+        const encodedUri = encodeURI(
+            "data:text/csv;charset=utf-8," + csvContent
+        );
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+            "download",
+            `excitation_table_${flipFlopType}_${new Date()
+                .toISOString()
+                .slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+
+        // Trigger download and remove link
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Function to download equations as CSV
+    const downloadEquationsCSV = () => {
+        if (
+            !simplifiedEquations ||
+            Object.keys(simplifiedEquations).length === 0
+        )
+            return;
+
+        // Create CSV header
+        let csvContent =
+            "Equation,Sum of Minterms,Product of Maxterms,Simplified Expression\n";
+
+        // Generate variable list for displaying in the CSV
+        const stateVars = Array.from(
+            { length: numStateBits },
+            (_, i) => `Q${numStateBits - 1 - i}`
+        );
+        const inputVars =
+            numInputs > 1
+                ? Array.from(
+                      { length: numInputs },
+                      (_, i) => `X${numInputs - 1 - i}`
+                  )
+                : ["X"];
+        const allVars = [...stateVars, ...inputVars].join(", ");
+
+        // Add each equation to CSV
+        Object.keys(simplifiedEquations)
+            .sort((a, b) => {
+                // Handle Z equation (it should come after all flip-flop equations)
+                if (a === "Z") return 1;
+                if (b === "Z") return -1;
+
+                // Extract the numeric part from the keys for flip-flop equations
+                const numA = parseInt(a.match(/\d+/)?.[0] || "0");
+                const numB = parseInt(b.match(/\d+/)?.[0] || "0");
+                // Sort in descending order (higher numbers first)
+                return numB - numA;
+            })
+            .forEach((key) => {
+                // Get display name
+                let displayName;
+                if (key === "Z") {
+                    displayName = `Z(${allVars})`;
+                } else if (key.includes("_J")) {
+                    const ffIndex = key.match(/\d+/)[0];
+                    displayName = `J${ffIndex}(${allVars})`;
+                } else if (key.includes("_K")) {
+                    const ffIndex = key.match(/\d+/)[0];
+                    displayName = `K${ffIndex}(${allVars})`;
+                } else {
+                    const ffIndex = key.match(/\d+/)[0];
+                    displayName = `${getFlipFlopName(
+                        ffIndex,
+                        flipFlopType
+                    )}(${allVars})`;
+                }
+
+                // Get user input or calculated values
+                const mintermKey = `${key}-minterms`;
+                const maxtermKey = `${key}-maxterms`;
+                const sopKey = `${key}-sop`;
+                const isZeroMintermsKey = `${mintermKey}-isZero`;
+                const isZeroMaxtermsKey = `${maxtermKey}-isZero`;
+
+                const isZeroMinterms =
+                    equationAnswers[isZeroMintermsKey] || false;
+                const isZeroMaxterms =
+                    equationAnswers[isZeroMaxtermsKey] || false;
+
+                let minterms = isZeroMinterms
+                    ? "0"
+                    : equationAnswers[mintermKey] || "";
+                let maxterms = isZeroMaxterms
+                    ? "1"
+                    : equationAnswers[maxtermKey] || "";
+                let sop = equationAnswers[sopKey] || "";
+
+                // Create a CSV row and escape any commas in the data
+                const csvRow = [
+                    `"${displayName}"`,
+                    `"${isZeroMinterms ? "0" : "Σm(" + minterms + ")"}"`,
+                    `"${isZeroMaxterms ? "1" : "ΠM(" + maxterms + ")"}"`,
+                    `"${sop}"`,
+                ].join(",");
+
+                csvContent += csvRow + "\n";
+            });
+
+        // Create a hidden download link
+        const encodedUri = encodeURI(
+            "data:text/csv;charset=utf-8," + csvContent
+        );
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+            "download",
+            `equations_${flipFlopType}_${new Date()
+                .toISOString()
+                .slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+
+        // Trigger download and remove link
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Function to download all data as a single CSV
+    const downloadAllDataCSV = () => {
+        if (!transitionTable || !mergedExcitationTable || !simplifiedEquations)
+            return;
+
+        // Get the score details
+        const { score, total, percentage } = calculateScore();
+
+        // Create CSV content with section headers
+        let csvContent = "";
+
+        // 1. Add State Transition Table
+        csvContent += "STATE TRANSITION TABLE\n";
+        csvContent += "Present State,Input,Next State,Output\n";
+
+        transitionTable.forEach((row) => {
+            const csvRow = [
+                row.presentState,
+                row.input,
+                row.nextState,
+                row.output,
+            ]
+                .map((value) => `"${value}"`)
+                .join(",");
+            csvContent += csvRow + "\n";
+        });
+
+        csvContent += "\n"; // Add spacing between sections
+
+        // 2. Add Excitation Table
+        csvContent += "EXCITATION TABLE\n";
+
+        // Create the excitation table header
+        const bitIndices = Array.from(
+            { length: numStateBits },
+            (_, i) => numStateBits - 1 - i
+        );
+        const presentStateBits = bitIndices.map((i) => `Q${i}`).join("");
+        const nextStateBits = bitIndices.map((i) => `Q${i}*`).join("");
+        const inputBits = Array.from(
+            { length: numInputs },
+            (_, i) => `X${i}`
+        ).join("");
+
+        let excitationHeader;
+        if (flipFlopType === "D") {
+            excitationHeader = bitIndices.map((i) => `D${i}`).join(",");
+        } else if (flipFlopType === "T") {
+            excitationHeader = bitIndices.map((i) => `T${i}`).join(",");
+        } else if (flipFlopType === "JK") {
+            excitationHeader = bitIndices.map((i) => `J${i},K${i}`).join(",");
+        }
+
+        csvContent += `Present State (${presentStateBits}),Input (${
+            inputBits || "X"
+        }),Next State (${nextStateBits}),${excitationHeader},Output (Z)\n`;
+
+        mergedExcitationTable.forEach((row) => {
+            let excitationValues = row.excitation;
+            if (flipFlopType === "JK") {
+                // For JK flip-flops, split the excitation value (e.g., "1X X0") into separate columns
+                const jkPairs = row.excitation.split(" ");
+                excitationValues = jkPairs
+                    .map((pair) => `"${pair[0]}","${pair[1]}"`)
+                    .join(",");
+            } else {
+                // For D or T flip-flops, split the excitation value into individual bits
+                excitationValues = row.excitation
+                    .split("")
+                    .map((bit) => `"${bit}"`)
+                    .join(",");
+            }
+
+            const csvRow = [
+                `"${row.presentState}"`,
+                `"${row.input}"`,
+                `"${row.nextState}"`,
+                excitationValues,
+                `"${row.output}"`,
+            ].join(",");
+
+            csvContent += csvRow + "\n";
+        });
+
+        csvContent += "\n"; // Add spacing between sections
+
+        // 3. Add Equation Data
+        csvContent += "BOOLEAN EQUATIONS\n";
+        csvContent +=
+            "Equation,Sum of Minterms,Product of Maxterms,Simplified Expression\n";
+
+        // Generate variable list for displaying in the CSV
+        const stateVars = Array.from(
+            { length: numStateBits },
+            (_, i) => `Q${numStateBits - 1 - i}`
+        );
+        const inputVars =
+            numInputs > 1
+                ? Array.from(
+                      { length: numInputs },
+                      (_, i) => `X${numInputs - 1 - i}`
+                  )
+                : ["X"];
+        const allVars = [...stateVars, ...inputVars].join(", ");
+
+        // Add each equation
+        Object.keys(simplifiedEquations)
+            .sort((a, b) => {
+                // Handle Z equation (it should come after all flip-flop equations)
+                if (a === "Z") return 1;
+                if (b === "Z") return -1;
+
+                // Extract the numeric part from the keys for flip-flop equations
+                const numA = parseInt(a.match(/\d+/)?.[0] || "0");
+                const numB = parseInt(b.match(/\d+/)?.[0] || "0");
+                // Sort in descending order (higher numbers first)
+                return numB - numA;
+            })
+            .forEach((key) => {
+                // Get equation info
+                const eqn = simplifiedEquations[key];
+
+                // Get display name
+                let displayName;
+                if (key === "Z") {
+                    displayName = `Z(${allVars})`;
+                } else if (key.includes("_J")) {
+                    const ffIndex = key.match(/\d+/)[0];
+                    displayName = `J${ffIndex}(${allVars})`;
+                } else if (key.includes("_K")) {
+                    const ffIndex = key.match(/\d+/)[0];
+                    displayName = `K${ffIndex}(${allVars})`;
+                } else {
+                    const ffIndex = key.match(/\d+/)[0];
+                    displayName = `${getFlipFlopName(
+                        ffIndex,
+                        flipFlopType
+                    )}(${allVars})`;
+                }
+
+                // Get user input values or calculated values
+                const mintermKey = `${key}-minterms`;
+                const maxtermKey = `${key}-maxterms`;
+                const sopKey = `${key}-sop`;
+                const isZeroMintermsKey = `${mintermKey}-isZero`;
+                const isZeroMaxtermsKey = `${maxtermKey}-isZero`;
+
+                const isZeroMinterms =
+                    equationAnswers[isZeroMintermsKey] || false;
+                const isZeroMaxterms =
+                    equationAnswers[isZeroMaxtermsKey] || false;
+
+                let minterms = equationAnswers[mintermKey] || "";
+                let maxterms = equationAnswers[maxtermKey] || "";
+                let sop = equationAnswers[sopKey] || eqn;
+
+                // Create a CSV row
+                const csvRow = [
+                    `"${displayName}"`,
+                    `"${isZeroMinterms ? "0" : "Σm(" + minterms + ")"}"`,
+                    `"${isZeroMaxterms ? "1" : "ΠM(" + maxterms + ")"}"`,
+                    `"${sop}"`,
+                ].join(",");
+
+                csvContent += csvRow + "\n";
+            });
+
+        // 4. Add Score Summary
+        csvContent += "\n";
+        csvContent += "SCORE SUMMARY\n";
+        csvContent += `Correct Answers,Total Questions,Score Percentage\n`;
+        csvContent += `${score},${total},${percentage}%\n`;
+
+        // Create a hidden download link
+        const encodedUri = encodeURI(
+            "data:text/csv;charset=utf-8," + csvContent
+        );
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+            "download",
+            `fsm_${diagramType}_${flipFlopType}_complete_data_${new Date()
+                .toISOString()
+                .slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+
+        // Trigger download and remove link
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (

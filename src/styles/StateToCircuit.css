@@ -591,6 +591,30 @@ td:nth-child(3) .table-input {
     color: #2980b9;
 }
 
+/* Add download button styles */
+.download-button {
+    position: static;
+    margin: 0;
+    background: none;
+    border: none;
+    color: #6FC3DF;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    transition: color 0.3s ease;
+    z-index: 1001;
+}
+
+.download-button:hover {
+    color: #2980b9;
+}
+
+.download-button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 /* Update info tooltip positioning */
 .info-tooltip {
     position: absolute;
@@ -866,50 +890,6 @@ td:nth-child(4) .table-input.select {
     border-color: #ff4444;
 }
 
-/* Update equation input validation styles */
-.equation-input {
-    min-width: 100px;
-    max-width: 1000px;
-    padding: 4px 8px;
-    border: 2px solid #6FC3DF;
-    border-radius: 4px;
-    font-size: 1rem;
-    margin: 0 4px;
-    font-family: monospace;
-    transition: width 0.1s ease;
-}
-
-.equation-input:focus {
-    outline: none;
-    border-color: #2980b9;
-    box-shadow: 0 0 5px rgba(111, 195, 223, 0.3);
-}
-
-.equation-input.correct {
-    background-color: #e6ffe6 !important;
-    border-color: #4CAF50 !important;
-}
-
-.equation-input.incorrect {
-    background-color: #ffe6e6 !important;
-    border-color: #ff4444 !important;
-}
-
-.equation-input.given-up {
-    background-color: #f0f0f0 !important;
-    border-color: #999999 !important;
-    color: #666666 !important;
-    cursor: not-allowed;
-}
-
-.equation-input:disabled {
-    background-color: #e6ffe6;
-    border-color: #4CAF50;
-    color: #333;
-    cursor: not-allowed;
-    opacity: 1;
-}
-
 /* Update zero-mode styles for given up state */
 .equation-input.zero-mode.given-up {
     background-color: #f0f0f0 !important;
@@ -945,17 +925,33 @@ td:nth-child(4) .table-input.select {
     background: #ffffff;
     padding: 1.5rem;
     border-radius: 12px;
-    border: 3px solid #b084cc;
+    border: 3px solid #4CAF50;
     margin-top: 20px;
-    width: 100%;
-    box-sizing: border-box;
+    position: relative;
+}
+
+.score-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.score-header h3 {
+    margin: 0;
+    color: #4CAF50;
+}
+
+.score-header .download-button {
+    position: static;
+    margin: 0;
 }
 
 .score-container h3 {
-    color: #572b94;
-    margin: 0 0 1rem 0;
-    font-size: 1.3rem;
-    border-bottom: 2px solid #f9eeff;
+    color: #4CAF50;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #e6ffe6;
     padding-bottom: 0.5rem;
 }
 
@@ -1299,9 +1295,9 @@ td:nth-child(4) .table-input.select {
 /* Section Header with Info Button */
 .section-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 15px;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
 .section-header h2 {
@@ -1310,15 +1306,21 @@ td:nth-child(4) .table-input.select {
 
 /* Table Header Container with positioned info button */
 .table-header-container {
-    position: relative;
-    margin-bottom: 15px;
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    position: relative;
+    margin-bottom: 1rem;
 }
 
 .table-header-container h2 {
     margin: 0;
+}
+
+.table-header-container .button-container {
+    position: static;
+    top: auto;
+    right: auto;
 }
 
 .table-header-container .info-button {
@@ -1542,5 +1544,37 @@ td:nth-child(4) .table-input.select {
     font-size: 1.3rem;
     border-bottom: 2px solid #f9eeff;
     padding-bottom: 0.5rem;
+}
+
+.complete-download-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.complete-download-button:hover {
+    background-color: #3e8e41;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.complete-download-button svg {
+    font-size: 1rem;
+}
+
+.score-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
