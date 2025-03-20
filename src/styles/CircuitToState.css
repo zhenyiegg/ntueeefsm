@@ -15,7 +15,7 @@
   color: #333;
 }
 
-/******  DROPDOWN CONFIGURATION  ******/
+/**********  DROPDOWN CONFIGURATION  **********/
 .dropdown-container {
   display: flex;
   flex-wrap: wrap;
@@ -63,7 +63,6 @@ select:focus {
   border-radius: 4px;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease-in-out;
 }
 
 .checkbox-container input[type="checkbox"]:hover {
@@ -74,22 +73,17 @@ select:focus {
 
 .checkbox-container input[type="checkbox"]::before {
   content: "✔";
-  font-size: 16px;
+  font-size: 18px;
   color: white;
   position: absolute;
   top: 48%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  transition: all 0.2s ease-in-out;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .checkbox-container input[type="checkbox"]:checked {
   border: 2px solid #5e35b1;
   background-color: #5e35b1; 
-}
-
-.checkbox-container input[type="checkbox"]:checked::before {
-  transform: translate(-50%, -50%) scale(1);
 }
 
 .checkbox-container label {
@@ -164,7 +158,7 @@ select:focus {
   opacity: 0.8;
 }
 
-/******  CIRCUIT CANVAS  ******/
+/**********  CIRCUIT CANVAS  **********/
 .circuit-container {
   width: 88%;
   background-color: white;
@@ -180,7 +174,7 @@ canvas {
   padding: 20px 15px;
 }
 
-/******  LOGIC EQUATIONS SECTION ******/
+/**********  LOGIC EQUATIONS SECTION **********/
 .equation-section {
   text-align: center;
   padding: 0 16px;
@@ -224,8 +218,62 @@ canvas {
   color: #333; 
 }
 
+.info-icon {
+  font-size: 1em;
+  margin-left: 8px;
+  cursor: pointer;
+  color: #007bff;
+}
 
-/******  INSTRUCTION SECTION ******/
+.customEq-tooltip {
+  color: #333;
+  background: #f9f1ff;
+  border: 2px solid #c2a3eb;
+  color: #333;
+  padding: 16px;
+  border-radius: 5px;
+  font-size: 0.9em;
+  max-width: 500px;
+  margin-top: 8px;
+  display: inline-block;
+}
+
+.content-box .customEq-tooltip p, .customEq-tooltip ul {
+  color: #333;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.custom-equation {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: auto;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.custom-select  {
+  font-family: "Times New Roman", serif; 
+}
+
+.custom-equation input {
+  padding: 6px 10px;
+  font-size: 1em;
+  border: 2px solid #dbc3ffae;
+  border-radius: 5px;
+  transition: all 0.2s ease;
+}
+
+.custom-equation input:focus {
+  outline: none;
+  border-color: #9068c1;
+  box-shadow: 0 0 5px rgba(191, 111, 223, 0.3);
+}
+
+/**********  INSTRUCTION SECTION **********/
 .instruction-section.active {
   width: 80%;
   text-align: center;
@@ -237,7 +285,7 @@ canvas {
   margin: 0;
 }
 
-/******  CUSTOM EQN & EXERCISE SECTIONS ******/
+/**********  CUSTOM EQN & EXERCISE SECTIONS **********/
 .content-box {
   padding: 24px 20px;
   margin: 0 0 20px 0;
@@ -274,65 +322,6 @@ canvas {
 
 .content-box .customEq-subtitle {
   margin-bottom: 16px;
-}
-
-.info-icon {
-  font-size: 1em;
-  margin-left: 8px;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.info-icon:hover {
-  transform: scale(1.2);
-}
-
-.customEq-tooltip {
-  color: #333;
-  background: #f9f1ff;
-  border: 2px solid #c2a3eb;
-  color: #333;
-  padding: 16px;
-  border-radius: 5px;
-  font-size: 0.9em;
-  max-width: 500px;
-  margin-top: 8px;
-  display: inline-block;
-}
-
-.customEq-tooltip p, .customEq-tooltip ul {
-  color: #333;
-  line-height: 1.6;
-  text-align: left;
-}
-
-.custom-equation {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: auto;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.custom-select  {
-  font-family: "Times New Roman", serif; 
-}
-
-.custom-equation input {
-  padding: 6px 10px;
-  font-size: 1em;
-  border: 2px solid #dbc3ffae;
-  border-radius: 5px;
-  transition: all 0.2s ease;
-}
-
-.custom-equation input:focus {
-  outline: none;
-  border-color: #9068c1;
-  box-shadow: 0 0 5px rgba(191, 111, 223, 0.3);
 }
 
 .stateDiagram-box, .stateDiagram-box.active {
@@ -384,7 +373,7 @@ canvas {
   background-color: #dd0e0e; 
 }
 
-/******  TABLE STRUCTURE ******/
+/**********  TABLE STRUCTURE **********/
 table {
   width: 100%;
   border-collapse: collapse;
@@ -466,7 +455,7 @@ table tr:hover {
   font-size: 14px;
 }
 
-/******  POPUP DISPLAY ******/
+/**********  POPUP DISPLAY **********/
 .popup {
   position: fixed;
   top: 50%;
@@ -504,7 +493,7 @@ table tr:hover {
   animation: fadeIn 0.3s ease-out;
 }
 
-/******  RESPONSIVE LAYOUT ******/
+/**********  RESPONSIVE LAYOUT *********/
 @media (max-width: 1064px) {
   .dropdown-container select {
     margin-bottom: 10px;

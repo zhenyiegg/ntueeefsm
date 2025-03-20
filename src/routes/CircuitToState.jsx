@@ -5,6 +5,7 @@ import CTSConversion from '../components/CTSConversion';
 import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; 
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const CircuitToState = () => {
 
@@ -245,6 +246,7 @@ const CircuitToState = () => {
             .replace(/\s+/g, "")   // Remove all spaces
             .replace(/,+/g, ",")   // Remove extra commas
             .replace(/,$/, "")     // Remove trailing comma
+            .replace(/^,/, "")      // Remove leading comma
 
         return { ...eq, terms: correctedTerms };
     });
@@ -282,7 +284,11 @@ const CircuitToState = () => {
         if (fsmType === "Moore" && eq.equation === "Z") {
           let isValid = validateMooreOutput(uniqueTerms, numInputs, numFlipFlops);
           if (!isValid) {
-            showPopupMessage("Error: For Moore FSM, the output Z must be the same for all current states.");
+            showPopupMessage(
+              <>
+                Error: For Moore FSM, the output Z must be the same for all current states. Read<FontAwesomeIcon icon={faCircleInfo} className="info-icon"/> for details.
+              </>
+            );
             return;
           }
         }
@@ -1409,13 +1415,12 @@ const CircuitToState = () => {
         <div className="content-box">
           <h2 className="customEq-title">
             Custom Equation
-            <span 
-              className="info-icon" 
+            <FontAwesomeIcon
+              icon={faCircleInfo}
+              className="info-icon"
               onMouseEnter={() => setShowMooreInfo(true)}
               onMouseLeave={() => setShowMooreInfo(false)}
-            >
-              ℹ️
-            </span>
+            />
           </h2>
           {showMooreInfo && (
             <div className="customEq-tooltip">
