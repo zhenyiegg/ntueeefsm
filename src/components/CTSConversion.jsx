@@ -180,62 +180,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       console.error("❌ Reset state not found in stateElements. Cannot create reset arrow.");
     }
 
-    /**
-     * Verify Correctness:
-     * State Transitions 
-     * Mealy / Moore labels
-     */
-
-    // Store Expected Transitions (From State Transition Table)
-    const expectedTransitions = new Set();
-    stateTransitionTable.forEach(row => {
-      const transition = `${row.currentState}->${row.nextState}:${row.input}/${row.output}`;
-      expectedTransitions.add(transition);
-    });
-    console.log("📌 Expected Transitions (From State Transition Table):");
-    console.log([...expectedTransitions]);
-
-    // Store Generated Transitions (From the Drawn State Diagram)
-    const drawnTransitions = new Set();
-    Object.entries(groupedTransitions).forEach(([key, transitions]) => {
-      transitions.forEach(({ input, output }) => {
-        const transition = `${key}:${input}/${output}`;
-        drawnTransitions.add(transition);
-      });
-    });
-    console.log("📌 Generated Transitions (From Drawn State Diagram):");
-    console.log([...drawnTransitions]);
-
-    // Compare drawn vs expected
-    const missingTransitions = [...expectedTransitions].filter(t => !drawnTransitions.has(t));
-    const extraTransitions = [...drawnTransitions].filter(t => !expectedTransitions.has(t));
-
-    if (missingTransitions.length === 0 && extraTransitions.length === 0) {
-      console.log("✅ Verification Passed: All transitions correctly match the state transition table!");
-    } else {
-      console.log("🚨 Missing Transitions:", missingTransitions);
-      console.log("⚠️ Extra Transitions:", extraTransitions);
-      console.log("❌ Verification Failed: Some transitions are missing or extra.");
-    }
-
-    console.log("Verifying Label Formatting:");
-    Object.entries(groupedTransitions).forEach(([key, transitions]) => {
-      transitions.forEach(({ input, output }) => {
-        if (fsmType === "Mealy") {
-          const isValidMealyFormat = /^[01]\/[01]$/.test(`${input}/${output}`);
-          console.log(`  Mealy Label (${key}): ${input}/${output} -> Valid? ${isValidMealyFormat}`);
-        }
-      });
-    });
-
-    states.forEach(state => {
-      if (fsmType === "Moore") {
-        const output = new Set(stateTransitionTable.filter(row => row.currentState === state).map(row => row.output));
-        const stateLabel = `Z=${[...output].join(",")}`;
-        console.log(`  Moore Label (${state}): ${stateLabel}`);
-      }
-    });
-
     setDiagramInfo(`${fsmType}`);
 
     // Scroll Event
@@ -407,7 +351,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             },
           }]);
 
-          const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}`;
+          const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1*Q0*" : "2*Q1*Q0*"}`;
           const transitionLabel = `${from} ➔ ${to}`;
           const inputLabel = `X${numInputs === 2 ? "1X0" : "0"}`;
 
@@ -475,7 +419,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           evt.stopPropagation(); // Prevents event bubbling
           evt.preventDefault(); // Prevents accidental page actions
 
-          const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1⁺Q0⁺" : "2⁺Q1⁺Q0⁺"}`;
+          const stateLabel = `Q${numFlipFlops === 2 ? "1Q0" : "2Q1Q0"} ➔ Q${numFlipFlops === 2 ? "1*Q0*" : "2*Q1*Q0*"}`;
           const transitionLabel = `${from} ➔ ${to}`;
           const inputLabel = `X${numInputs === 2 ? "1X0" : "0"}`;
 
@@ -504,7 +448,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     const canvasWidth = 700; 
     //const canvasHeight = 900; 
     const baseHeight = numFlipFlops === 3 ? 750 : 710;
-    const centerX = canvasWidth - 250 ; 
+    const centerX = canvasWidth - 240 ; 
     const centerY = baseHeight / 2; 
     const squareOffset = 180;
   
