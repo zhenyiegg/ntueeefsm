@@ -90,7 +90,7 @@ select:focus {
   cursor: pointer;
 }
 
-.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn {
+.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn, .export-btn {
   padding: 10px 12px;
   font-size: 16px;
   background-color: #4CAF50; 
@@ -113,7 +113,7 @@ select:focus {
   background-color: #442387;
 }
 
-.generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled {
+.generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled, .export-btn.disabled {
   background-color: #c0bdbd;
   cursor: not-allowed;
   pointer-events: none;
@@ -365,12 +365,20 @@ canvas {
   background-color: #ff4444; 
 }
 
+.export-btn {
+  background-color: #007bff;
+}
+
 .next-btn.active:hover {
   background-color: #442387;
 }
 
 .giveup-btn.active:hover {
   background-color: #dd0e0e; 
+}
+
+.export-btn.active:hover {
+  background-color: #0056b3;
 }
 
 /**********  TABLE STRUCTURE **********/

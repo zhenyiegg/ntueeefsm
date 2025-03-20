@@ -6,6 +6,7 @@ import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; 
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { faDownload } from '@fortawesome/free-solid-svg-icons';
 
 const CircuitToState = () => {
 
@@ -58,6 +59,9 @@ const CircuitToState = () => {
 
   const [showMooreInfo, setShowMooreInfo] = useState(false);
 
+  const [isDownloadExcitationEnabled, setIsDownloadExcitationEnabled] = useState(false);
+  const [isDownloadStateTransitionEnabled, setIsDownloadStateTransitionEnabled] = useState(false);
+
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
     flipFlopType: "",
@@ -98,22 +102,27 @@ const CircuitToState = () => {
   // Trigger generation manually on button click
   const handleGenerateButtonClick = () => {
     if (isFormComplete) {
-      // Reset attempt counters for new exercise
+      // Reset attempt counters 
       setExcitationAttemptCount(0);
       setStateTransitionAttemptCount(0);
       setIsExcitationGivenUp(false);
       setIsStateTransitionGivenUp(false);
 
+      // Reset completion states
       setIsExcitationTableComplete(false);
       setIsStateTransitionTableComplete(false);
       setExcitationSubheader(null);
       setStateTransitionSubheader(null);
 
-      // Reset the user inputs for tables
+      // Reset user inputs for tables
       setUserExcitationInputs([]);
       setUserStateTransitionInputs([]);
       setHiddenExcitationCorrectAnswers({});
       setHiddenStateTransitionCorrectAnswers({ nextState: [], output: [] });
+
+      // Reset Download CSV Buttons
+      setIsDownloadExcitationEnabled(false);
+      setIsDownloadStateTransitionEnabled(false);
 
       // Proceed with generation...
       setGenerateState({ ...dropdownState }); 
@@ -161,22 +170,29 @@ const CircuitToState = () => {
       randomDropdownState.numFlipFlops = "2";
     }
 
-    // Reset attempt counters when starting a new exercise
+    // Reset attempt counters
     setExcitationAttemptCount(0);
     setStateTransitionAttemptCount(0);
     setIsExcitationGivenUp(false);
     setIsStateTransitionGivenUp(false);
 
+    // Reset completion states
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
     setExcitationSubheader(null);
     setStateTransitionSubheader(null);
 
+    // Reset user inputs for tables
     setUserExcitationInputs([]); 
     setUserStateTransitionInputs([]);
     setHiddenExcitationCorrectAnswers({});
     setHiddenStateTransitionCorrectAnswers({ nextState: [], output: [] });
 
+    // Reset Download CSV Buttons
+    setIsDownloadExcitationEnabled(false);
+    setIsDownloadStateTransitionEnabled(false);
+
+    // Set new dropdown states
     setDropdownState(randomDropdownState); 
     setGenerateState(randomDropdownState); 
 
@@ -193,10 +209,10 @@ const CircuitToState = () => {
         setCustomEquations([]); 
         setCustomEquationValidated(false);
         setIsGenerated(true);
+        setShowExcitationTable(true);
         setShowStateTransitionTable(false);
         setShowStateDiagram(false);
         generateEquations(randomDropdownState);
-        setShowExcitationTable(true);
         setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
     }
   };
@@ -246,7 +262,7 @@ const CircuitToState = () => {
             .replace(/\s+/g, "")   // Remove all spaces
             .replace(/,+/g, ",")   // Remove extra commas
             .replace(/,$/, "")     // Remove trailing comma
-            .replace(/^,/, "")      // Remove leading comma
+            .replace(/^,/, "");    // Remove leading comma
 
         return { ...eq, terms: correctedTerms };
     });
@@ -340,7 +356,7 @@ const CircuitToState = () => {
   };
 
   const generateTablesFromCustomEquations = (userCustomAnswers) => {
-    const { numFlipFlops, numInputs, fsmType, preFillOption } = generateState;
+    const { numFlipFlops, numInputs, preFillOption } = generateState;
     
     const binaryStates = generateBinaryStates(parseInt(numFlipFlops));
     const binaryInputs = generateBinaryStates(parseInt(numInputs));
@@ -1046,6 +1062,7 @@ const CircuitToState = () => {
       setShowStateTransitionTable(true);
       setExcitationSubheader("Completed!");
       setStateTransitionSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
+      setIsDownloadExcitationEnabled(true);
     } else {
       // Increment attempt counter if not all correct
       setExcitationAttemptCount(prev => prev + 1, 2);
@@ -1117,6 +1134,7 @@ const CircuitToState = () => {
       setIsStateTransitionTableComplete(true);
       setStateTransitionSubheader("Completed!");
       setShowStateDiagram(true);
+      setIsDownloadStateTransitionEnabled(true);
     } else {
       // Increment attempt counter if answers are still incorrect
       setStateTransitionAttemptCount(prev => prev + 1, 2);
@@ -1147,6 +1165,8 @@ const CircuitToState = () => {
     setUserExcitationInputs(updatedInputs);
     setExcitationSubheader('Completed!');
     setIsExcitationGivenUp(true);
+
+    setIsDownloadExcitationEnabled(true);
   };
   
   const handleGiveUpStateTransition = () => {
@@ -1177,6 +1197,8 @@ const CircuitToState = () => {
     setUserStateTransitionInputs(updatedInputs);
     setStateTransitionSubheader('Completed!');
     setIsStateTransitionGivenUp(true); 
+
+    setIsDownloadStateTransitionEnabled(true);
   };
   
   // Helper to generate descending labels
@@ -1216,7 +1238,7 @@ const CircuitToState = () => {
         Input<br />{generateDescendingLabels("X", numInputs).join("")}
       </>,
       <>
-        Next State<br />{generateDescendingLabels("Q", numFlipFlops, "\u207A").join("")}
+        Next State<br />{generateDescendingLabels("Q", numFlipFlops, "*").join("")}
       </>,
       <>
         Output<br />Z
@@ -1280,6 +1302,64 @@ const CircuitToState = () => {
       };
     }
   }, [showPopup]);
+
+  // Export tables to csv
+  const exportToCSV = (tableType) => {
+    let csvContent = "data:text/csv;charset=utf-8,"; 
+    let headers = [];
+    let rows = [];
+
+    const { numFlipFlops, numInputs } = generateState; 
+
+    const currentStateHeader = `Current State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}`).join("")}`;
+    const inputHeader = `Input ${Array.from({ length: numInputs }, (_, i) => `X${numInputs - 1 - i}`).join("")}`;
+    const nextStateHeader = `Next State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}*`).join("")}`;
+
+    if (tableType === "excitation") {
+      headers = [currentStateHeader, inputHeader,  ...Object.keys(hiddenExcitationCorrectAnswers).filter(key => key !== "Z")];
+
+      rows = excitationTable.map((row, rowIndex) => {
+        return [
+          `\t${row.currentState}`,     // Enclose in quotes to keep leading zeros
+          `\t${row.input}`,
+          ...Object.keys(row.flipFlopInputs)
+          .filter(flipFlop => flipFlop !== "Z")
+          .map((flipFlop) => {
+            const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
+            return isMinterm 
+              ? (terms.includes(rowIndex) ? "1" : "0")  // Minterms expect "1"
+              : (terms.includes(rowIndex) ? "0" : "1"); // Maxterms expect "0"
+          })
+        ];
+      });
+    } else if (tableType === "stateTransition") {
+      headers = [currentStateHeader, inputHeader, nextStateHeader, "Output Z"];
+
+      rows = stateTransitionTable.map((row, rowIndex) => [
+        `\t${row.currentState}`,  // Enclose in quotes to keep leading zeros
+        `\t${row.input}`,
+        `\t${hiddenStateTransitionCorrectAnswers.nextState[rowIndex]}`,
+        `\t${hiddenStateTransitionCorrectAnswers.output[rowIndex]}`
+      ]);
+    }
+
+    // Format headers properly for CSV (remove any JSX formatting issues)
+    csvContent += headers.join(",") + "\n"; 
+
+    // Format rows properly
+    rows.forEach(row => {
+      csvContent += row.join(",") + "\n";
+    });
+
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${tableType}_table.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Render
   return (
@@ -1576,26 +1656,35 @@ const CircuitToState = () => {
               </table>
             </div>
             
-            {!isExcitationTableComplete && (
-              <div className="button-group">
-                <button
-                  className={`next-btn ${isNextExcitationButtonEnabled ? 'active' : 'disabled'}`}
-                  disabled={!isNextExcitationButtonEnabled}
-                  onClick={validateExcitationInputs}
-                >
-                  Next
-                </button>
-                {!isExcitationGivenUp && (
+            <div className="button-group">
+              {!isExcitationTableComplete && (
+                <>
                   <button
-                    className={`giveup-btn ${excitationAttemptCount >= 2 ? 'active' : 'disabled'}`}
-                    disabled={excitationAttemptCount < 2}
-                    onClick={handleGiveUpExcitation}
+                    className={`next-btn ${isNextExcitationButtonEnabled ? 'active' : 'disabled'}`}
+                    disabled={!isNextExcitationButtonEnabled}
+                    onClick={validateExcitationInputs}
                   >
-                    Give Up
+                    Next
                   </button>
-                )}
-              </div>
-            )}
+                  {!isExcitationGivenUp && (
+                    <button
+                      className={`giveup-btn ${excitationAttemptCount >= 2 ? 'active' : 'disabled'}`}
+                      disabled={excitationAttemptCount < 2}
+                      onClick={handleGiveUpExcitation}
+                    >
+                      Give Up
+                    </button>
+                  )}
+                </>
+              )}
+
+              <button 
+                className={`export-btn ${isDownloadExcitationEnabled ? "active" : "disabled"}`}
+                disabled={!isDownloadExcitationEnabled}
+                onClick={() => exportToCSV("excitation")}>
+                  <FontAwesomeIcon icon={faDownload} /> CSV
+              </button>
+            </div>
           </div>
           </>
         )}
@@ -1669,26 +1758,33 @@ const CircuitToState = () => {
                 ))}
               </tbody>
             </table>
-            {!isStateTransitionTableComplete && (
-              <div className="button-group">
-                <button
-                  className={`next-btn ${isGenerateStateDiagramButtonEnabled ? 'active' : 'disabled'}`}
-                  disabled={!isGenerateStateDiagramButtonEnabled}
-                  onClick={validateStateTransitionInputs} 
-                >
-                  Generate State Diagram
-                </button>
-                {!isStateTransitionGivenUp && (
+            <div className="button-group">
+              {!isStateTransitionTableComplete && (
+                <>
                   <button
-                    className={`giveup-btn ${stateTransitionAttemptCount >= 2 ? 'active' : 'disabled'}`}
-                    disabled={stateTransitionAttemptCount < 2}
-                    onClick={handleGiveUpStateTransition}
+                    className={`next-btn ${isGenerateStateDiagramButtonEnabled ? 'active' : 'disabled'}`}
+                    disabled={!isGenerateStateDiagramButtonEnabled}
+                    onClick={validateStateTransitionInputs} 
                   >
-                    Give Up
+                    Generate State Diagram
                   </button>
-                )}
+                  {!isStateTransitionGivenUp && (
+                    <button
+                      className={`giveup-btn ${stateTransitionAttemptCount >= 2 ? 'active' : 'disabled'}`}
+                      disabled={stateTransitionAttemptCount < 2}
+                      onClick={handleGiveUpStateTransition}
+                    >
+                      Give Up
+                    </button>
+                  )}
+                </>
+              )}
+              <button className={`export-btn ${isDownloadStateTransitionEnabled ? "active" : "disabled"}`}
+                disabled={!isDownloadStateTransitionEnabled}
+                onClick={() => exportToCSV("stateTransition")}>
+                  <FontAwesomeIcon icon={faDownload} /> CSV
+              </button>
               </div>
-            )}
           </div>
         )}
       </div>
