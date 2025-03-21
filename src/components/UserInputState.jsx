@@ -18,6 +18,7 @@ const UserInputState = ({
     const [isValid, setIsValid] = useState(false);
     const [diagramGenerated, setDiagramGenerated] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const [validationErrors, setValidationErrors] = useState(null);
 
     // Function to get the state options for dropdowns
     const getStateOptions = useCallback(() => {
@@ -67,12 +68,14 @@ const UserInputState = ({
         setTransitionTable(newTable);
         setUserInputs({}); // Reset user inputs when table structure changes
         setDiagramGenerated(false); // Reset diagram generated state
+        setValidationErrors(null); // Reset validation errors
     }, [getStateOptions, getInputOptions]);
 
     // Reset diagram generated state when component mounts or when parameters change
     useEffect(() => {
         setDiagramGenerated(false);
         setIsLocked(false);
+        setValidationErrors(null);
     }, [numStates, numInputs, diagramType]);
 
     // Reset everything when resetFlag changes
@@ -82,6 +85,7 @@ const UserInputState = ({
             setDiagramGenerated(false);
             setIsLocked(false);
             setShowInfo(false);
+            setValidationErrors(null);
         }
     }, [resetFlag, generateTransitionTable]);
 
@@ -128,10 +132,65 @@ const UserInputState = ({
     // Handle cell change
     const handleCellChange = (rowIndex, column, value) => {
         const key = `${rowIndex}-${column}`;
-        setUserInputs((prev) => ({
-            ...prev,
-            [key]: value,
-        }));
+
+        // If this is a Moore machine and we're changing an output,
+        // update all outputs for the same present state
+        if (diagramType === "Moore" && column === "output" && value) {
+            const updatedInputs = { ...userInputs };
+
+            // Get the present state of this row
+            const currentState = transitionTable[rowIndex].presentState;
+
+            // Find all rows with the same present state and update their outputs
+            transitionTable.forEach((row, idx) => {
+                if (row.presentState === currentState) {
+                    const outputKey = `${idx}-output`;
+                    updatedInputs[outputKey] = value;
+                }
+            });
+
+            setUserInputs(updatedInputs);
+        } else {
+            // Standard behavior for all other cases
+            setUserInputs((prev) => ({
+                ...prev,
+                [key]: value,
+            }));
+        }
+
+        // Clear validation errors when user changes inputs
+        if (validationErrors) {
+            setValidationErrors(null);
+        }
+    };
+
+    // Validate Moore machine outputs
+    const validateMooreOutputs = () => {
+        if (diagramType !== "Moore") return true;
+
+        // Group outputs by present state to check consistency
+        const stateOutputs = {};
+        let validationResult = { valid: true };
+
+        for (let rowIndex = 0; rowIndex < transitionTable.length; rowIndex++) {
+            const row = transitionTable[rowIndex];
+            const outputKey = `${rowIndex}-output`;
+            const outputValue = userInputs[outputKey] || "";
+            const presentState = row.presentState;
+
+            if (!stateOutputs[presentState]) {
+                stateOutputs[presentState] = outputValue;
+            } else if (stateOutputs[presentState] !== outputValue) {
+                validationResult = {
+                    valid: false,
+                    state: presentState,
+                    outputs: [stateOutputs[presentState], outputValue],
+                };
+                break; // Exit the loop once we find an inconsistency
+            }
+        }
+
+        return validationResult;
     };
 
     // Handle generate diagram click
@@ -142,6 +201,25 @@ const UserInputState = ({
             );
             return;
         }
+
+        // For Moore machines, validate that outputs are consistent for each state
+        if (diagramType === "Moore") {
+            const mooreValidation = validateMooreOutputs();
+            if (!mooreValidation.valid) {
+                setValidationErrors({
+                    message: `Error: Moore machines must have the same output for all inputs to the same state. 
+                    State ${
+                        mooreValidation.state
+                    } has different outputs: ${mooreValidation.outputs.join(
+                        ", "
+                    )}.`,
+                });
+                return;
+            }
+        }
+
+        // Clear any previous validation errors
+        setValidationErrors(null);
 
         // Create a complete transition table from user inputs
         const completedTable = transitionTable.map((row, rowIndex) => {
@@ -306,9 +384,32 @@ const UserInputState = ({
                                 state machine in action
                             </li>
                         </ul>
+
+                        {diagramType === "Moore" && (
+                            <div className="moore-note">
+                                <p>
+                                    <strong>
+                                        Important Note for Moore Machines:
+                                    </strong>
+                                </p>
+                                <p>
+                                    In Moore machines, the output depends only
+                                    on the present state, not on the input. This
+                                    means you must use the same output value for
+                                    all rows with the same present state.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
+
+            {/* Display validation errors */}
+            {validationErrors && (
+                <div className="validation-error">
+                    {validationErrors.message}
+                </div>
+            )}
 
             <table className="state-transition-table">
                 <thead>
