@@ -1856,14 +1856,24 @@ const STCConversion = ({
             <div className="score-container">
                 <div className="score-header">
                     <h3>Your Score</h3>
-                    <button
-                        className="complete-download-button"
-                        onClick={downloadAllDataCSV}
-                        title="Download Complete Project Data as CSV"
-                    >
-                        <FontAwesomeIcon icon={faDownload} /> Download Complete
-                        Project
-                    </button>
+                    <div className="button-container">
+                        <button
+                            className="complete-download-button"
+                            onClick={convertToNetlist}
+                            title="Convert logic equations to netlist format and download"
+                        >
+                            <FontAwesomeIcon icon={faDownload} /> Convert to
+                            Netlist
+                        </button>
+                        <button
+                            className="complete-download-button"
+                            onClick={downloadAllDataCSV}
+                            title="Download Complete Project Data as CSV"
+                        >
+                            <FontAwesomeIcon icon={faDownload} /> Download
+                            Complete Project
+                        </button>
+                    </div>
                 </div>
                 <div className="score-details">
                     <p>
@@ -1883,6 +1893,138 @@ const STCConversion = ({
                 </div>
             </div>
         );
+    };
+
+    // Function to create netlist from logic equations
+    const convertToNetlist = () => {
+        if (
+            !simplifiedEquations ||
+            Object.keys(simplifiedEquations).length === 0
+        ) {
+            return;
+        }
+
+        // This will hold our netlist of gates
+        const netlist = [];
+        // Keep track of intermediate signals to avoid duplicates
+        const intermediateSignals = new Map();
+        // Counter for naming gates
+        let gateCounter = 1;
+
+        // Process each equation
+        Object.keys(simplifiedEquations).forEach((key) => {
+            // Get the SOP expression from user answers or the simplified equation
+            const sopKey = `${key}-sop`;
+            let sopExpression =
+                equationAnswers[sopKey] || simplifiedEquations[key].minimalSoP;
+
+            // Skip if the expression is simply "0" or "1"
+            if (sopExpression === "0" || sopExpression === "1") {
+                return;
+            }
+
+            // Parse the SOP expression (example: "Q1'Q0' + Q1Q0X")
+            // Split by + to get individual product terms
+            const productTerms = sopExpression
+                .split("+")
+                .map((term) => term.trim());
+
+            // Array to collect outputs of AND gates for this equation
+            const andOutputs = [];
+
+            // Process each product term (AND gate)
+            productTerms.forEach((term) => {
+                // Parse the term to extract variables and inversions
+                const inputs = [];
+                let i = 0;
+
+                while (i < term.length) {
+                    // Check if this is a variable (Q or X followed by a number)
+                    if (
+                        (term[i] === "Q" || term[i] === "X") &&
+                        i + 1 < term.length
+                    ) {
+                        // Extract variable name (e.g., Q0, X1)
+                        const varName = term[i] + term[i + 1];
+                        i += 2;
+
+                        // Check if it's inverted (has a ' after it)
+                        const isInverted = i < term.length && term[i] === "'";
+                        if (isInverted) {
+                            // Create a NOT gate for this input
+                            const notOutput = `${varName}_NOT`;
+
+                            // Only add the NOT gate if we haven't already created it
+                            if (!intermediateSignals.has(`${varName}'`)) {
+                                netlist.push({
+                                    name: `Gate${gateCounter++}`,
+                                    type: "not",
+                                    input: [varName],
+                                    output: notOutput,
+                                });
+                                intermediateSignals.set(
+                                    `${varName}'`,
+                                    notOutput
+                                );
+                            }
+
+                            inputs.push(intermediateSignals.get(`${varName}'`));
+                            i++; // Skip the ' character
+                        } else {
+                            inputs.push(varName);
+                        }
+                    } else {
+                        // Skip any spacing or unrecognized characters
+                        i++;
+                    }
+                }
+
+                // If we have inputs, create an AND gate
+                if (inputs.length > 0) {
+                    const andOutput = `AND_${gateCounter}`;
+                    netlist.push({
+                        name: `Gate${gateCounter++}`,
+                        type: "and",
+                        input: inputs,
+                        output: andOutput,
+                    });
+                    andOutputs.push(andOutput);
+                }
+            });
+
+            // If we have multiple product terms, we need an OR gate to combine them
+            if (andOutputs.length > 1) {
+                netlist.push({
+                    name: `Gate${gateCounter++}`,
+                    type: "or",
+                    input: andOutputs,
+                    output: key,
+                });
+            } else if (andOutputs.length === 1) {
+                // If there's only one product term, connect it directly to the output
+                // Find the last gate we created and update its output
+                const lastGate = netlist[netlist.length - 1];
+                if (lastGate && lastGate.output === andOutputs[0]) {
+                    lastGate.output = key;
+                }
+            }
+        });
+
+        // Convert netlist to formatted JSON string
+        const netlistJson = JSON.stringify(netlist, null, 2);
+
+        // Create and trigger download
+        const blob = new Blob([netlistJson], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `netlist_${flipFlopType}_${diagramType}_${new Date()
+            .toISOString()
+            .slice(0, 10)}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     // Function to download excitation table as CSV

@@ -966,9 +966,36 @@ td:nth-child(4) .table-input.select {
     color: #4CAF50;
 }
 
-.score-header .download-button {
-    position: static;
-    margin: 0;
+.score-header .button-container {
+    display: flex;
+    align-items: center;
+}
+
+.score-header .button-container button + button {
+    margin-left: 10px;
+}
+
+.score-header .complete-download-button {
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #6FC3DF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.score-header .complete-download-button:hover {
+    background-color: #4eafd3;
+}
+
+.score-header .complete-download-button svg {
+    margin-right: 6px;
 }
 
 .score-container h3 {
