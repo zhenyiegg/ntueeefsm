@@ -35,17 +35,16 @@ html, body, #root, .App {
 
 /* Control panel styles */
 .control-panel {
-  margin-bottom: 20px;
   display: flex;
-  gap: 20px;
-  padding: 1rem;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 3px solid #6FC3DF;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: 1rem;
+  background: #f5f9ff;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid #6FC3DF;
+  margin-bottom: 2rem;
 }
 
 .control-panel > div {
@@ -306,10 +305,9 @@ html, body, #root, .App {
 /* Button group styles */
 .button-group {
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 0.5rem;
   margin-left: auto;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .generate-button,
@@ -1533,15 +1531,51 @@ td:nth-child(4) .table-input.select {
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .control-panel {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
+    justify-content: center;
   }
   
   .button-group {
     margin-left: 0;
+    width: 100%;
     justify-content: center;
-    margin-top: 10px;
+  }
+  
+  /* Make diagram and table stack vertically on smaller screens */
+  .diagram-table-container {
+    flex-direction: column;
+    align-items: center;
+    transform: scale(0.8); /* Increase scale for better visibility */
+    width: 120%; /* Make container wider to compensate for scale */
+    margin: 0 -10%; /* Adjust negative margins to center the wider container */
+    overflow: visible; /* Ensure overflow is visible */
+  }
+  
+  /* Adjust padding to account for larger diagram */
+  .diagram-table-container::after {
+    padding-bottom: 80%; /* Increase from 65% to 80% */
+  }
+  
+  .diagram-section {
+    margin-right: 0;
+    margin-bottom: 3rem; /* Increase bottom margin for more space */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 500px; /* Ensure minimum height for diagram */
+    overflow: visible; /* Ensure content isn't cut off */
+  }
+  
+  /* Center the diagram content and ensure visibility */
+  .state-diagram-wrapper,
+  .initial-paper-container,
+  .state-diagram-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    overflow: visible; /* Prevent content from being cut off */
+    min-height: 450px; /* Minimum height for diagram containers */
   }
 }
 
