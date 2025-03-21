@@ -4,7 +4,6 @@ import { dia, shapes } from "jointjs";
 import "../styles/CTSConversion.css";
 
 const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs }) => {
-  const [diagramInfo, setDiagramInfo] = useState("");
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupContent, setPopupContent] = useState("");
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -31,9 +30,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
 
     const paperHeight = (() => {
       if (numFlipFlops === 2) {
-        return 800; // Shorter height for 2 flip-flops (either 1 or 2 inputs)
+        return 750; // Shorter height for 2 flip-flops (either 1 or 2 inputs)
       } else if (numFlipFlops === 3 && numInputs === 1) {
-        return 860; 
+        return 900; 
       }
       return 1000; // Default height
     })();
@@ -56,12 +55,12 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     // Position "Any state" oval above the diagram
     const anyStatePos = (() => {
       if (numFlipFlops === 2) {
-        return { x: 350, y: 40 }; 
+        return { x: 400, y: 60 }; 
       } else if (numFlipFlops === 3) {
         if (numInputs === 1) {
-          return { x: 750, y: 40 }; 
+          return { x: 680, y: 80 }; 
         } else {
-          return { x: 750, y: 40 }; 
+          return { x: 680, y: 80 }; 
         }
       }
       return { x: 350, y: 50 }; // Default fallback
@@ -179,8 +178,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     } else {
       console.error("❌ Reset state not found in stateElements. Cannot create reset arrow.");
     }
-
-    setDiagramInfo(`${fsmType}`);
 
     // Scroll Event
     const handleScroll = () => {
@@ -445,11 +442,8 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
   // Calculate positions for states
   const calculateStatePositions = (states, numFlipFlops, numInputs) => {
     const positions = {};
-    const canvasWidth = 700; 
-    //const canvasHeight = 900; 
-    const baseHeight = numFlipFlops === 3 ? 750 : 710;
-    const centerX = canvasWidth - 240 ; 
-    const centerY = baseHeight / 2; 
+    const centerX = 920/2; 
+    const centerY = numFlipFlops === 3 ? 820/2: 700/2; 
     const squareOffset = 180;
   
     if (numFlipFlops === 2 && (numInputs === 1 || numInputs === 2)) {
@@ -460,7 +454,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       positions["01"] = { x: centerX + squareOffset, y: centerY + squareOffset }; // Bottom-right
     } else if (numFlipFlops === 3) {
       // Circular arrangement for 8 states in octagonal shape
-      const radius = 260; 
+      const radius = 280; 
       const orderedStates = ["000", "001", "010", "011", "100", "101", "110", "111"];
       orderedStates.forEach((state, index) => {
         const angle = ((index * 2 * Math.PI) / orderedStates.length) - Math.PI / 2; // Start at top
@@ -555,9 +549,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
   // Render
   return (
     <div>
-      <div id="stateDiagram-info">
-        <pre>{diagramInfo}</pre>
-      </div>
       <div className="state-diagram-wrapper">
         <div id="stateDiagram-container" />
       </div>

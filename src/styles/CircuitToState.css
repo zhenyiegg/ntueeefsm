@@ -328,21 +328,26 @@ canvas {
   margin-bottom: 80px;
 }
 
-.stateDiagram-box.active {
-  background-color: transparent;
-  border: 0;
-  width: 88%;
-}
-
 .stateDiagram-box.active .state-container {
-  width: 100%;
-  overflow-x: auto; 
+  overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
   margin: 20px auto;
   background-color: white;
   border: 3px solid #9068c1;
   border-radius: 12px;
+  padding: 0;
+}
+
+.state-diagram-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#stateDiagram-container {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .ok-btn {
