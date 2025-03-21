@@ -555,20 +555,33 @@ const STCConversion = ({
                     return false;
                 } else if (flipFlopType === "JK") {
                     // For JK, special format
-                    // Accept single X
+                    // Accept any combination of 0, 1, X, and spaces
+                    // We'll validate the overall structure but allow more flexibility
+
+                    // First, check if it's a single X value
                     if (normalizedValue === "X") return true;
-                    // Accept XX
-                    if (normalizedValue === "XX") return true;
 
-                    // Check for JK pairs format (XX XX, 01 10, etc.)
-                    const pairs = normalizedValue.split(" ");
-                    if (pairs.length > numStateBits) return false;
+                    // Allow simple 2-character inputs like "XX", "01", "0X", etc.
+                    if (/^[01X]{2}$/.test(normalizedValue)) return true;
 
-                    for (const pair of pairs) {
-                        if (pair.length !== 2) return false; // Each JK pair should be 2 chars
-                        if (!/^[01X]{2}$/.test(pair)) return false; // Each char should be 0, 1, or X
+                    // If the input contains spaces, validate each pair
+                    if (normalizedValue.includes(" ")) {
+                        const pairs = normalizedValue.split(" ");
+
+                        // Don't be too strict on number of pairs, but ensure none are too long
+                        for (const pair of pairs) {
+                            // Empty pairs from extra spaces are okay
+                            if (pair === "") continue;
+
+                            // Each non-empty pair should have 1-2 characters, all 0, 1, or X
+                            if (pair.length > 2) return false;
+                            if (!/^[01X]{1,2}$/.test(pair)) return false;
+                        }
+                        return true;
                     }
-                    return true;
+
+                    // If no spaces but has valid characters, accept it (might be partial input)
+                    return /^[01X]+$/.test(normalizedValue);
                 }
                 return false;
 
@@ -621,7 +634,7 @@ const STCConversion = ({
                 } else if (flipFlopType === "T") {
                     message = `Enter ${numStateBits} bits for T inputs using 0, 1, and X. Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
                 } else if (flipFlopType === "JK") {
-                    message = `Enter JK pairs using 0, 1, and X (like "01 10" or "XX 0X"). Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                    message = `Enter JK pairs using 0, 1, and X (like "01 10" or "XX 0X").`;
                 }
                 break;
             default:
@@ -661,7 +674,7 @@ const STCConversion = ({
                 } else if (flipFlopType === "T") {
                     message = `Enter ${numStateBits} bits for T inputs using 0, 1, and X. Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
                 } else if (flipFlopType === "JK") {
-                    message = `Enter JK pairs using 0, 1, and X (like "01 10" or "XX 0X"). Lowercase 'x' will be converted to 'X'. X can be used for don't care bits.`;
+                    message = `Enter JK pairs using 0, 1, and X (like "01 10" or "XX 0X").`;
                 }
                 break;
             default:
@@ -866,7 +879,10 @@ const STCConversion = ({
                 maxLength = 3;
                 break;
             case "excitation":
-                maxLength = flipFlopType === "JK" ? 7 : 3; // JK: "XX XX", D/T: "##"
+                // For JK flip-flops, allow more characters based on number of state bits
+                // Each JK pair needs 2 chars plus 1 space, minus 1 space after the last pair
+                maxLength =
+                    flipFlopType === "JK" ? numStateBits * 3 - 1 : numStateBits;
                 break;
             default:
                 maxLength = 1;
@@ -988,8 +1004,11 @@ const STCConversion = ({
                             </li>
                             {flipFlopType === "JK" ? (
                                 <li>
-                                    JK Inputs: Format is "J1K1 J0K0" where each
-                                    JK pair can be 0X, X0, 1X, or X1
+                                    JK Inputs: Format is "J1K1 J0K0..." for{" "}
+                                    {numStateBits} state bits. Each JK pair can
+                                    be 0X, X0, 1X, X1, 00, 01, 10, 11, or XX. A
+                                    value of "X" means "don't care" - either 0
+                                    or 1 can be used.
                                 </li>
                             ) : (
                                 <li>
