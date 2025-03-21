@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { dia, shapes } from "jointjs";
 import Modal from "react-modal";
 import "../styles/StateDiagram.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDownload } from "@fortawesome/free-solid-svg-icons";
 
 Modal.setAppElement("#root");
 
@@ -32,6 +34,148 @@ const StateDiagram = ({
 
     // Ref to handle the tooltip timeout
     const tooltipTimeout = useRef(null);
+
+    // Function to download the diagram as PNG
+    const downloadDiagram = useCallback(() => {
+        if (!paperInstance.current) return;
+
+        try {
+            // Create a hidden div for the export process
+            const hiddenContainer = document.createElement("div");
+            hiddenContainer.style.position = "absolute";
+            hiddenContainer.style.left = "-9999px";
+            hiddenContainer.style.top = "-9999px";
+            hiddenContainer.style.width = "1200px";
+            hiddenContainer.style.height = "1000px";
+            hiddenContainer.style.overflow = "hidden";
+            document.body.appendChild(hiddenContainer);
+
+            // Get the original SVG
+            const svg = paperRef.current.querySelector("svg");
+            if (!svg) {
+                document.body.removeChild(hiddenContainer);
+                throw new Error("SVG not found");
+            }
+
+            // Clone the SVG for export
+            const clonedSvg = svg.cloneNode(true);
+            hiddenContainer.appendChild(clonedSvg);
+
+            // Get content bbox from the original paper
+            const contentBBox = paperInstance.current.getContentBBox();
+            const padding = 100;
+
+            // Set proper dimensions with padding
+            const width = contentBBox.width + padding * 2;
+            const height = contentBBox.height + padding * 2;
+
+            // Set viewBox to show the entire content with padding
+            clonedSvg.setAttribute("width", width);
+            clonedSvg.setAttribute("height", height);
+            clonedSvg.setAttribute(
+                "viewBox",
+                `${contentBBox.x - padding} ${
+                    contentBBox.y - padding
+                } ${width} ${height}`
+            );
+
+            // Remove any transforms on the viewport group
+            const viewport = clonedSvg.querySelector(".joint-viewport");
+            if (viewport) {
+                viewport.setAttribute("transform", "");
+            }
+
+            // Set white background
+            const bgRect = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "rect"
+            );
+            bgRect.setAttribute("width", "100%");
+            bgRect.setAttribute("height", "100%");
+            bgRect.setAttribute("fill", "white");
+            clonedSvg.insertBefore(bgRect, clonedSvg.firstChild);
+
+            // Convert SVG to data URL
+            const svgData = new XMLSerializer().serializeToString(clonedSvg);
+            const svgDataUrl =
+                "data:image/svg+xml;charset=utf-8," +
+                encodeURIComponent(svgData);
+
+            // Create a new image and canvas for PNG conversion
+            const img = new Image();
+            img.onload = function () {
+                // Create canvas at appropriate size
+                const canvas = document.createElement("canvas");
+                const scale = window.devicePixelRatio || 2;
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                const ctx = canvas.getContext("2d");
+
+                // Fill background and draw image
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                try {
+                    // Convert to PNG
+                    const pngDataUrl = canvas.toDataURL("image/png", 1.0);
+
+                    // Download the image
+                    const link = document.createElement("a");
+                    link.href = pngDataUrl;
+                    link.download = `state_diagram_${diagramType}_${numStates}states_${new Date()
+                        .toISOString()
+                        .slice(0, 10)}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (e) {
+                    console.error("Error converting to PNG:", e);
+                    // Fallback to SVG download
+                    const link = document.createElement("a");
+                    link.href = svgDataUrl;
+                    link.download = `state_diagram_${diagramType}_${numStates}states_${new Date()
+                        .toISOString()
+                        .slice(0, 10)}.svg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+
+                // Remove the hidden container
+                document.body.removeChild(hiddenContainer);
+            };
+
+            img.onerror = function () {
+                console.error("Error loading SVG for conversion");
+                // Fallback to SVG download
+                const link = document.createElement("a");
+                link.href = svgDataUrl;
+                link.download = `state_diagram_${diagramType}_${numStates}states_${new Date()
+                    .toISOString()
+                    .slice(0, 10)}.svg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Remove the hidden container
+                document.body.removeChild(hiddenContainer);
+            };
+
+            img.src = svgDataUrl;
+        } catch (error) {
+            console.error("Error in downloadDiagram:", error);
+
+            // Clean up any created hidden container
+            const hiddenContainer = document.querySelector(
+                'div[style*="position: absolute"][style*="left: -9999px"]'
+            );
+            if (hiddenContainer) {
+                document.body.removeChild(hiddenContainer);
+            }
+        }
+    }, [diagramType, numStates]);
 
     // Function to update tooltip with transition data
     // Marked as used by callback refs
@@ -1483,7 +1627,16 @@ const StateDiagram = ({
     };
 
     return (
-        <>
+        <div className="state-diagram-wrapper">
+            <div className="diagram-download-button-container">
+                <button
+                    className="diagram-download-button"
+                    onClick={downloadDiagram}
+                    title="Download diagram as PNG"
+                >
+                    <FontAwesomeIcon icon={faDownload} />
+                </button>
+            </div>
             <div ref={paperRef} className="initial-paper-container"></div>
 
             {tooltip.visible && (
@@ -1547,7 +1700,7 @@ const StateDiagram = ({
                     </div>
                 )}
             </Modal>
-        </>
+        </div>
     );
 };
 

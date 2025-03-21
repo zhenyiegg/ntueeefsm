@@ -5,7 +5,11 @@ import StateDiagram from "../components/StateDiagram";
 import STCConversion from "../components/STCConversion";
 import "../styles/StateToCircuit.css"; // Import your CSS file
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faCircleInfo } from "@fortawesome/free-solid-svg-icons"; // Removed faGear and faTimes icons
+import {
+    faArrowRight,
+    faCircleInfo,
+    faDownload,
+} from "@fortawesome/free-solid-svg-icons"; // Added faDownload
 import UserInputState from "../components/UserInputState";
 
 const StateToCircuit = () => {
@@ -600,6 +604,55 @@ const StateToCircuit = () => {
         setShouldConvert(true);
     };
 
+    // Function to download state transition table as CSV
+    const downloadStateTableCSV = () => {
+        // Create CSV header
+        let csvContent = "Present State,Input,Next State,Output\n";
+
+        // Add each row to CSV
+        transitionTable.forEach((row, rowIndex) => {
+            // Get user input for blank cells or use original values
+            const inputKey = `${rowIndex}-input`;
+            const nextStateKey = `${rowIndex}-nextState`;
+            const outputKey = `${rowIndex}-output`;
+
+            const input = blankCells.has(inputKey)
+                ? userAnswers[inputKey] || ""
+                : row.input;
+            const nextState = blankCells.has(nextStateKey)
+                ? userAnswers[nextStateKey] || ""
+                : row.nextState;
+            const output = blankCells.has(outputKey)
+                ? userAnswers[outputKey] || ""
+                : row.output;
+
+            // Create a CSV row and escape any commas in the data
+            const csvRow = [row.presentState, input, nextState, output]
+                .map((value) => `"${value}"`)
+                .join(",");
+
+            csvContent += csvRow + "\n";
+        });
+
+        // Create a hidden download link
+        const encodedUri = encodeURI(
+            "data:text/csv;charset=utf-8," + csvContent
+        );
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+            "download",
+            `state_transition_table_${new Date()
+                .toISOString()
+                .slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+
+        // Trigger download and remove link
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="state-to-circuit-container">
             <header>
@@ -732,28 +785,42 @@ const StateToCircuit = () => {
                         {/* Show original transition table if not in User Input Mode */}
                         {transitionTable.length > 0 && !isUserInputMode && (
                             <div className="table-section">
-                                <h2>State Transition Table</h2>
-                                <div className="button-container">
-                                    <button
-                                        className="info-button"
-                                        onClick={() =>
-                                            setShowTableInfo(!showTableInfo)
-                                        }
-                                    >
-                                        <FontAwesomeIcon icon={faCircleInfo} />
-                                    </button>
-                                    <button
-                                        className="give-up-button"
-                                        onClick={handleGiveUp}
-                                        disabled={
-                                            hasGivenUp.transitionTable ||
-                                            isTableComplete ||
-                                            incorrectAttempts.transitionTable <
-                                                2
-                                        }
-                                    >
-                                        Give Up
-                                    </button>
+                                <div className="table-header-container">
+                                    <h2>State Transition Table</h2>
+                                    <div className="button-container">
+                                        <button
+                                            className="info-button"
+                                            onClick={() =>
+                                                setShowTableInfo(!showTableInfo)
+                                            }
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faCircleInfo}
+                                            />
+                                        </button>
+                                        <button
+                                            className="download-button"
+                                            onClick={downloadStateTableCSV}
+                                            title="Download as CSV"
+                                            disabled={!isTableComplete}
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faDownload}
+                                            />
+                                        </button>
+                                        <button
+                                            className="give-up-button"
+                                            onClick={handleGiveUp}
+                                            disabled={
+                                                hasGivenUp.transitionTable ||
+                                                isTableComplete ||
+                                                incorrectAttempts.transitionTable <
+                                                    2
+                                            }
+                                        >
+                                            Give Up
+                                        </button>
+                                    </div>
                                 </div>
                                 {showTableInfo && (
                                     <div className="info-tooltip">
