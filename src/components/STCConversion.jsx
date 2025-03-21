@@ -1910,6 +1910,25 @@ const STCConversion = ({
         const intermediateSignals = new Map();
         // Counter for naming gates
         let gateCounter = 1;
+        // Track signal levels for determining gate levels
+        const signalLevels = new Map();
+
+        // Initialize input signal levels (all inputs are level 0)
+        const stateVars = Array.from(
+            { length: numStateBits },
+            (_, i) => `Q${numStateBits - 1 - i}`
+        );
+        const inputVars =
+            numInputs > 1
+                ? Array.from(
+                      { length: numInputs },
+                      (_, i) => `X${numInputs - 1 - i}`
+                  )
+                : ["X"];
+
+        [...stateVars, ...inputVars].forEach((signal) => {
+            signalLevels.set(signal, 0);
+        });
 
         // Process each equation
         Object.keys(simplifiedEquations).forEach((key) => {
@@ -1931,11 +1950,13 @@ const STCConversion = ({
 
             // Array to collect outputs of AND gates for this equation
             const andOutputs = [];
+            const andOutputLevels = [];
 
             // Process each product term (AND gate)
             productTerms.forEach((term) => {
                 // Parse the term to extract variables and inversions
                 const inputs = [];
+                const inputLevels = [];
                 let i = 0;
 
                 while (i < term.length) {
@@ -1956,22 +1977,33 @@ const STCConversion = ({
 
                             // Only add the NOT gate if we haven't already created it
                             if (!intermediateSignals.has(`${varName}'`)) {
+                                // NOT gates for inputs are at level 1
+                                const notGateLevel = 1;
+
                                 netlist.push({
                                     name: `Gate${gateCounter++}`,
                                     type: "not",
                                     input: [varName],
                                     output: notOutput,
+                                    level: notGateLevel.toString(),
                                 });
+
                                 intermediateSignals.set(
                                     `${varName}'`,
                                     notOutput
                                 );
+                                signalLevels.set(notOutput, notGateLevel);
                             }
 
-                            inputs.push(intermediateSignals.get(`${varName}'`));
+                            const notSignal = intermediateSignals.get(
+                                `${varName}'`
+                            );
+                            inputs.push(notSignal);
+                            inputLevels.push(signalLevels.get(notSignal));
                             i++; // Skip the ' character
                         } else {
                             inputs.push(varName);
+                            inputLevels.push(signalLevels.get(varName) || 0);
                         }
                     } else {
                         // Skip any spacing or unrecognized characters
@@ -1981,31 +2013,45 @@ const STCConversion = ({
 
                 // If we have inputs, create an AND gate
                 if (inputs.length > 0) {
+                    // AND gates are at level = max input level + 1
+                    const andGateLevel = Math.max(...inputLevels) + 1;
                     const andOutput = `AND_${gateCounter}`;
+
                     netlist.push({
                         name: `Gate${gateCounter++}`,
                         type: "and",
                         input: inputs,
                         output: andOutput,
+                        level: andGateLevel.toString(),
                     });
+
                     andOutputs.push(andOutput);
+                    andOutputLevels.push(andGateLevel);
+                    signalLevels.set(andOutput, andGateLevel);
                 }
             });
 
             // If we have multiple product terms, we need an OR gate to combine them
             if (andOutputs.length > 1) {
+                // OR gate is at level = max AND gate level + 1
+                const orGateLevel = Math.max(...andOutputLevels) + 1;
+
                 netlist.push({
                     name: `Gate${gateCounter++}`,
                     type: "or",
                     input: andOutputs,
                     output: key,
+                    level: orGateLevel.toString(),
                 });
+
+                signalLevels.set(key, orGateLevel);
             } else if (andOutputs.length === 1) {
                 // If there's only one product term, connect it directly to the output
                 // Find the last gate we created and update its output
                 const lastGate = netlist[netlist.length - 1];
                 if (lastGate && lastGate.output === andOutputs[0]) {
                     lastGate.output = key;
+                    signalLevels.set(key, signalLevels.get(andOutputs[0]));
                 }
             }
         });
