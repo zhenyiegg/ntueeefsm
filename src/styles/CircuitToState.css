@@ -22,12 +22,12 @@
   align-items: center;
   justify-content: center; 
   gap: 10px; 
-  width: 95%;
+  width: 90%;
   margin-bottom: 20px;
 }  
 
 select {
-  padding: 8px 12px;
+  padding: 8px 10px;
   font-size: 16px;
   border: 2px solid #c2a3eb;
   border-radius: 6px;
@@ -51,18 +51,16 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .checkbox-container input[type="checkbox"] {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  background-color: #fff;
-  border: 2px solid #c2a3eb;
+  width: 22px;
+  height: 22px;
+  margin: 0;
   border-radius: 4px;
   cursor: pointer;
-  position: relative;
+  accent-color: #6f42c1;
 }
 
 .checkbox-container input[type="checkbox"]:hover {
@@ -71,27 +69,21 @@ select:focus {
   box-shadow: 0 0 8px rgba(191, 111, 223, 0.3);
 }
 
-.checkbox-container input[type="checkbox"]::before {
-  content: "✔";
-  font-size: 18px;
-  color: white;
-  position: absolute;
-  top: 48%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(1);
-}
-
-.checkbox-container input[type="checkbox"]:checked {
-  border: 2px solid #5e35b1;
-  background-color: #5e35b1; 
-}
-
-.checkbox-container label {
+.custom-label {
   cursor: pointer;
+  user-select: none;
+  color: #333;
 }
 
-.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn, .export-btn {
-  padding: 10px 12px;
+.dropdown-btn-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn {
+  padding: 10px 10px;
   font-size: 16px;
   background-color: #4CAF50; 
   color: white;
@@ -99,6 +91,10 @@ select:focus {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.ok-btn, .next-btn, .giveup-btn {
+  padding: 8px 10px;
 }
 
 .auto-generate-btn, .ok-btn {
@@ -113,49 +109,10 @@ select:focus {
   background-color: #442387;
 }
 
-.generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled, .export-btn.disabled {
-  background-color: #c0bdbd;
+.generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled {
+  background-color: #ccc;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-.tooltipBtn-container {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltipBtn {
-  visibility: hidden;
-  position: absolute;
-  bottom: 120%; /* above the button */
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #333;
-  color: #fff;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  visibility: visible;
-  z-index: 10;
-}
-
-.tooltipBtn::after {
-  content: "";
-  position: absolute;
-  top: 100%; /* Triangle at the bottom */
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 6px;
-  border-style: solid;
-  border-color: #333 transparent transparent transparent;
-}
-
-.tooltipBtn-container:hover .tooltipBtn {
-  visibility: visible;
-  opacity: 0.8;
 }
 
 /**********  CIRCUIT CANVAS  **********/
@@ -164,9 +121,13 @@ select:focus {
   background-color: white;
   border: 3px solid #9068c1;
   border-radius: 12px;
-  overflow-x: auto; /* horizontal scrolling */
-  white-space: nowrap;
   margin-bottom: 20px;
+  position: relative;
+}
+
+.circuit-scrollable {
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 canvas { 
@@ -174,7 +135,18 @@ canvas {
   padding: 20px 15px;
 }
 
-/**********  LOGIC EQUATIONS SECTION **********/
+.canvas-container {
+  display: inline-block;
+}
+
+.circuit-export-btn-wrapper {
+  position: absolute; 
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+}
+
+/**********  LOGIC EQUATIONS SECTION  **********/
 .equation-section {
   text-align: center;
   padding: 0 16px;
@@ -218,30 +190,44 @@ canvas {
   color: #333; 
 }
 
-.info-icon {
-  font-size: 1em;
-  margin-left: 8px;
-  cursor: pointer;
-  color: #007bff;
+.content-box.active .customEqn-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
-.customEq-tooltip {
+.customEqn-title-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.customEqn-tooltip {
+  position: absolute;
+  top: 3rem; 
+  right: 0;
   color: #333;
-  background: #f9f1ff;
   border: 2px solid #c2a3eb;
   color: #333;
   padding: 16px;
   border-radius: 5px;
-  font-size: 0.9em;
+  font-size: 14px;
   max-width: 500px;
-  margin-top: 8px;
-  display: inline-block;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #c2a3eb;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  animation: fadeInTooltip 0.2s ease-in-out;
 }
 
-.content-box .customEq-tooltip p, .customEq-tooltip ul {
+.content-box .customEqn-tooltip p, .customEqn-tooltip ul {
   color: #333;
-  line-height: 1.6;
+  line-height: 1.8;
   text-align: left;
+  margin: 0;
 }
 
 .custom-equation {
@@ -273,7 +259,11 @@ canvas {
   box-shadow: 0 0 5px rgba(191, 111, 223, 0.3);
 }
 
-/**********  INSTRUCTION SECTION **********/
+.ok-btn {
+  margin-top: 12px;
+}
+
+/**********  INSTRUCTION SECTION  **********/
 .instruction-section.active {
   width: 80%;
   text-align: center;
@@ -285,7 +275,7 @@ canvas {
   margin: 0;
 }
 
-/**********  CUSTOM EQN & EXERCISE SECTIONS **********/
+/**********  EXERCISE SECTIONS  **********/
 .content-box {
   padding: 24px 20px;
   margin: 0 0 20px 0;
@@ -294,34 +284,41 @@ canvas {
   border-radius: 12px;
   border: 2px solid #f9eeff;
   text-align: center;
+  position: relative;
 }
 
-.content-box h2 {
-  margin-top: 0;
+.content-box .content-title {
+  margin: 0;
   font-size: 20px;
   margin-bottom: 0;
+  color: #ccc; 
 }
 
-.content-box h2, .content-box p {
-  color: #cccccc; 
+.content-box.active .content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f9eeff;
 }
 
-.content-box p {
+.content-box.active .left-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px; 
+}
+
+.content-box.active .content-title, .content-box .customEqn-title {
+  color: #5e35b1;
+  font-size: 18px;
   margin: 0;
 }
 
-.content-box.active h2, .content-box .customEq-title {
-  color: #5e35b1;
-}
-
-.content-box.active p, .content-box .customEq-subtitle {
+.content-box .customEqn-subtitle {
   font-size: 14px;
   color: #333;
-  margin-top: 16px;
-}
-
-.content-box .customEq-subtitle {
-  margin-bottom: 16px;
+  margin: 16px auto;
 }
 
 .stateDiagram-box, .stateDiagram-box.active {
@@ -350,15 +347,12 @@ canvas {
   overflow-y: hidden;
 }
 
-.ok-btn {
-  margin-top: 12px;
-}
-
-.button-group {
+/**********  CONTENT BUTTON GROUP  **********/
+.content-btn-group {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;      
+  gap: 10px;      
   margin: 20px auto 0 auto;
 }
 
@@ -371,7 +365,23 @@ canvas {
 }
 
 .export-btn {
-  background-color: #007bff;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2788ef;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.export-btn.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .next-btn.active:hover {
@@ -382,37 +392,114 @@ canvas {
   background-color: #dd0e0e; 
 }
 
-.export-btn.active:hover {
+.export-btn.active:hover, .export-btn:hover {
+  color: #0056b3;
+}
+
+.exportFull-btn {
+  border: none;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background-color: #2788ef;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  gap: 10px;
+  transition: background-color 0.2s ease;
+  margin-bottom: 100px;
+}
+
+.exportFull-btn:hover {
   background-color: #0056b3;
 }
 
-/**********  TABLE STRUCTURE **********/
+/**********  INFO ICON TOOLTIP  **********/
+.info-icon {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2788ef;
+  cursor: pointer;
+}
+
+.info-icon:hover{
+  color: #0056b3;
+}
+
+.info-tooltip-cts {
+  position: absolute;
+  top: 3rem; 
+  left: 0;
+  padding: 18px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #c2a3eb;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  z-index: 1000;
+  font-size: 14px;
+  color: #333;
+  animation: fadeInTooltip 0.2s ease-in-out;
+}
+
+.info-tooltip-cts p {
+  text-align: left;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@keyframes fadeInTooltip {
+  from {
+      opacity: 0;
+      transform: translateY(-10px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+.info-custom {
+  color: #2788ef;
+}
+
+/**********  TABLE STRUCTURE  **********/
 table {
   width: 100%;
   border-collapse: collapse;
   margin: 16px auto 0 auto;
 }
 
+table th, table td {
+  border: 1px solid #ede1ff;
+  padding: 2.6px;
+  text-align: center;
+  font-size: 16px;
+}
+
 table th {
   background: #9068c1;
   font-size: 16px;
   color: #ffffff;
-}
-
-table th, table td {
-  border: 1px solid #ede1ff;
-  padding: 6px;
-  text-align: center;
+  padding: 8px;
 }
 
 table td input {
   width: 100%;
-  padding: 4px;
+  padding: 2.6px;
   box-sizing: border-box;
   text-align: center;
   border-radius: 4px;
   border: 2px solid #dbc3ffae;
-  font-size: 1em;
+  font-size: 16px;
   transition: all 0.2s ease;
 }
 
@@ -427,7 +514,7 @@ table tr:hover {
 }
 
 .currentState-column {
-  width: 110px; 
+  width: 115px; 
 }
 
 .inputX-column {
@@ -440,7 +527,7 @@ table tr:hover {
 
 .input-correct {
   background-color: transparent;
-  border: none;
+  border: 2px solid transparent;
 }
 
 .input-incorrect {
@@ -508,21 +595,23 @@ table tr:hover {
 
 /**********  RESPONSIVE LAYOUT *********/
 @media (max-width: 1064px) {
-  .dropdown-container select {
-    margin-bottom: 10px;
-    width: 100%;
-  }
-
   .canvas-container {
     width: 90%; 
   }
 
   .content-box {
-      width: 80%;
+    width: 80%;
   }
 
   .equation-section, .equation-section.active {
     width: 80%;
+  }
+}
+
+@media (max-width: 875px) {
+  .dropdown-container select {
+    margin-bottom: 10px;
+    width: 100%;
   }
 }
 
@@ -536,11 +625,11 @@ table tr:hover {
     font-size: 14px;
   }
 
-  .content-box.active h2, .customEq-title {
-    font-size: 18px;
+  .content-box.active .content-title, .customEqn-title {
+    font-size: 16px;
   }
 
-  .instruction-section.active p, select, .custom-label, .equation-section p, table th, table td, .content-box.active p, .customEq-subtitle, .customEq-tooltip {
+  .instruction-section.active p, select, .custom-label, .equation-section p, table th, table td, .content-box.active p, .customEqn-subtitle, .customEqn-tooltip {
     font-size: 14px;
   }
 
