@@ -1,5 +1,8 @@
 /* CircuitToState.jsx */
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import html2canvas from "html2canvas";
 import CircuitDiagram from '../components/CircuitDiagram';
 import CTSConversion from '../components/CTSConversion'; 
 import '../styles/CircuitToState.css';
@@ -35,9 +38,6 @@ const CircuitToState = () => {
   const [showStateTransitionTable, setShowStateTransitionTable] = useState(false);
   const [showStateDiagram, setShowStateDiagram] = useState(false);
 
-  const [excitationSubheader, setExcitationSubheader] = useState(null);
-  const [stateTransitionSubheader, setStateTransitionSubheader] = useState(null);
-
   const [popupMessage, setPopupMessage] = useState(null); 
   const [showPopup, setShowPopup] = useState(false);
 
@@ -47,20 +47,20 @@ const CircuitToState = () => {
   const [isExcitationGivenUp, setIsExcitationGivenUp] = useState(false);
   const [isStateTransitionGivenUp, setIsStateTransitionGivenUp] = useState(false);
   
-  const [showGenerateTooltip, setShowGenerateTooltip] = useState(false);
-  const [showAutoGenerateTooltip, setShowAutoGenerateTooltip] = useState(false);
-
-
   const [customEquations, setCustomEquations] = useState([]); 
   const [customEquationValidated, setCustomEquationValidated] = useState(false); 
 
   const [isCustomEquationChecked, setIsCustomEquationChecked] = useState(false); 
   const [isUsingCustomEquation, setIsUsingCustomEquation] = useState(false); 
 
-  const [showMooreInfo, setShowMooreInfo] = useState(false);
+  const [showCustomEqnInfo, setShowCustomEqnInfo] = useState(false);
+  const [showExcitationInfo, setShowExcitationInfo] = useState(false);
+  const [showStateTransitionInfo, setShowStateTransitionInfo] = useState(false);
+  const [showStateDiagramInfo, setShowStateDiagramInfo] = useState(false);
 
   const [isDownloadExcitationEnabled, setIsDownloadExcitationEnabled] = useState(false);
   const [isDownloadStateTransitionEnabled, setIsDownloadStateTransitionEnabled] = useState(false);
+  const [isDownloadFullExerciseEnabled, setIsDownloadFullExerciseEnabled] = useState(false);
 
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
@@ -86,6 +86,26 @@ const CircuitToState = () => {
     dropdownState.numFlipFlops &&
     dropdownState.fsmType &&
     dropdownState.preFillOption;
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+    if (
+      !event.target.closest(".info-icon") &&
+      !event.target.closest(".customEqn-tooltip") &&
+      !event.target.closest(".info-tooltip-cts")
+    ) {
+        setShowCustomEqnInfo(false);
+        setShowExcitationInfo(false);
+        setShowStateTransitionInfo(false);
+        setShowStateDiagramInfo(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -111,8 +131,6 @@ const CircuitToState = () => {
       // Reset completion states
       setIsExcitationTableComplete(false);
       setIsStateTransitionTableComplete(false);
-      setExcitationSubheader(null);
-      setStateTransitionSubheader(null);
 
       // Reset user inputs for tables
       setUserExcitationInputs([]);
@@ -145,7 +163,6 @@ const CircuitToState = () => {
         setShowStateTransitionTable(false);
         setShowStateDiagram(false);
         generateEquations({ ...dropdownState });
-        setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
       }
     }
   };
@@ -179,8 +196,6 @@ const CircuitToState = () => {
     // Reset completion states
     setIsExcitationTableComplete(false);
     setIsStateTransitionTableComplete(false);
-    setExcitationSubheader(null);
-    setStateTransitionSubheader(null);
 
     // Reset user inputs for tables
     setUserExcitationInputs([]); 
@@ -213,7 +228,6 @@ const CircuitToState = () => {
         setShowStateTransitionTable(false);
         setShowStateDiagram(false);
         generateEquations(randomDropdownState);
-        setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
     }
   };
 
@@ -302,7 +316,7 @@ const CircuitToState = () => {
           if (!isValid) {
             showPopupMessage(
               <>
-                Error: For Moore FSM, the output Z must be the same for all current states. Read<FontAwesomeIcon icon={faCircleInfo} className="info-icon"/> for details.
+                Error: For Moore FSM, the output Z must be the same for all current states. Read <FontAwesomeIcon icon={faCircleInfo} className="info-custom"/> for details.
               </>
             );
             return;
@@ -325,7 +339,6 @@ const CircuitToState = () => {
     setShowExcitationTable(true);
     setShowStateTransitionTable(false);
     setShowStateDiagram(false);
-    setExcitationSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
 
     generateTablesFromCustomEquations(updatedHiddenAnswers);
   };
@@ -1060,8 +1073,6 @@ const CircuitToState = () => {
     if (allCorrect) {
       setIsExcitationTableComplete(true);
       setShowStateTransitionTable(true);
-      setExcitationSubheader("Completed!");
-      setStateTransitionSubheader("Fill in the blanks with binary \"0\" or \"1\" values.");
       setIsDownloadExcitationEnabled(true);
     } else {
       // Increment attempt counter if not all correct
@@ -1132,9 +1143,9 @@ const CircuitToState = () => {
 
     if (allCorrect) {
       setIsStateTransitionTableComplete(true);
-      setStateTransitionSubheader("Completed!");
       setShowStateDiagram(true);
       setIsDownloadStateTransitionEnabled(true);
+      setIsDownloadFullExerciseEnabled(true);
     } else {
       // Increment attempt counter if answers are still incorrect
       setStateTransitionAttemptCount(prev => prev + 1, 2);
@@ -1163,10 +1174,10 @@ const CircuitToState = () => {
       return updatedRow;
     });
     setUserExcitationInputs(updatedInputs);
-    setExcitationSubheader('Completed!');
     setIsExcitationGivenUp(true);
 
     setIsDownloadExcitationEnabled(true);
+    setIsDownloadFullExerciseEnabled(true);
   };
   
   const handleGiveUpStateTransition = () => {
@@ -1195,7 +1206,6 @@ const CircuitToState = () => {
       return updatedRow;
     });
     setUserStateTransitionInputs(updatedInputs);
-    setStateTransitionSubheader('Completed!');
     setIsStateTransitionGivenUp(true); 
 
     setIsDownloadStateTransitionEnabled(true);
@@ -1361,6 +1371,118 @@ const CircuitToState = () => {
     document.body.removeChild(link);
   };
 
+  /* Export Circuit Diagram PNG */
+  const exportCircuitDiagramAsPNG = () => {
+    const element = document.querySelector(".canvas-container");
+
+    if (!element) {
+      alert("Circuit diagram not found!");
+      return;
+    }
+
+    html2canvas(element).then((canvas) => {
+      const link = document.createElement("a");
+      link.download = "circuit_diagram.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+  };  
+
+  /* Export State Diagram PNG */
+  const exportStateDiagramAsPNG = () => {
+    const diagramElement = document.getElementById("stateDiagram-container");
+
+    if (!diagramElement) return;
+
+    html2canvas(diagramElement).then((canvas) => {
+      const link = document.createElement("a");
+      link.download = "state_diagram.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+  };
+
+  /* Download Full Exercise */
+  const downloadFullExercise = async () => {
+    const zip = new JSZip();
+    let csvContent = "\uFEFF"; // UTF-8 BOM for Excel
+    const { numInputs, numFlipFlops } = generateState;
+  
+    // Section 1: Logic Equations
+    csvContent += "Logic Equations\n";
+    const sigma = "\u03A3"; // Σ
+    const pi = "\u03A0";    // Π
+  
+    if (isUsingCustomEquation) {
+      customEquations.forEach(eq => {
+        const symbol = eq.type === "Σ" ? `${sigma}m` : `${pi}M`;
+        const fullEquation = `${eq.formattedEquation} =`;
+        const terms = `${symbol}(${eq.terms})`;
+        csvContent += `"${fullEquation}","${terms}"\n`;
+      });
+    } else {
+      logicEquation.forEach(eq => {
+        const symbol = eq.isMinterm ? `${sigma}m` : `${pi}M`;
+        const fullEquation = `${eq.equation} =`;
+        const terms = `${symbol}(${eq.terms.join(", ")})`;
+        csvContent += `"${fullEquation}","${terms}"\n`;
+      });
+    }
+  
+    csvContent += "\n";
+  
+    // Section 2: Excitation Table
+    csvContent += "Excitation Table\n";
+    const currentStateHeader = `Current State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}`).join("")}`;
+    const inputHeader = `Input ${Array.from({ length: numInputs }, (_, i) => `X${numInputs - 1 - i}`).join("")}`;
+    const flipFlopHeaders = Object.keys(hiddenExcitationCorrectAnswers).filter(key => key !== "Z");
+  
+    csvContent += `${currentStateHeader},${inputHeader},${flipFlopHeaders.join(",")}\n`;
+  
+    excitationTable.forEach((row, index) => {
+      const flipFlopValues = flipFlopHeaders.map(flipFlop => {
+        const { terms, isMinterm } = hiddenExcitationCorrectAnswers[flipFlop];
+        return isMinterm ? (terms.includes(index) ? "1" : "0") : (terms.includes(index) ? "0" : "1");
+      });
+      csvContent += `\t${row.currentState},\t${row.input},${flipFlopValues.map(val => `\t${val}`).join(",")}\n`;
+    });
+  
+    csvContent += "\n";
+  
+    // Section 3: State Transition Table
+    csvContent += "State Transition Table\n";
+    const nextStateHeader = `Next State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}*`).join("")}`;
+    csvContent += `${currentStateHeader},${inputHeader},${nextStateHeader},Output Z\n`;
+  
+    stateTransitionTable.forEach((row, index) => {
+      csvContent += `\t${row.currentState},\t${row.input},\t${hiddenStateTransitionCorrectAnswers.nextState[index]},\t${hiddenStateTransitionCorrectAnswers.output[index]}\n`;
+    });
+  
+    // Add CSV to zip
+    zip.file("full_fsm_exercise.csv", csvContent);
+
+    // Add circuit diagram PNG to zip
+    const circuitDiagramElement = document.querySelector(".canvas-container");
+    if (circuitDiagramElement) {
+      const canvas = await html2canvas(circuitDiagramElement);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      zip.file("circuit_diagram.png", blob);
+    }
+  
+    // Add state diagram PNG to zip
+    const stateDiagramElement = document.getElementById("stateDiagram-container");
+    if (stateDiagramElement) {
+      const canvas = await html2canvas(stateDiagramElement);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      zip.file("state_diagram.png", blob);
+    }
+  
+    // Create and download ZIP
+    zip.generateAsync({ type: "blob" }).then(content => {
+      saveAs(content, "fsm_full_exercise.zip");
+    });
+  };
+  
   // Render
   return (
     <div className="container">
@@ -1438,91 +1560,96 @@ const CircuitToState = () => {
           <option value="none">Expert</option>
         </select>
 
-        <div className="checkbox-container">
-        <input
-            type="checkbox"
-            id="customEquationCheckbox"
-            checked={isCustomEquationChecked}
-            onChange={handleCustomEquationCheckboxChange} 
-          />
-          <label htmlFor="customEquationCheckbox" className="custom-label">Custom Equation</label>
-        </div>
-
-        {/* Generate Button */}
-        <div className="tooltipBtn-container">
-          {showGenerateTooltip && (
-            <div className="tooltipBtn">Refresh logic equations</div>
-          )}
+        <div className="dropdown-btn-group">
+          <div className="checkbox-container">
+            <input
+              type="checkbox"
+              id="customEquationCheckbox"
+              checked={isCustomEquationChecked}
+              onChange={handleCustomEquationCheckboxChange} 
+            />
+            <label htmlFor="customEquationCheckbox" className="custom-label">Custom Equation</label>
+          </div>
           <button
             className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
             onClick={handleGenerateButtonClick}
             disabled={!isFormComplete}
-            onMouseEnter={() => setShowGenerateTooltip(true)}
-            onMouseLeave={() => setShowGenerateTooltip(false)}
+            title="Refresh logic equation"
           >
             Generate
           </button>
-        </div>
-
-        {/* Auto-Generate Button */}
-        <div className="tooltipBtn-container">
-          {showAutoGenerateTooltip && (
-            <div className="tooltipBtn">Randomise selections</div>
-          )}
           <button
             className="auto-generate-btn"
             onClick={handleAutoGenerate}
-            onMouseEnter={() => setShowAutoGenerateTooltip(true)}
-            onMouseLeave={() => setShowAutoGenerateTooltip(false)}
+            title="Randomise selections"
           >
             Auto Generate
           </button>
         </div>
       </div>
-              
+      
+      {/* Circuit Diagram Canvas */}
       <div className="circuit-container">
-        {/* Empty canvas until "Generate" is clicked */}
-        <CircuitDiagram 
-          numInputs={generateState.numInputs} 
-          flipFlopType={generateState.flipFlopType} 
-          numFlipFlops={generateState.numFlipFlops} 
-          fsmType={generateState.fsmType}
-          isGenerated={isGenerated}
-        />
+        {isGenerated && (
+          <div className="circuit-export-btn-wrapper">
+            <button
+              className="export-btn circuit-export-btn"
+              onClick={exportCircuitDiagramAsPNG}
+              title="Export PNG"
+            >
+              <FontAwesomeIcon icon={faDownload} />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable canvas */}
+        <div className="circuit-scrollable">
+          <CircuitDiagram 
+            numInputs={generateState.numInputs} 
+            flipFlopType={generateState.flipFlopType} 
+            numFlipFlops={generateState.numFlipFlops} 
+            fsmType={generateState.fsmType}
+            isGenerated={isGenerated}
+          />
+        </div>
       </div>
 
+      {/* Custom Equation Section */}
       {isUsingCustomEquation && !customEquationValidated && (
         <div className="content-box">
-          <h2 className="customEq-title">
-            Custom Equation
-            <FontAwesomeIcon
-              icon={faCircleInfo}
-              className="info-icon"
-              onMouseEnter={() => setShowMooreInfo(true)}
-              onMouseLeave={() => setShowMooreInfo(false)}
-            />
-          </h2>
-          {showMooreInfo && (
-            <div className="customEq-tooltip">
+          <div className="customEqn-header">
+            <div className="customEqn-title-wrapper">
+              <h2 className="customEqn-title">
+                Custom Equation
+              </h2>
+              <button
+                className="info-icon"
+                onClick={() => setShowCustomEqnInfo(!showCustomEqnInfo)}
+              >
+                <FontAwesomeIcon icon={faCircleInfo} />
+              </button>
+            </div>
+          </div>
+          {showCustomEqnInfo && (
+            <div className="customEqn-tooltip">
               <p>
                 <b>Number Ranges:</b>
               </p>
               <ul>
-                <li><b>1 input & 2 or 3 flip-flops:</b> Enter values between <b>0-7</b>.</li>
-                <li><b>2 inputs & 2 flip-flops:</b> Enter values between <b>0-15</b>.</li>
+                <li><b>1 input & 2 or 3 F/F:</b> Enter values between <b>0-7</b>.</li>
+                <li><b>2 inputs & 2 F/F:</b> Enter values between <b>0-15</b>.</li>
               </ul>
               <p>
                 <b>Moore FSM:</b> Output Z is the same for all states, regardless of input
                 X.
               </p>
               <ul>
-                <li><b>1 input & 2 or 3 flip-flops:</b> Enter pairs, e.g. <b>(0,1)</b> <b>(2,3)</b> <b>(4,5)</b></li>
-                <li><b>2 inputs & 2 flip-flops:</b> Enter groups of four, e.g. <b>(0,1,2,3)</b> <b>(4,5,6,7)</b></li>
+                <li><b>1 input & 2 or 3 F/F:</b> Enter pairs, e.g. <b>(0,1)</b> <b>(2,3)</b> <b>(4,5)</b></li>
+                <li><b>2 inputs & 2 F/F:</b> Enter groups of four, e.g. <b>(0,1,2,3)</b> <b>(4,5,6,7)</b></li>
               </ul>
-              <p><b>Include all numbers</b> in the pair/group for moore.</p>
             </div>
           )}
-          <p className="customEq-subtitle">Select minterms (Σm) or maxterms (<span className="maxterm">Π</span>M) and enter terms separated by commas.</p>
+          <p className="customEqn-subtitle">Select minterms (Σm) or maxterms (<span className="maxterm">Π</span>M) and enter terms separated by commas.</p>
 
           {customEquations.map((eq, index) => (
             <div key={index} className="custom-equation">
@@ -1558,7 +1685,7 @@ const CircuitToState = () => {
         </div>
       )}
 
-      {/* Display Generated Minterms & Maxterms */}
+      {/* Display Logic Equations */}
       {customEquationValidated ? (
         <div className={`equation-section ${isGenerated ? "active" : ""}`}>
           <p>
@@ -1610,10 +1737,39 @@ const CircuitToState = () => {
 
       {/* Excitation Table Section */}
       <div className={`content-box excitation-box ${showExcitationTable ? "active" : ""}`}>
-        <h2>Excitation Table</h2>
+        <div className="content-header">
+          <div className="left-header">
+            <h2 className="content-title">Excitation Table</h2>
+            {showExcitationTable && (
+              <button
+                className="info-icon"
+                onClick={() => setShowExcitationInfo(!showExcitationInfo)}
+              >
+                <FontAwesomeIcon icon={faCircleInfo} />
+              </button>
+            )}  
+          </div>   
+          {excitationTable.length > 0 && showExcitationTable && (
+            <button 
+              className={`export-btn ${isDownloadExcitationEnabled ? "active" : "disabled"}`}
+              disabled={!isDownloadExcitationEnabled}
+              onClick={() => exportToCSV("excitation")}
+              title="Export CSV"
+              >
+                <FontAwesomeIcon icon={faDownload} />
+            </button>
+          )}
+        </div>
+        {showExcitationInfo && (
+          <div className="info-tooltip-cts">
+            <p>
+              Fill in the flip-flop input values with a single-bit binary <strong>(0 or 1)</strong>.<br /><br/>
+              Complete all fields correctly to proceed to the next exercise. You may choose to give up after 2 incorrect attempts. 
+            </p>                     
+          </div>
+        )}    
         {excitationTable.length > 0 && showExcitationTable && (
           <>
-          <p>{excitationSubheader}</p>
           <div>
             <div className="table-container">
               <table border="1">
@@ -1655,8 +1811,7 @@ const CircuitToState = () => {
                 </tbody>
               </table>
             </div>
-            
-            <div className="button-group">
+            <div className="content-btn-group">
               {!isExcitationTableComplete && (
                 <>
                   <button
@@ -1677,13 +1832,6 @@ const CircuitToState = () => {
                   )}
                 </>
               )}
-
-              <button 
-                className={`export-btn ${isDownloadExcitationEnabled ? "active" : "disabled"}`}
-                disabled={!isDownloadExcitationEnabled}
-                onClick={() => exportToCSV("excitation")}>
-                  <FontAwesomeIcon icon={faDownload} /> CSV
-              </button>
             </div>
           </div>
           </>
@@ -1692,8 +1840,37 @@ const CircuitToState = () => {
 
       {/* State Transition Table */}
       <div className={`content-box ${showStateTransitionTable ? "active" : ""}`}>
-        <h2>State Transition Table</h2>
-        <p>{stateTransitionSubheader}</p>
+        <div className="content-header">
+          <div className="left-header">
+            <h2 className="content-title">State Transition Table</h2>
+            {showStateTransitionTable && (
+              <button
+              className="info-icon"
+                  onClick={() => setShowStateTransitionInfo(!showStateTransitionInfo)}
+              >
+                <FontAwesomeIcon icon={faCircleInfo} />
+              </button>
+            )}
+          </div>
+          {stateTransitionTable.length > 0 && showStateTransitionTable && (
+            <button 
+              className={`export-btn ${isDownloadStateTransitionEnabled ? "active" : "disabled"}`}
+              disabled={!isDownloadStateTransitionEnabled}
+              onClick={() => exportToCSV("stateTransition")}
+              title="Export CSV"
+            >
+              <FontAwesomeIcon icon={faDownload} />
+            </button>
+          )}
+        </div>
+        {showStateTransitionInfo && (
+          <div className="info-tooltip-cts">
+            <p>
+              Fill in the next state and output values with binary <strong>(0 or 1)</strong>.<br /><br/>
+              Complete all fields correctly to proceed. You may choose to give up after 2 incorrect attempts. 
+            </p>                     
+          </div>
+        )}    
         {showStateTransitionTable && stateTransitionTable.length > 0 && (
           <div>
             <table border="1">
@@ -1758,7 +1935,7 @@ const CircuitToState = () => {
                 ))}
               </tbody>
             </table>
-            <div className="button-group">
+            <div className="content-btn-group">
               {!isStateTransitionTableComplete && (
                 <>
                   <button
@@ -1779,19 +1956,42 @@ const CircuitToState = () => {
                   )}
                 </>
               )}
-              <button className={`export-btn ${isDownloadStateTransitionEnabled ? "active" : "disabled"}`}
-                disabled={!isDownloadStateTransitionEnabled}
-                onClick={() => exportToCSV("stateTransition")}>
-                  <FontAwesomeIcon icon={faDownload} /> CSV
-              </button>
-              </div>
+            </div>
           </div>
         )}
       </div>
 
       {/* State Diagram Section */}
       <div className={`content-box stateDiagram-box ${showStateDiagram ? "active" : ""}`}>
-        <h2>State Diagram</h2>
+        <div className="content-header">
+          <div className="left-header">
+            <h2 className="content-title">State Diagram</h2>
+            {showStateDiagram && (
+              <button
+                className="info-icon"
+                onClick={() => setShowStateDiagramInfo(!showStateDiagramInfo)}
+              >
+                <FontAwesomeIcon icon={faCircleInfo} />
+              </button>
+            )}
+          </div>
+          {showStateDiagramInfo && (
+            <div className="info-tooltip-cts">
+              <p>
+                Hover or click the transition arrows to view the state transition details.
+              </p>                     
+            </div>
+          )}    
+          {showStateDiagram && stateTransitionTable.length > 0 && (
+            <button 
+              className="export-btn"
+              onClick={exportStateDiagramAsPNG}
+              title="Export PNG"
+            >
+              <FontAwesomeIcon icon={faDownload} />
+            </button>
+          )}
+        </div>
         <div className="state-container">
           {showStateDiagram && stateTransitionTable.length > 0 && (
             <CTSConversion
@@ -1803,6 +2003,16 @@ const CircuitToState = () => {
           )}
         </div>
       </div>
+
+      {/* Download Full Exercise */}
+      {showStateDiagram && isDownloadFullExerciseEnabled && (
+        <div className="download-exercise-wrapper">
+          <button className="exportFull-btn" onClick={downloadFullExercise}>
+            <FontAwesomeIcon icon={faDownload} /> Download Full Exercise
+          </button>
+        </div>
+      )}
+
     </div>
   );
 };
