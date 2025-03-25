@@ -11,7 +11,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   const closePopup = (event) => {
-    if (!event || event.target.classList.contains("popup-overlay")) {
+    if (!event || event.target.classList.contains("transition-popup-overlay")) {
       setPopupVisible(false);
     }
   };
@@ -21,7 +21,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       event.preventDefault(); // Prevent scrolling or tabbing effect
       closePopup();
     };
-  
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
   }, []);
@@ -30,11 +29,11 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
 
     const paperHeight = (() => {
       if (numFlipFlops === 2) {
-        return 750; // Shorter height for 2 flip-flops (either 1 or 2 inputs)
+        return 750; 
       } else if (numFlipFlops === 3 && numInputs === 1) {
         return 900; 
       }
-      return 1000; // Default height
+      return 1000; 
     })();
 
     const graph = new dia.Graph();
@@ -49,7 +48,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
 
     const stateElements = {}; // Store references to state circles
 
-    // Determine reset state based on flip-flops
     const resetState = numFlipFlops === 2 ? "00" : "000";
 
     // Position "Any state" oval above the diagram
@@ -63,7 +61,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           return { x: 680, y: 80 }; 
         }
       }
-      return { x: 350, y: 50 }; // Default fallback
+      return { x: 400, y: 60 };
     })();
 
     // "Any state" oval 
@@ -73,20 +71,18 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
     anyState.attr({
       body: {
         fill: "#ffffff",
-        stroke: "#000",
+        stroke: "#333",
         strokeWidth: 2,
         strokeDasharray: "5,5", // Dashed border
       },
       label: {
         text: "Any state",
-        fill: "#000",
+        fill: "#333",
         fontSize: 16,
       },
     });
     anyState.addTo(graph);
-
-    // Store reference to "Any state"
-    stateElements["AnyState"] = anyState;
+    stateElements["AnyState"] = anyState; // Store reference to "Any state"
 
     // Process transitions by grouping input/output combinations
     const groupedTransitions = {};
@@ -98,7 +94,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       groupedTransitions[key].push({ input: row.input, output: row.output });
     });
 
-    // Generate state positions based on the number of flip-flops
+    // Generate state nodes and position
     const states = Array.from(new Set(stateTransitionTable.flatMap(row => [row.currentState, row.nextState])));
     const positions = calculateStatePositions(states, numFlipFlops, numInputs);
     
@@ -127,7 +123,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         },
         label: {
           text: stateLabel,
-          fill: "black",
+          fill: "#333",
           fontSize: 16,
         },
       });
@@ -142,9 +138,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
 
       resetArrow.attr({
         line: {
-          stroke: "#000",
+          stroke: "#333",
           strokeWidth: 2,
-          targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" },
+          targetMarker: { type: "path", fill: "#333", d: "M 10 -5 0 0 10 5 Z" },
         },
       });
 
@@ -155,13 +151,13 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           attrs: {
             text: {
               text: "RESET",
-              fill: "#000",
+              fill: "#333",
               fontSize: 16,
               textDecoration: "overline",
             },
             rect: {
               fill: "#ffffff", 
-              stroke: "#000000", 
+              stroke: "#333", 
               strokeWidth: 1,
               rx: 2, 
               ry: 2, 
@@ -188,15 +184,13 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       graph.getLinks().forEach((link) => {
         link.attr({
           line: {
-            stroke: "#000",
+            stroke: "#333",
             strokeWidth: 2,
-            targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" },
+            targetMarker: { type: "path", fill: "#333", d: "M 10 -5 0 0 10 5 Z" },
           },
         });
       });
     };
-
-    // Attach scroll event only once
     window.addEventListener("scroll", handleScroll);
 
     // Mouse move function (Used for tooltip tracking)
@@ -225,7 +219,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         const deltaX = positions[to].x - positions[from].x;
         const deltaY = positions[to].y - positions[from].y;
 
-        // Specific case for `110 <-> 010`
+        // Edge case for `110 <-> 010`
         if ((from === "110" && to === "010")) {
           const offset = 10; 
           link.source(stateElements[from], { anchor: { name: "center", args: { dx: -offset, dy: -offset } } });
@@ -289,14 +283,14 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           attrs: {
             text: {
               text: labels,
-              fill: "black",
+              fill: "#333",
               fontSize: 18,
               textAnchor: "middle", 
               yAlignment: "middle",
             },
             rect: {
               fill: "#ffffff", 
-              stroke: "#000000", 
+              stroke: "#333", 
               strokeWidth: 1,
               rx: 2, 
               ry: 2, 
@@ -327,7 +321,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             attrs: {
               text: {
                 text: labels,
-                fill: "black",
+                fill: "#333",
                 fontSize: 18,
                 textAnchor: "middle", 
                 yAlignment: "middle",
@@ -358,10 +352,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             .join("\n");
 
           setTooltipContent(`${stateLabel}\n${transitionLabel}\n${transitionDetails}`);
-
           setTooltipVisible(true);
-
-          // Attach Global Mouse Move Event Once
           document.addEventListener("mousemove", handleMouseMove);
         }
       });
@@ -371,9 +362,9 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         if (linkView.model === link) {
           linkView.model.attr({
             line: {
-              stroke: "#000",  
+              stroke: "#333",  
               strokeWidth: 2,  
-              targetMarker: { type: "path", fill: "#000", d: "M 10 -5 0 0 10 5 Z" }, 
+              targetMarker: { type: "path", fill: "#333", d: "M 10 -5 0 0 10 5 Z" }, 
             },
           });
 
@@ -382,14 +373,14 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
             attrs: {
               text: {
                 text: labels,
-                fill: "black",
+                fill: "#333",
                 fontSize: 18,
                 textAnchor: "middle", 
                 yAlignment: "middle",
               },
               rect: {
                 fill: "#ffffff", 
-                stroke: "#000000", 
+                stroke: "#333", 
                 strokeWidth: 1,
                 rx: 2, 
                 ry: 2, 
@@ -404,8 +395,6 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           }]);
 
           setTooltipVisible(false);
-
-          // Remove mouse tracking event
           document.removeEventListener("mousemove", handleMouseMove);
         }
       });
@@ -554,7 +543,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       </div>
       {tooltipVisible && (
         <div 
-          className="tooltip-cts"
+          className="tooltip-transition"
           style={{
             left: tooltipPosition.x,
             top: tooltipPosition.y,
@@ -564,8 +553,8 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
         </div>
       )}
       {popupVisible && (
-        <div className="popup-overlay" onClick={closePopup}>
-          <div className="popup-transition">
+        <div className="transition-popup-overlay" onClick={closePopup}>
+          <div className="transition-popup-content">
             <h2>State Transition</h2>
             <pre>{popupContent}</pre>
           </div>

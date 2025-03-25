@@ -5,6 +5,7 @@ import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import CircuitDiagram from '../components/CircuitDiagram';
 import CTSConversion from '../components/CTSConversion'; 
+import { convertMintermsToSOP, convertMaxtermsToPOS, } from '../components/booleanConverter';
 import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; 
@@ -62,6 +63,9 @@ const CircuitToState = () => {
   const [isDownloadStateTransitionEnabled, setIsDownloadStateTransitionEnabled] = useState(false);
   const [isDownloadFullExerciseEnabled, setIsDownloadFullExerciseEnabled] = useState(false);
 
+  const [booleanEquations, setBooleanEquations] = useState([]);
+  const [showBooleanPopup, setShowBooleanPopup] = useState(false);
+
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
     flipFlopType: "",
@@ -87,6 +91,7 @@ const CircuitToState = () => {
     dropdownState.fsmType &&
     dropdownState.preFillOption;
 
+  // For popup info icon
   useEffect(() => {
     const handleClickOutside = (event) => {
     if (
@@ -100,12 +105,115 @@ const CircuitToState = () => {
         setShowStateDiagramInfo(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const popupRef = useRef(null);
+  const previouslyFocusedElement = useRef(null);
+
+  // For validation error popup
+  const showPopupMessage = (message) => {
+    previouslyFocusedElement.current = document.activeElement;
+    setShowBooleanPopup(false);
+    setPopupMessage(message);
+    setShowPopup(true);
+  };
+
+  // For closing only the validation popup (and restoring focus)
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    if (previouslyFocusedElement.current) {
+      previouslyFocusedElement.current.focus(); // Restore focus
+    }
+  };
+
+  // Focus into the popup when shown (only for validation popup)
+  useEffect(() => {
+    if (showPopup && popupRef.current) {
+      setTimeout(() => {
+        popupRef.current.focus();
+      }, 10);
+    }
+  }, [showPopup]);
+
+  // Unified handling for validation and boolean popup
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showPopup) {
+        e.preventDefault();
+        handleClosePopup();
+      } else if (showBooleanPopup) {
+        e.preventDefault();
+        setShowBooleanPopup(false);
+      }
+    };
+  
+    const handleClickOutside = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        if (showPopup) {
+          handleClosePopup();
+        } else if (showBooleanPopup) {
+          setShowBooleanPopup(false);
+        }
+      }
+    };
+  
+    if (showPopup || showBooleanPopup) {
+      window.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+  
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showPopup, showBooleanPopup]);
+  
+
+  // Convert to custom eqn to boolean
+  useEffect(() => {
+    if (customEquationValidated && customEquations.length > 0) {
+      const converted = customEquations.map((eq) => {
+        const { type, terms, formattedEquation } = eq;
+        const termArray = terms.split(',').map(Number);
+  
+        const booleanExpr = type === 'Σ'
+          ? convertMintermsToSOP(termArray, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs))
+          : convertMaxtermsToPOS(termArray, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs));
+
+        return {
+          label: formattedEquation,
+          expression: booleanExpr
+        };
+      });
+
+      setBooleanEquations(converted); // Store
+      console.log("Custom Boolean Equations:", converted);
+    }
+  }, [customEquationValidated, customEquations, generateState.numFlipFlops, generateState.numInputs]);
+
+  // Convert to generated eqn to boolean
+  useEffect(() => {
+    if (logicEquation.length > 0 && isGenerated && !isUsingCustomEquation) {
+      const converted = logicEquation.map((eq) => {
+        const { equation, terms, isMinterm } = eq;
+
+        const booleanExpr = isMinterm
+          ? convertMintermsToSOP(terms, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs))
+          : convertMaxtermsToPOS(terms, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs));
+        
+        return {
+          label: equation,
+          expression: booleanExpr
+        };
+      });
+      setBooleanEquations(converted); // Store
+      console.log("Generated Boolean Equations:", converted);
+    }
+  }, [logicEquation, isGenerated, isUsingCustomEquation, generateState.numFlipFlops, generateState.numInputs]);
   
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -1257,61 +1365,19 @@ const CircuitToState = () => {
     return headers;
   };
 
-  const popupRef = useRef(null);
-  const previouslyFocusedElement = useRef(null);
-
-  const showPopupMessage = (message) => {
-    previouslyFocusedElement.current = document.activeElement;
-    setPopupMessage(message);
-    setShowPopup(true);
-  };
-
-  const handleClosePopup = () => {
-    setShowPopup(false);
-    if (previouslyFocusedElement.current) {
-      previouslyFocusedElement.current.focus();
-    }
-  };
-
-  useEffect(() => {
-    if (showPopup && popupRef.current) {
-      popupRef.current.focus();
-    }
-  }, [showPopup]);
-
-  useEffect(() => {
-    if (showPopup) {
-      const handleKeyDown = (e) => {
-        e.preventDefault(); // Prevent default scrolling or focus shifting
-        e.stopPropagation(); // Stop the event from bubbling further
-        handleClosePopup();
-      };
+  // File Name for export
+  const getBaseFileName = () => {
+    const today = new Date();
+    const yyyymmdd = today.toISOString().slice(0, 10).replace(/-/g, "");
   
-      window.addEventListener("keydown", handleKeyDown, true);
-      
-      // Clean up the event listener when pop-up is hidden or component unmounts
-      return () => {
-        window.removeEventListener("keydown", handleKeyDown, true);
-      };
-    }
-  }, [showPopup]);
+    const fsmType = generateState.fsmType?.toLowerCase() || "unknown";
+    const ffTypeMap = { D: "dff", T: "tff", JK: "jkff" };
+    const ffType = ffTypeMap[generateState.flipFlopType] || "unknown";
+    const numFF = generateState.numFlipFlops || "0";
+    const numInputs = generateState.numInputs || "0";
   
-  useEffect(() => {
-    if (showPopup) {
-      const handleClick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClosePopup();
-      };
-  
-      window.addEventListener("click", handleClick, true);
-      
-      // Clean up the event listener when the popup is hidden or component unmounts
-      return () => {
-        window.removeEventListener("click", handleClick, true);
-      };
-    }
-  }, [showPopup]);
+    return `fsm_${fsmType}_${ffType}_${numFF}_${numInputs}_${yyyymmdd}`;
+  };  
 
   // Export tables to csv
   const exportToCSV = (tableType) => {
@@ -1365,7 +1431,7 @@ const CircuitToState = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${tableType}_table.csv`);
+    link.setAttribute("download", `${getBaseFileName()}_${tableType}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1382,7 +1448,7 @@ const CircuitToState = () => {
 
     html2canvas(element).then((canvas) => {
       const link = document.createElement("a");
-      link.download = "circuit_diagram.png";
+      link.download = `${getBaseFileName()}_circuit.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     });
@@ -1396,7 +1462,7 @@ const CircuitToState = () => {
 
     html2canvas(diagramElement).then((canvas) => {
       const link = document.createElement("a");
-      link.download = "state_diagram.png";
+      link.download = `${getBaseFileName()}_state.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     });
@@ -1406,8 +1472,9 @@ const CircuitToState = () => {
   const downloadFullExercise = async () => {
     const zip = new JSZip();
     let csvContent = "\uFEFF"; // UTF-8 BOM for Excel
+    const base = getBaseFileName();
     const { numInputs, numFlipFlops } = generateState;
-  
+
     // Section 1: Logic Equations
     csvContent += "Logic Equations\n";
     const sigma = "\u03A3"; // Σ
@@ -1430,7 +1497,14 @@ const CircuitToState = () => {
     }
   
     csvContent += "\n";
-  
+    
+    // Section 1b: Boolean Expressions
+    csvContent += "Boolean Expressions\n";
+    booleanEquations.forEach(({ label, expression }) => {
+      csvContent += `"${label}","${expression}"\n`;
+    });
+    csvContent += "\n";
+
     // Section 2: Excitation Table
     csvContent += "Excitation Table\n";
     const currentStateHeader = `Current State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}`).join("")}`;
@@ -1459,14 +1533,14 @@ const CircuitToState = () => {
     });
   
     // Add CSV to zip
-    zip.file("full_fsm_exercise.csv", csvContent);
+    zip.file(`${base}_exercise.csv`, csvContent);
 
     // Add circuit diagram PNG to zip
     const circuitDiagramElement = document.querySelector(".canvas-container");
     if (circuitDiagramElement) {
       const canvas = await html2canvas(circuitDiagramElement);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      zip.file("circuit_diagram.png", blob);
+      zip.file(`${base}_circuit.png`, blob);
     }
   
     // Add state diagram PNG to zip
@@ -1474,12 +1548,12 @@ const CircuitToState = () => {
     if (stateDiagramElement) {
       const canvas = await html2canvas(stateDiagramElement);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      zip.file("state_diagram.png", blob);
+      zip.file(`${base}_state.png`, blob);
     }
   
     // Create and download ZIP
     zip.generateAsync({ type: "blob" }).then(content => {
-      saveAs(content, "fsm_full_exercise.zip");
+      saveAs(content, `${base}_full.zip`);
     });
   };
   
@@ -1492,15 +1566,6 @@ const CircuitToState = () => {
           Circuit <FontAwesomeIcon icon={faArrowRight} /> State Diagram
         </h1>
       </header>
-
-      {/* Popup */}
-      {showPopup && (
-        <div className="popup" tabIndex="0" ref={popupRef} onKeyDown={handleClosePopup}>
-          <div className="popup-content">
-            <p>{popupMessage}</p>
-          </div>
-        </div>
-      )}
 
       {/* Dropdowns */}
       <div className="dropdown-container">
@@ -1705,6 +1770,9 @@ const CircuitToState = () => {
               </span>
             ))}
           </p>
+          <button className="boolean-btn" onClick={() => setShowBooleanPopup(true)}>
+            Boolean
+          </button>
         </div>
       ) : isGenerated ? (
         <div className={`equation-section ${isGenerated ? "active" : ""}`}>
@@ -1723,8 +1791,47 @@ const CircuitToState = () => {
               </p>
             </>
           )}
+          <button className="boolean-btn" onClick={() => setShowBooleanPopup(true)}>
+            Boolean
+          </button>
         </div>
       ) : null}
+
+      {/* Popup */}
+      {showPopup && (
+        <div 
+          className="error-popup-overlay" 
+          tabIndex={0}
+        >
+          <div 
+            className="error-popup-content"
+            ref={popupRef} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p>{popupMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {showBooleanPopup && (
+        <div 
+          className="boolean-popup-overlay"
+          onClick={() => setShowBooleanPopup(false)} 
+          tabIndex={0} 
+        >
+          <div 
+            className="boolean-popup-content" 
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+          >
+            <h3>Boolean Expressions</h3>
+            {booleanEquations.map(({ label, expression }, index) => (
+                <p key={index}>
+                  <strong>{label}</strong> = {expression}
+                </p>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Display Instruction */}
       {isGenerated && (
