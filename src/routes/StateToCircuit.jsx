@@ -955,6 +955,7 @@ const StateToCircuit = () => {
                                 onGenerateDiagram={handleUserInputDiagram}
                                 onNext={handleUserInputNext}
                                 resetFlag={userInputResetFlag}
+                                flipFlopType={flipFlopType}
                             />
                         )}
                     </div>

@@ -11,6 +11,7 @@ const UserInputState = ({
     onGenerateDiagram,
     onNext,
     resetFlag = 0,
+    flipFlopType = "D",
 }) => {
     const [transitionTable, setTransitionTable] = useState([]);
     const [userInputs, setUserInputs] = useState({});
@@ -301,6 +302,18 @@ const UserInputState = ({
         return null;
     };
 
+    // Function to generate standardized filename format
+    const getStandardizedFilename = () => {
+        const today = new Date();
+        const yyyymmdd = today.toISOString().slice(0, 10).replace(/-/g, "");
+
+        const fsmType = diagramType.toLowerCase();
+        const ffTypeMap = { D: "dff", T: "tff", JK: "jkff" };
+        const ffType = ffTypeMap[flipFlopType] || "dff"; // Use the provided flipFlopType
+
+        return `fsm_${fsmType}_${ffType}_${numStates}_${numInputs}_${yyyymmdd}_TT`;
+    };
+
     // Function to handle CSV download
     const downloadCSV = () => {
         // Create CSV header with UTF-8 BOM
@@ -328,12 +341,7 @@ const UserInputState = ({
         );
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute(
-            "download",
-            `state_transition_table_${new Date()
-                .toISOString()
-                .slice(0, 10)}.csv`
-        );
+        link.setAttribute("download", `${getStandardizedFilename()}.csv`);
         document.body.appendChild(link);
 
         // Trigger download and remove link
