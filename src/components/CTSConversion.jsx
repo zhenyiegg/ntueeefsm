@@ -46,6 +46,11 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       interactive: false,
     });
 
+    const svg = document.querySelector("#stateDiagram-container svg");
+    if (svg) {
+      svg.style.touchAction = "pan-x";
+    }
+
     const stateElements = {}; // Store references to state circles
 
     const resetState = numFlipFlops === 2 ? "00" : "000";

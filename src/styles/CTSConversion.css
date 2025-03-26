@@ -1,9 +1,12 @@
 /* CTSConversion.css */
 .state-diagram-wrapper {
-    display: inline-block; 
-    min-width: 1000px;
+    display: flex;           
+    justify-content: center;   
+    min-width: 1000px; 
     overflow-x: auto;
     overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
+    touch-action: pan-x; /* allow horizontal scroll on touch */
 }
   
 #stateDiagram-container {
