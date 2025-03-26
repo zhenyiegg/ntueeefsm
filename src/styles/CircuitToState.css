@@ -98,7 +98,7 @@ select:focus {
 }
 
 .auto-generate-btn, .ok-btn {
-  background-color: #5e35b1;
+  background-color: #6f42c1;
 }
 
 .generate-btn:hover {
@@ -106,7 +106,7 @@ select:focus {
 }
 
 .auto-generate-btn:hover, .ok-btn:hover {
-  background-color: #442387;
+  background-color: #5429a9;
 }
 
 .generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled {
@@ -181,7 +181,7 @@ canvas {
   overflow-wrap: break-word; 
   word-wrap: break-word; 
   word-break: break-word;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .maxterm {
@@ -274,7 +274,13 @@ canvas {
   font-size: 0.8rem;
   margin-bottom: 16px;
   margin-top: 0;
+  transition: background-color 0.2s ease;
 }
+
+.boolean-btn:hover {
+  background-color: #5429a9;
+}
+
 
 /**********  INSTRUCTION SECTION  **********/
 .instruction-section.active {
@@ -323,7 +329,7 @@ canvas {
 }
 
 .content-box.active .content-title, .content-box .customEqn-title {
-  color: #5e35b1;
+  color: #6f42c1;
   font-size: 18px;
   margin: 0;
 }
@@ -359,7 +365,7 @@ canvas {
 }
 
 .next-btn {
-  background-color: #5e35b1; 
+  background-color: #6f42c1; 
 }
 
 .giveup-btn {
@@ -378,6 +384,7 @@ canvas {
   color: #2788ef;
   background-color: transparent;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .export-btn.disabled {
@@ -387,7 +394,7 @@ canvas {
 }
 
 .next-btn.active:hover {
-  background-color: #442387;
+  background-color: #5429a9;
 }
 
 .giveup-btn.active:hover {
@@ -430,6 +437,7 @@ canvas {
   justify-content: center;
   color: #2788ef;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 .info-icon:hover{

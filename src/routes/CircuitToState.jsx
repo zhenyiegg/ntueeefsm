@@ -1446,11 +1446,18 @@ const CircuitToState = () => {
       csvContent += row.join(",") + "\n";
     });
 
+    const suffixMap = {
+      excitation: "_ET",
+      stateTransition: "_TT",
+    };
+
+    const fileSuffix = suffixMap[tableType] || `_${tableType}`;
+
     // Create download link
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${getBaseFileName()}_${tableType}.csv`);
+    link.setAttribute("download", `${getBaseFileName()}${fileSuffix}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1467,7 +1474,7 @@ const CircuitToState = () => {
 
     html2canvas(element).then((canvas) => {
       const link = document.createElement("a");
-      link.download = `${getBaseFileName()}_circuit.png`;
+      link.download = `${getBaseFileName()}_CD.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     });
@@ -1481,7 +1488,7 @@ const CircuitToState = () => {
 
     html2canvas(diagramElement).then((canvas) => {
       const link = document.createElement("a");
-      link.download = `${getBaseFileName()}_state.png`;
+      link.download = `${getBaseFileName()}_SD.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     });
@@ -1525,7 +1532,7 @@ const CircuitToState = () => {
     csvContent += "\n";
 
     // Section 2: Excitation Table
-    csvContent += "Excitation Table\n";
+    csvContent += "EXCITATION TABLE\n";
     const currentStateHeader = `Current State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}`).join("")}`;
     const inputHeader = `Input ${Array.from({ length: numInputs }, (_, i) => `X${numInputs - 1 - i}`).join("")}`;
     const flipFlopHeaders = Object.keys(hiddenExcitationCorrectAnswers).filter(key => key !== "Z");
@@ -1543,7 +1550,7 @@ const CircuitToState = () => {
     csvContent += "\n";
   
     // Section 3: State Transition Table
-    csvContent += "State Transition Table\n";
+    csvContent += "STATE TRANSITION TABLE\n";
     const nextStateHeader = `Next State ${Array.from({ length: numFlipFlops }, (_, i) => `Q${numFlipFlops - 1 - i}*`).join("")}`;
     csvContent += `${currentStateHeader},${inputHeader},${nextStateHeader},Output Z\n`;
   
@@ -1552,14 +1559,14 @@ const CircuitToState = () => {
     });
   
     // Add CSV to zip
-    zip.file(`${base}_exercise.csv`, csvContent);
+    zip.file(`${base}_all.csv`, csvContent);
 
     // Add circuit diagram PNG to zip
     const circuitDiagramElement = document.querySelector(".canvas-container");
     if (circuitDiagramElement) {
       const canvas = await html2canvas(circuitDiagramElement);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      zip.file(`${base}_circuit.png`, blob);
+      zip.file(`${base}_CD.png`, blob);
     }
   
     // Add state diagram PNG to zip
@@ -1567,7 +1574,7 @@ const CircuitToState = () => {
     if (stateDiagramElement) {
       const canvas = await html2canvas(stateDiagramElement);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      zip.file(`${base}_state.png`, blob);
+      zip.file(`${base}_SD.png`, blob);
     }
   
     // Create and download ZIP
