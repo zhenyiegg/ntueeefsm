@@ -347,6 +347,8 @@ canvas {
 .stateDiagram-box.active .state-container {
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   white-space: nowrap;
   margin: 20px auto;
   background-color: white;
@@ -436,6 +438,7 @@ canvas {
   align-items: center;
   justify-content: center;
   color: #2788ef;
+  background-color: transparent;
   cursor: pointer;
   transition: color 0.2s ease;
 }
