@@ -6,6 +6,7 @@ import html2canvas from "html2canvas";
 import CircuitDiagram from '../components/CircuitDiagram';
 import CTSConversion from '../components/CTSConversion'; 
 import { convertMintermsToSOP, convertMaxtermsToPOS, } from '../components/booleanConverter';
+import { convertSOPToNetlist, convertPOSToNetlist } from "../components/booleanToNetlist";
 import '../styles/CircuitToState.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'; 
@@ -65,6 +66,8 @@ const CircuitToState = () => {
 
   const [booleanEquations, setBooleanEquations] = useState([]);
   const [showBooleanPopup, setShowBooleanPopup] = useState(false);
+
+  const [netlistEquations, setNetlistEquations] = useState([]);
 
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
@@ -172,7 +175,6 @@ const CircuitToState = () => {
     };
   }, [showPopup, showBooleanPopup]);
   
-
   // Convert to custom eqn to boolean
   useEffect(() => {
     if (customEquationValidated && customEquations.length > 0) {
@@ -183,14 +185,21 @@ const CircuitToState = () => {
         const booleanExpr = type === 'Σ'
           ? convertMintermsToSOP(termArray, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs))
           : convertMaxtermsToPOS(termArray, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs));
+          
+        const netlist = type === 'Σ'
+          ? convertSOPToNetlist(booleanExpr)
+          : convertPOSToNetlist(booleanExpr);
 
         return {
           label: formattedEquation,
-          expression: booleanExpr
+          expression: booleanExpr,
+          netlist
         };
       });
 
-      setBooleanEquations(converted); // Store
+      setBooleanEquations(converted.map(({ label, expression }) => ({ label, expression })));
+      setNetlistEquations(converted.map(({ label, netlist }) => ({ label, netlist })));
+
       console.log("Custom Boolean Equations:", converted);
     }
   }, [customEquationValidated, customEquations, generateState.numFlipFlops, generateState.numInputs]);
@@ -205,16 +214,26 @@ const CircuitToState = () => {
           ? convertMintermsToSOP(terms, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs))
           : convertMaxtermsToPOS(terms, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs));
         
+        const netlist = isMinterm
+          ? convertSOPToNetlist(booleanExpr)
+          : convertPOSToNetlist(booleanExpr);
+        
+        // console.log("Boolean Expression:", booleanExpr);
+
         return {
           label: equation,
-          expression: booleanExpr
+          expression: booleanExpr,
+          netlist
         };
       });
-      setBooleanEquations(converted); // Store
+      
+      setBooleanEquations(converted.map(({ label, expression }) => ({ label, expression })));
+      setNetlistEquations(converted.map(({ label, netlist }) => ({ label, netlist })));
+
       console.log("Generated Boolean Equations:", converted);
     }
   }, [logicEquation, isGenerated, isUsingCustomEquation, generateState.numFlipFlops, generateState.numInputs]);
-  
+
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
     const updatedState = { ...dropdownState, [key]: value };
@@ -1553,7 +1572,7 @@ const CircuitToState = () => {
   
     // Create and download ZIP
     zip.generateAsync({ type: "blob" }).then(content => {
-      saveAs(content, `${base}_full.zip`);
+      saveAs(content, `${base}.zip`);
     });
   };
   
