@@ -39,6 +39,20 @@ const StateDiagram = ({
     const downloadDiagram = useCallback(() => {
         if (!paperInstance.current) return;
 
+        // Function to generate standardized filename format - moved inside useCallback
+        const getStandardizedFilename = () => {
+            const today = new Date();
+            const yyyymmdd = today.toISOString().slice(0, 10).replace(/-/g, "");
+
+            const fsmType = diagramType.toLowerCase();
+            const ffTypeMap = { D: "dff", T: "tff", JK: "jkff" };
+            const ffType =
+                ffTypeMap[flipFlopType] || flipFlopType.toLowerCase();
+
+            // Return filename in the standard format
+            return `fsm_${fsmType}_${ffType}_${numStates}_${numInputs}_${yyyymmdd}_SD`;
+        };
+
         try {
             // Create a hidden div for the export process
             const hiddenContainer = document.createElement("div");
@@ -124,9 +138,7 @@ const StateDiagram = ({
                     // Download the image
                     const link = document.createElement("a");
                     link.href = pngDataUrl;
-                    link.download = `state_diagram_${diagramType}_${numStates}states_${new Date()
-                        .toISOString()
-                        .slice(0, 10)}.png`;
+                    link.download = `${getStandardizedFilename()}.png`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -135,9 +147,7 @@ const StateDiagram = ({
                     // Fallback to SVG download
                     const link = document.createElement("a");
                     link.href = svgDataUrl;
-                    link.download = `state_diagram_${diagramType}_${numStates}states_${new Date()
-                        .toISOString()
-                        .slice(0, 10)}.svg`;
+                    link.download = `${getStandardizedFilename()}.svg`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -152,9 +162,7 @@ const StateDiagram = ({
                 // Fallback to SVG download
                 const link = document.createElement("a");
                 link.href = svgDataUrl;
-                link.download = `state_diagram_${diagramType}_${numStates}states_${new Date()
-                    .toISOString()
-                    .slice(0, 10)}.svg`;
+                link.download = `${getStandardizedFilename()}.svg`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -175,7 +183,7 @@ const StateDiagram = ({
                 document.body.removeChild(hiddenContainer);
             }
         }
-    }, [diagramType, numStates]);
+    }, [diagramType, flipFlopType, numStates, numInputs]); // Add all variables used in getStandardizedFilename
 
     // Function to update tooltip with transition data
     // Marked as used by callback refs

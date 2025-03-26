@@ -604,10 +604,31 @@ const StateToCircuit = () => {
         setShouldConvert(true);
     };
 
+    // Function to generate standardized filename format
+    const getStandardizedFilename = (fileType) => {
+        const today = new Date();
+        const yyyymmdd = today.toISOString().slice(0, 10).replace(/-/g, "");
+
+        const fsmType = diagramType.toLowerCase();
+        const ffTypeMap = { D: "dff", T: "tff", JK: "jkff" };
+        const ffType = ffTypeMap[flipFlopType] || flipFlopType.toLowerCase();
+
+        // File type description
+        const fileTypeDesc =
+            {
+                transitionTable: "TT",
+                stateDiagram: "SD",
+                all: "all",
+            }[fileType] || fileType;
+
+        return `fsm_${fsmType}_${ffType}_${numStates}_${numInputs}_${yyyymmdd}_${fileTypeDesc}`;
+    };
+
     // Function to download state transition table as CSV
     const downloadStateTableCSV = () => {
-        // Create CSV header
-        let csvContent = "Present State,Input,Next State,Output\n";
+        // Create CSV header with UTF-8 BOM
+        let csvContent = "\uFEFF"; // Add UTF-8 BOM
+        csvContent += "Present State,Input,Next State,Output\n";
 
         // Add each row to CSV
         transitionTable.forEach((row, rowIndex) => {
@@ -642,9 +663,7 @@ const StateToCircuit = () => {
         link.setAttribute("href", encodedUri);
         link.setAttribute(
             "download",
-            `state_transition_table_${new Date()
-                .toISOString()
-                .slice(0, 10)}.csv`
+            `${getStandardizedFilename("transitionTable")}.csv`
         );
         document.body.appendChild(link);
 
@@ -936,6 +955,7 @@ const StateToCircuit = () => {
                                 onGenerateDiagram={handleUserInputDiagram}
                                 onNext={handleUserInputNext}
                                 resetFlag={userInputResetFlag}
+                                flipFlopType={flipFlopType}
                             />
                         )}
                     </div>

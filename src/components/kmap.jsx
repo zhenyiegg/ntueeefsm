@@ -21,8 +21,13 @@ export function simplifyBooleanFunction(
     }
 
     // Add input variables (X1, X0, etc.)
-    for (let i = numInputBits - 1; i >= 0; i--) {
-        variables.push(`X${i}`);
+    // For single input case, use X0 instead of X
+    if (numInputBits === 1) {
+        variables.push("X0");
+    } else {
+        for (let i = numInputBits - 1; i >= 0; i--) {
+            variables.push(`X${i}`);
+        }
     }
 
     // Slice to get only the needed number of variables
