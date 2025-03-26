@@ -303,8 +303,9 @@ const UserInputState = ({
 
     // Function to handle CSV download
     const downloadCSV = () => {
-        // Create CSV header
-        let csvContent = "Present State,Input,Next State,Output\n";
+        // Create CSV header with UTF-8 BOM
+        let csvContent = "\uFEFF"; // Add UTF-8 BOM
+        csvContent += "Present State,Input,Next State,Output\n";
 
         // Add each row to CSV
         transitionTable.forEach((row) => {

@@ -437,27 +437,50 @@ const STCConversion = ({
             transitionTable.length > 0
                 ? transitionTable[0].presentState.match(/\(([01]+)\)/)?.[1]
                       ?.length +
+                  // For Moore machines, output only depends on state
                   (diagramType === "Moore"
-                      ? numInputs
+                      ? 0 // Don't add input bits for Moore
                       : transitionTable[0].input.length)
                 : 0;
 
         // Add Z equation to the equations list
         if (numVarsForOutput > 0) {
+            // For Moore machines, we need to adjust the minterms since we're not using input bits
+            let adjustedOutputMinterms = outputMinterms;
+            if (diagramType === "Moore") {
+                // Create a Set to store unique state numbers that output 1
+                const statesWithOutput1 = new Set();
+                transitionTable.forEach((entry) => {
+                    if (entry.output === "1") {
+                        // Extract state number from something like "S1 (01)"
+                        const stateCodeMatch =
+                            entry.presentState.match(/\(([01]+)\)/);
+                        const stateCode = stateCodeMatch
+                            ? stateCodeMatch[1]
+                            : "";
+                        if (stateCode) {
+                            statesWithOutput1.add(parseInt(stateCode, 2));
+                        }
+                    }
+                });
+                // Convert the Set to an array for the minterms
+                adjustedOutputMinterms = Array.from(statesWithOutput1);
+            }
+
             eqns["Z"] = {
-                mintermIndices: outputMinterms,
+                mintermIndices: adjustedOutputMinterms,
                 minimalSoP: simplifyBooleanFunction(
-                    outputMinterms,
+                    adjustedOutputMinterms,
                     numVarsForOutput,
                     validIndices,
                     maxBits
                 ),
                 canonicalSoM: getCanonicalSumOfMinterms(
-                    outputMinterms,
+                    adjustedOutputMinterms,
                     numVarsForOutput
                 ),
                 canonicalPoM: getCanonicalProductOfMaxterms(
-                    outputMinterms,
+                    adjustedOutputMinterms,
                     numVarsForOutput,
                     validIndices
                 ),
@@ -1376,13 +1399,16 @@ const STCConversion = ({
             (_, i) => `Q${numStateBits - 1 - i}`
         );
 
+        // For Moore machines, Z equation only depends on state variables
         const inputVars =
-            numInputs > 1
+            diagramType === "Moore" && key === "Z"
+                ? [] // No input variables for Moore machine output
+                : numInputs > 1
                 ? Array.from(
                       { length: numInputs },
                       (_, i) => `X${numInputs - 1 - i}`
                   )
-                : ["X"];
+                : ["X0"];
 
         const allVars = [...stateVars, ...inputVars].join(", ");
 
@@ -1924,7 +1950,7 @@ const STCConversion = ({
                       { length: numInputs },
                       (_, i) => `X${numInputs - 1 - i}`
                   )
-                : ["X"];
+                : ["X0"]; // Changed from ["X"] to ["X0"]
 
         [...stateVars, ...inputVars].forEach((signal) => {
             signalLevels.set(signal, 0);
@@ -2073,11 +2099,37 @@ const STCConversion = ({
         URL.revokeObjectURL(url);
     };
 
-    // Function to download excitation table as CSV
+    // Function to generate standardized filename format
+    const getStandardizedFilename = (fileType) => {
+        const today = new Date();
+        const yyyymmdd = today.toISOString().slice(0, 10).replace(/-/g, "");
+
+        const fsmType = diagramType.toLowerCase();
+        const ffTypeMap = { D: "dff", T: "tff", JK: "jkff" };
+        const ffType = ffTypeMap[flipFlopType] || flipFlopType.toLowerCase();
+
+        // Number of states is determined by the number of state bits
+        const numStates = Math.pow(2, numStateBits);
+
+        // File type description
+        const fileTypeDesc =
+            {
+                excitation: "ET",
+                equation: "EQ",
+                transition: "TT",
+                all: "all",
+            }[fileType] || fileType;
+
+        return `fsm_${fsmType}_${ffType}_${numStates}_${numInputs}_${yyyymmdd}_${fileTypeDesc}`;
+    };
+
+    // Existing function - update the filename
     const downloadExcitationTableCSV = () => {
         if (!mergedExcitationTable) return;
 
-        // Create CSV header
+        // Create CSV header with UTF-8 BOM
+        let csvContent = "\uFEFF"; // Add UTF-8 BOM
+
         const bitIndices = Array.from(
             { length: numStateBits },
             (_, i) => numStateBits - 1 - i
@@ -2098,7 +2150,7 @@ const STCConversion = ({
             excitationHeader = bitIndices.map((i) => `J${i},K${i}`).join(",");
         }
 
-        let csvContent = `Present State (${presentStateBits}),Input (${
+        csvContent += `Present State (${presentStateBits}),Input (${
             inputBits || "X"
         }),Next State (${nextStateBits}),${excitationHeader},Output (Z)\n`;
 
@@ -2158,9 +2210,7 @@ const STCConversion = ({
         link.setAttribute("href", encodedUri);
         link.setAttribute(
             "download",
-            `excitation_table_${flipFlopType}_${new Date()
-                .toISOString()
-                .slice(0, 10)}.csv`
+            `${getStandardizedFilename("excitation")}.csv`
         );
         document.body.appendChild(link);
 
@@ -2169,7 +2219,7 @@ const STCConversion = ({
         document.body.removeChild(link);
     };
 
-    // Function to download equations as CSV
+    // Existing function - update the filename
     const downloadEquationsCSV = () => {
         if (
             !simplifiedEquations ||
@@ -2177,8 +2227,9 @@ const STCConversion = ({
         )
             return;
 
-        // Create CSV header
-        let csvContent =
+        // Create CSV header with UTF-8 BOM
+        let csvContent = "\uFEFF"; // Add UTF-8 BOM
+        csvContent +=
             "Equation,Sum of Minterms,Product of Maxterms,Simplified Expression\n";
 
         // Generate variable list for displaying in the CSV
@@ -2192,7 +2243,7 @@ const STCConversion = ({
                       { length: numInputs },
                       (_, i) => `X${numInputs - 1 - i}`
                   )
-                : ["X"];
+                : ["X0"]; // Changed from ["X"] to ["X0"]
         const allVars = [...stateVars, ...inputVars].join(", ");
 
         // Add each equation to CSV
@@ -2266,9 +2317,7 @@ const STCConversion = ({
         link.setAttribute("href", encodedUri);
         link.setAttribute(
             "download",
-            `equations_${flipFlopType}_${new Date()
-                .toISOString()
-                .slice(0, 10)}.csv`
+            `${getStandardizedFilename("equation")}.csv`
         );
         document.body.appendChild(link);
 
@@ -2277,7 +2326,7 @@ const STCConversion = ({
         document.body.removeChild(link);
     };
 
-    // Function to download all data as a single CSV
+    // Existing function - update the filename
     const downloadAllDataCSV = () => {
         if (!transitionTable || !mergedExcitationTable || !simplifiedEquations)
             return;
@@ -2285,8 +2334,8 @@ const STCConversion = ({
         // Get the score details
         const { score, total, percentage } = calculateScore();
 
-        // Create CSV content with section headers
-        let csvContent = "";
+        // Create CSV content with section headers and UTF-8 BOM
+        let csvContent = "\uFEFF"; // Add UTF-8 BOM
 
         // 1. Add State Transition Table
         csvContent += "STATE TRANSITION TABLE\n";
@@ -2379,7 +2428,7 @@ const STCConversion = ({
                       { length: numInputs },
                       (_, i) => `X${numInputs - 1 - i}`
                   )
-                : ["X"];
+                : ["X0"]; // Changed from ["X"] to ["X0"]
         const allVars = [...stateVars, ...inputVars].join(", ");
 
         // Add each equation
@@ -2456,12 +2505,7 @@ const STCConversion = ({
         );
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute(
-            "download",
-            `fsm_${diagramType}_${flipFlopType}_complete_data_${new Date()
-                .toISOString()
-                .slice(0, 10)}.csv`
-        );
+        link.setAttribute("download", `${getStandardizedFilename("all")}.csv`);
         document.body.appendChild(link);
 
         // Trigger download and remove link
