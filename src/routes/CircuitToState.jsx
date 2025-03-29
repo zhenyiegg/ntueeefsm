@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
+import axios from "axios";
 import CircuitDiagram from '../components/CircuitDiagram';
 import CTSConversion from '../components/CTSConversion'; 
 import { convertMintermsToSOP, convertMaxtermsToPOS, } from '../components/booleanConverter';
@@ -68,6 +69,7 @@ const CircuitToState = () => {
   const [showBooleanPopup, setShowBooleanPopup] = useState(false);
 
   const [netlistEquations, setNetlistEquations] = useState([]);
+  const [netlistImages, setNetlistImages] = useState([]);
 
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
@@ -174,6 +176,50 @@ const CircuitToState = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showPopup, showBooleanPopup]);
+
+  const fetchImagesFromNetlists = async (equations) => {
+    const imageResults = await Promise.all(
+      equations.map(async ({ label, netlist }) => {
+        try {
+          if (!Array.isArray(netlist) || netlist.length === 0) {
+            throw new Error("Netlist is invalid or empty");
+          }
+  
+          console.log("Sending netlist for:", label, netlist); // 👀 Debug
+  
+          const response = await axios.post(
+            "https://java-backend-2zwm.onrender.com/api/external-call/generate-screenshot",
+            netlist, // Must send only the netlist array, NOT wrapped in { netlist }
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+              responseType: "arraybuffer", // To receive image buffer
+            }
+          );
+  
+          if (response.status !== 200) {
+            throw new Error(`API returned status ${response.status}`);
+          }
+  
+          const base64Image = `data:image/png;base64,${btoa(
+            new Uint8Array(response.data).reduce(
+              (data, byte) => data + String.fromCharCode(byte),
+              ""
+            )
+          )}`;
+  
+          return { label, image: base64Image };
+        } catch (error) {
+          console.error(`❌ Error generating image for "${label}":`, error);
+          return { label, image: null };
+        }
+      })
+    );
+  
+    setNetlistImages(imageResults);
+  };
+  
   
   // Convert to custom eqn to boolean
   useEffect(() => {
@@ -199,6 +245,7 @@ const CircuitToState = () => {
 
       setBooleanEquations(converted.map(({ label, expression }) => ({ label, expression })));
       setNetlistEquations(converted.map(({ label, netlist }) => ({ label, netlist })));
+      fetchImagesFromNetlists(converted);
 
       console.log("Custom Boolean Equations:", converted);
     }
@@ -229,6 +276,7 @@ const CircuitToState = () => {
       
       setBooleanEquations(converted.map(({ label, expression }) => ({ label, expression })));
       setNetlistEquations(converted.map(({ label, netlist }) => ({ label, netlist })));
+      fetchImagesFromNetlists(converted);
 
       console.log("Generated Boolean Equations:", converted);
     }
@@ -717,7 +765,6 @@ const CircuitToState = () => {
         }
       }
     }
-  
     return nextStateBits.join("");
   };
   
@@ -832,7 +879,8 @@ const CircuitToState = () => {
 
     let maxTermsForOutput = maxTerms;
     if (fsmType === "Moore" && numFlipFlops === "2" && numInputs === "2") {
-      maxTermsForOutput = 16; 
+      maxTermsForOutput = 12; 
+      minTerms = 8;
     }
 
     const generatedTerms = [];
@@ -1704,6 +1752,18 @@ const CircuitToState = () => {
           />
         </div>
       </div>
+
+      {netlistImages.map(({ label, image }) => (
+        <div key={label}>
+          <h4>{label}</h4>
+          {image ? (
+            <img src={image} alt={`Circuit diagram for ${label}`} style={{ maxWidth: "100%" }} />
+          ) : (
+            <p>Image not available</p>
+          )}
+        </div>
+      ))}
+
 
       {/* Custom Equation Section */}
       {isUsingCustomEquation && !customEquationValidated && (
