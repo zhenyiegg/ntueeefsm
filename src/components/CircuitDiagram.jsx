@@ -11,10 +11,14 @@ function CircuitDiagram({
   isGenerated,
   netlistImages = [],
   setPopupContent,
-  setPopupVisible
+  setPopupVisible,
+  netlistEquations,
+  fetchImagesFromNetlists
  }) {
   const canvasRef = useRef(null); // Reference for the canvas container
   const p5InstanceRef = useRef(null); // Store the p5 instance to manage updates and cleanup
+
+  const hoveredBoxRef = useRef(null);
 
   useEffect(() => {
     // Define the p5 sketch
@@ -37,7 +41,7 @@ function CircuitDiagram({
 
         // Draw diagram only if `isGenerated` is true
         if (isGenerated) {
-   
+          p.noLoop();
 
           // Next State Logic Box
           const nslHeight = (numFlipFlops === '2') ? boxHeight + 200 : boxHeight + 340;
@@ -329,6 +333,7 @@ function CircuitDiagram({
           }
         }
       };
+
       p.draw = () => {
         p.clear(); // Clears the previous canvas
         p.setup(); // Re-draw everything with hover effect
@@ -360,14 +365,15 @@ function CircuitDiagram({
       p.mousePressed = () => {
         if (!hoveredBox) return;
 
-        if (hoveredBox === "nextState") {
-          const ffImages = netlistImages.filter(img => !img.label.includes("Z"));
-          setPopupContent(ffImages);
-          setPopupVisible(true);
-        } else if (hoveredBox === "outputLogic") {
-          const zImage = netlistImages.filter(img => img.label.includes("Z"));
-          setPopupContent(zImage);
-          setPopupVisible(true);
+        hoveredBoxRef.current = hoveredBox; // Track which box was clicked
+
+        setPopupContent([]);
+        setPopupVisible(true);
+        
+        if (netlistEquations && Array.isArray(netlistEquations) && netlistEquations.length > 0) {
+          fetchImagesFromNetlists(netlistEquations);
+        } else {
+          console.warn("⚠️ netlistEquations is undefined or empty");
         }
       };
     };
@@ -386,7 +392,23 @@ function CircuitDiagram({
         p5InstanceRef.current.remove();
       }
     };
-  }, [isGenerated, numInputs, flipFlopType, numFlipFlops, fsmType, netlistImages, setPopupContent, setPopupVisible]);
+  }, [isGenerated, numInputs, flipFlopType, numFlipFlops, fsmType, netlistImages, setPopupContent, setPopupVisible, netlistEquations, fetchImagesFromNetlists]);
+
+  useEffect(() => {
+    if (!netlistImages || netlistImages.length === 0) return;
+  
+    const ffImages = netlistImages.filter(img => !img.label.includes("Z"));
+    const zImages = netlistImages.filter(img => img.label.includes("Z"));
+  
+    // Determine which popup was last opened
+    const latestHover = hoveredBoxRef.current;
+  
+    if (latestHover === "nextState") {
+      setPopupContent(ffImages);
+    } else if (latestHover === "outputLogic") {
+      setPopupContent(zImages);
+    }
+  }, [netlistImages, setPopupContent]);  
 
   return (
     <div className="canvas-container">
