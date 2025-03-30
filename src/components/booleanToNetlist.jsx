@@ -12,24 +12,6 @@ const createGate = (type, inputs, output, level) => ({
   level: `${level}`
 });
 
-// Helper: split gates if inputs exceed maxInputs (3)
-const createMultiInputGate = (type, inputs, finalOutputName, baseLevel) => {
-  const maxInputs = 3;
-  const gates = [];
-  let tempInputs = [...inputs];
-  let outputCounter = 0;
-
-  while (tempInputs.length > maxInputs) {
-    const chunk = tempInputs.splice(0, maxInputs);
-    const intermediateOutput = `${finalOutputName}_mid_${outputCounter++}`;
-    gates.push(createGate(type, chunk, intermediateOutput, baseLevel));
-    tempInputs.unshift(intermediateOutput);
-  }
-
-  gates.push(createGate(type, tempInputs, finalOutputName, baseLevel + 1));
-  return gates;
-};
-
 // SOP conversion (e.g., A'B'C + AB'C)
 export const convertSOPToNetlist = (expression) => {
   gateCounter = 1;
@@ -39,7 +21,8 @@ export const convertSOPToNetlist = (expression) => {
   const terms = expression.split('+').map(t => t.trim());
 
   terms.forEach((term, index) => {
-    const literals = term.match(/[A-Z][0-9]?'?/g) || [];
+    const literals = term.match(/[A-Z][0-9]?'?/g
+) || [];
     const inputs = [];
     const notGates = [];
 
@@ -56,13 +39,13 @@ export const convertSOPToNetlist = (expression) => {
 
     const andOutput = `AND_${index}`;
     andGates.push(...notGates);
-    andGates.push(...createMultiInputGate("and", inputs, andOutput, 2));
+    andGates.push(createGate("and", inputs, andOutput, 2));
     orInputs.push(andOutput);
   });
 
   const finalOutput = "OUT";
-  const orGates = createMultiInputGate("or", orInputs, finalOutput, 3);
-  return [...andGates, ...orGates];
+  const orGate = createGate("or", orInputs, finalOutput, 3);
+  return [...andGates, orGate];
 };
 
 // POS conversion (e.g., (A+B+C)(A+B'+C'))
@@ -91,11 +74,13 @@ export const convertPOSToNetlist = (expression) => {
 
     const orOutput = `OR_${index}`;
     orGates.push(...notGates);
-    orGates.push(...createMultiInputGate("or", inputs, orOutput, 2));
+    orGates.push(createGate("or", inputs, orOutput, 2));
     andInputs.push(orOutput);
   });
 
   const finalOutput = "OUT";
-  const andGates = createMultiInputGate("and", andInputs, finalOutput, 3);
-  return [...orGates, ...andGates];
+  const andGate = createGate("and", andInputs, finalOutput, 3);
+  return [...orGates, andGate];
 };
+
+

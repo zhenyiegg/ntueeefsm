@@ -71,6 +71,9 @@ const CircuitToState = () => {
   const [netlistEquations, setNetlistEquations] = useState([]);
   const [netlistImages, setNetlistImages] = useState([]);
 
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupContent, setPopupContent] = useState([]);
+
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
     flipFlopType: "",
@@ -281,6 +284,18 @@ const CircuitToState = () => {
       console.log("Generated Boolean Equations:", converted);
     }
   }, [logicEquation, isGenerated, isUsingCustomEquation, generateState.numFlipFlops, generateState.numInputs]);
+
+  // Download netlist txt file
+  const downloadNetlistAsText = (label, netlist) => {
+    const cleanedLabel = label.replace(/[^a-zA-Z0-9]/g, "_"); // clean filename
+    const blob = new Blob([JSON.stringify(netlist, null, 2)], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${cleanedLabel}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };  
 
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -1749,21 +1764,35 @@ const CircuitToState = () => {
             numFlipFlops={generateState.numFlipFlops} 
             fsmType={generateState.fsmType}
             isGenerated={isGenerated}
+            netlistImages={netlistImages}
+            setPopupVisible={setPopupVisible}
+            setPopupContent={setPopupContent} 
           />
         </div>
       </div>
 
-      {netlistImages.map(({ label, image }) => (
-        <div key={label}>
-          <h4>{label}</h4>
-          {image ? (
-            <img src={image} alt={`Circuit diagram for ${label}`} style={{ maxWidth: "100%" }} />
-          ) : (
-            <p>Image not available</p>
-          )}
+      {popupVisible && (
+        <div className="popup-overlay-netlist" onClick={() => setPopupVisible(false)}>
+          <div className="popup-box-netlist" onClick={e => e.stopPropagation()}>
+            <h3>Logic Circuit Netlist Image</h3>
+            {popupContent.length === 0 ? (
+              <p>No image available.</p>
+            ) : (
+              popupContent.map(({ label, image }) => (
+                <div key={label} style={{ marginBottom: "1rem" }}>
+                  <p><strong>{label}</strong></p>
+                  {image ? (
+                    <img src={image} alt={`Netlist for ${label}`} style={{ maxWidth: "100%" }} />
+                  ) : (
+                    <p style={{ color: "red" }}>Image not available</p>
+                  )}
+                </div>
+              ))
+            )}
+            <button className="close-netlist-btn" onClick={() => setPopupVisible(false)}>Close</button>
+          </div>
         </div>
-      ))}
-
+      )}
 
       {/* Custom Equation Section */}
       {isUsingCustomEquation && !customEquationValidated && (

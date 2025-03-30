@@ -82,7 +82,7 @@ select:focus {
   gap: 10px;
 }
 
-.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn {
+.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn, .close-netlist-btn {
   padding: 10px 10px;
   font-size: 16px;
   background-color: #4CAF50; 
@@ -90,14 +90,14 @@ select:focus {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease-out;
 }
 
 .ok-btn, .next-btn, .giveup-btn {
   padding: 8px 10px;
 }
 
-.auto-generate-btn, .ok-btn {
+.auto-generate-btn, .ok-btn, .close-netlist-btn {
   background-color: #6f42c1;
 }
 
@@ -105,7 +105,7 @@ select:focus {
   background-color: #3f9343;
 }
 
-.auto-generate-btn:hover, .ok-btn:hover {
+.auto-generate-btn:hover, .ok-btn:hover, .close-netlist-btn:hover {
   background-color: #5429a9;
 }
 
@@ -632,6 +632,32 @@ table tr:hover {
     transform: scale(1);
   }
 }
+
+.popup-overlay-netlist {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popup-box-netlist {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-height: 80vh;
+  overflow-y: auto;
+  width: 80%;
+  max-width: 700px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  animation: fadeIn 0.3s ease-out;
+}
+
 
 /**********  RESPONSIVE LAYOUT *********/
 @media (max-width: 1064px) {

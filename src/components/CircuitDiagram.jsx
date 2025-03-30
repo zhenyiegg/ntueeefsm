@@ -3,7 +3,16 @@ import React, { useEffect, useRef } from 'react';
 import p5 from 'p5';
 import '../styles/CircuitToState.css';
 
-function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGenerated }) {
+function CircuitDiagram({  
+  numInputs,
+  flipFlopType,
+  numFlipFlops,
+  fsmType,
+  isGenerated,
+  netlistImages = [],
+  setPopupContent,
+  setPopupVisible
+ }) {
   const canvasRef = useRef(null); // Reference for the canvas container
   const p5InstanceRef = useRef(null); // Store the p5 instance to manage updates and cleanup
 
@@ -16,29 +25,35 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
       const startY = 60;
       const flipFlopSpacing = 140;
 
+      let hoveredBox = null; // track which block is hovered
+      let nextStateBox = {};
+      let outputLogicBox = {};
+
       p.setup = () => {
-        if (numFlipFlops === '3') {
-          p.createCanvas(1000, 530).parent(canvasRef.current);
-        } else {
-          p.createCanvas(1000, 430).parent(canvasRef.current);
-        }
+        const canvasHeight = numFlipFlops === '3' ? 530 : 430;
+        p.createCanvas(1000, canvasHeight).parent(canvasRef.current);
         p.background(255); // White background
         p.strokeWeight(1.5);
 
         // Draw diagram only if `isGenerated` is true
         if (isGenerated) {
-          // Next State Logic Box
-          p.fill(209, 179, 255, 104); // Light purple
+   
 
-          if (numFlipFlops === '2') {
-            p.rect(startX, startY, boxWidth, boxHeight + 200);
+          // Next State Logic Box
+          const nslHeight = (numFlipFlops === '2') ? boxHeight + 200 : boxHeight + 340;
+          if (hoveredBox === "nextState") {
+            p.fill(178, 102, 255, 140); // Brighter purple when hovered
           } else {
-            p.rect(startX, startY, boxWidth, boxHeight + 340);
+            p.fill(209, 179, 255, 104); // Normal color
           }
 
+          p.rect(startX, startY, boxWidth, nslHeight);
           p.fill(0);
           p.textSize(16);
           p.text('Next State Logic', startX + 15, startY + 100);
+
+          // Save bounding box for hover
+          nextStateBox = { x: startX, y: startY, w: boxWidth, h: nslHeight };
 
           // Draw Inputs (X1, X2)
           for (let i = 0; i < numInputs; i++) {
@@ -229,10 +244,18 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
           // Draw Output Logic Box
           const outputX = startX + 600;
           const outputY = startY + flipFlopSpacing - 40;
-          p.fill(209, 179, 255, 104);
+
+          if (hoveredBox === "outputLogic") {
+            p.fill(178, 102, 255, 140); // Brighter purple on hover
+          } else {
+            p.fill(209, 179, 255, 104);
+          }
+
           p.rect(outputX, outputY, boxWidth, boxHeight);
           p.fill(0);
           p.text("Output Logic", outputX + 28, outputY + 35);
+
+          outputLogicBox = { x: outputX, y: outputY, w: boxWidth, h: boxHeight };
 
           p.push();
           p.strokeWeight(6); // stroke thickness for line to output
@@ -306,6 +329,47 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
           }
         }
       };
+      p.draw = () => {
+        p.clear(); // Clears the previous canvas
+        p.setup(); // Re-draw everything with hover effect
+      };
+      
+      p.mouseMoved = () => {
+        const x = p.mouseX;
+        const y = p.mouseY;
+
+        let newHoveredBox = null;
+    
+        if (x >= nextStateBox.x && x <= nextStateBox.x + nextStateBox.w &&
+            y >= nextStateBox.y && y <= nextStateBox.y + nextStateBox.h) {
+          newHoveredBox = "nextState";
+          if (p._curElement) p.cursor(p.HAND);
+        } else if (x >= outputLogicBox.x && x <= outputLogicBox.x + outputLogicBox.w &&
+                   y >= outputLogicBox.y && y <= outputLogicBox.y + outputLogicBox.h) {
+          newHoveredBox = "outputLogic";
+          if (p._curElement) p.cursor(p.HAND);
+        } else {
+          if (p._curElement) p.cursor(p.ARROW);
+        }
+        if (newHoveredBox !== hoveredBox) {
+          hoveredBox = newHoveredBox;
+          p.redraw(); // trigger canvas redraw to reflect color change
+        }
+      };
+
+      p.mousePressed = () => {
+        if (!hoveredBox) return;
+
+        if (hoveredBox === "nextState") {
+          const ffImages = netlistImages.filter(img => !img.label.includes("Z"));
+          setPopupContent(ffImages);
+          setPopupVisible(true);
+        } else if (hoveredBox === "outputLogic") {
+          const zImage = netlistImages.filter(img => img.label.includes("Z"));
+          setPopupContent(zImage);
+          setPopupVisible(true);
+        }
+      };
     };
 
     // Cleanup the previous p5 instance if it exists
@@ -322,7 +386,7 @@ function CircuitDiagram({  numInputs, flipFlopType, numFlipFlops, fsmType, isGen
         p5InstanceRef.current.remove();
       }
     };
-  }, [isGenerated, numInputs, flipFlopType, numFlipFlops, fsmType]);
+  }, [isGenerated, numInputs, flipFlopType, numFlipFlops, fsmType, netlistImages, setPopupContent, setPopupVisible]);
 
   return (
     <div className="canvas-container">
