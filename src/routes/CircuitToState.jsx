@@ -188,10 +188,11 @@ const CircuitToState = () => {
             throw new Error("Netlist is invalid or empty");
           }
   
-          console.log("Sending netlist for:", label, netlist); // 👀 Debug
+          //console.log("Sending netlist for:", label, netlist); // Debug
+          console.log("Backend URL:", process.env.REACT_APP_BACKEND_URL);
   
           const response = await axios.post(
-            "https://java-backend-2zwm.onrender.com/api/external-call/generate-screenshot",
+            `${process.env.REACT_APP_BACKEND_URL}/api/external-call/generate-screenshot`,
             netlist, // Must send only the netlist array, NOT wrapped in { netlist }
             {
               headers: {
@@ -200,6 +201,8 @@ const CircuitToState = () => {
               responseType: "arraybuffer", // To receive image buffer
             }
           );
+
+          console.log(`${process.env.REACT_APP_BACKEND_URL}/api/external-call/generate-screenshot`);
   
           if (response.status !== 200) {
             throw new Error(`API returned status ${response.status}`);
@@ -214,7 +217,7 @@ const CircuitToState = () => {
   
           return { label, image: base64Image };
         } catch (error) {
-          console.error(`❌ Error generating image for "${label}":`, error);
+          console.error(`Error generating image for "${label}":`, error);
           return { label, image: null };
         }
       })
@@ -284,18 +287,6 @@ const CircuitToState = () => {
       console.log("Generated Boolean Equations:", converted);
     }
   }, [logicEquation, isGenerated, isUsingCustomEquation, generateState.numFlipFlops, generateState.numInputs]);
-
-  // Download netlist txt file
-  const downloadNetlistAsText = (label, netlist) => {
-    const cleanedLabel = label.replace(/[^a-zA-Z0-9]/g, "_"); // clean filename
-    const blob = new Blob([JSON.stringify(netlist, null, 2)], { type: "text/plain" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${cleanedLabel}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };  
 
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -515,6 +506,7 @@ const CircuitToState = () => {
 
         // Sort the terms array in ascending order
         const sortedTerms = [...uniqueTerms].sort((a, b) => a - b);
+        eq.terms = sortedTerms.join(",");
 
         updatedHiddenAnswers[eq.equation] = {
             terms: sortedTerms,
@@ -1767,6 +1759,8 @@ const CircuitToState = () => {
             netlistImages={netlistImages}
             setPopupVisible={setPopupVisible}
             setPopupContent={setPopupContent} 
+            netlistEquations={netlistEquations}
+            fetchImagesFromNetlists={fetchImagesFromNetlists}  
           />
         </div>
       </div>
@@ -1776,7 +1770,9 @@ const CircuitToState = () => {
           <div className="popup-box-netlist" onClick={e => e.stopPropagation()}>
             <h3>Logic Circuit Netlist Image</h3>
             {popupContent.length === 0 ? (
-              <p>No image available.</p>
+              <div className="netlist-spinner-container">
+                <div className="netlist-spinner" />
+              </div>
             ) : (
               popupContent.map(({ label, image }) => (
                 <div key={label} style={{ marginBottom: "1rem" }}>
@@ -1784,11 +1780,13 @@ const CircuitToState = () => {
                   {image ? (
                     <img src={image} alt={`Netlist for ${label}`} style={{ maxWidth: "100%" }} />
                   ) : (
-                    <p style={{ color: "red" }}>Image not available</p>
+                    <div className="netlist-spinner-container">
+                      <div className="netlist-spinner" />
+                    </div>
                   )}
-                </div>
-              ))
-            )}
+                  </div>
+                ))
+              )}
             <button className="close-netlist-btn" onClick={() => setPopupVisible(false)}>Close</button>
           </div>
         </div>
@@ -1952,7 +1950,7 @@ const CircuitToState = () => {
       {isGenerated && (
         <div className="instruction-section active">
           <p>
-            Using the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
+            Click the logic blocks to view the circuits, which may take time to load.<br />Using the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
           </p>
         </div>
       )}
