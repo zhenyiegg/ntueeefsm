@@ -1699,3 +1699,23 @@ td:nth-child(4) .table-input.select {
     color: #0d47a1;
 }
 
+/* Add missing rule for correct equation inputs */
+.equation-input.correct {
+    background-color: #e6ffe6;
+    border-color: #4CAF50;
+}
+
+/* Add missing rule for correct zero/one labels */
+.zero-checkbox-label.correct {
+    background-color: #e6ffe6;
+    border: 1px solid #4CAF50;
+    color: #333;
+}
+
+/* Add missing rule for incorrect zero/one labels */
+.zero-checkbox-label.incorrect {
+    background-color: #ffe6e6;
+    border: 1px solid #ff4444;
+    color: #333;
+}
+
