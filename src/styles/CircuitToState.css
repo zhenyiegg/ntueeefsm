@@ -684,6 +684,14 @@ table tr:hover {
   animation: spin 1s linear infinite;
 }
 
+.netlist-spinner-full {
+  width: 30px;
+  height: 30px;
+  border: 4px solid rgb(255, 255, 255);
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
 /**********  RESPONSIVE LAYOUT *********/
 @media (max-width: 1064px) {

@@ -284,7 +284,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
       // Set transition labels based on FSM type
       link.labels([
         {
-          position: 0.35,
+          position: 0.25,
           attrs: {
             text: {
               text: labels,
@@ -322,7 +322,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           });
 
           linkView.model.labels([{
-            position: 0.35,
+            position: 0.25,
             attrs: {
               text: {
                 text: labels,
@@ -374,7 +374,7 @@ const CTSConversion = ({ stateTransitionTable, fsmType, numFlipFlops, numInputs 
           });
 
           linkView.model.labels([{
-            position: 0.35,
+            position: 0.25,
             attrs: {
               text: {
                 text: labels,
