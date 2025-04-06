@@ -13,7 +13,9 @@ function CircuitDiagram({
   setPopupContent,
   setPopupVisible,
   netlistEquations,
-  fetchImagesFromNetlists
+  fetchImagesFromNetlists,
+  isFetchingImagesRef,
+  popupVisible
  }) {
   const canvasRef = useRef(null); // Reference for the canvas container
   const p5InstanceRef = useRef(null); // Store the p5 instance to manage updates and cleanup
@@ -367,14 +369,20 @@ function CircuitDiagram({
 
         hoveredBoxRef.current = hoveredBox; // Track which box was clicked
 
-        setPopupContent([]);
+        const imagesExist = netlistImages && netlistImages.length > 0;
         setPopupVisible(true);
         
-        if (netlistEquations && Array.isArray(netlistEquations) && netlistEquations.length > 0) {
-          fetchImagesFromNetlists(netlistEquations);
-        } else {
-          console.warn("⚠️ netlistEquations is undefined or empty");
-        }
+        if (!imagesExist || isFetchingImagesRef?.current) {
+          setPopupContent([]); // Show loading spinner
+          if (!isFetchingImagesRef.current && netlistEquations?.length > 0) {
+            fetchImagesFromNetlists(netlistEquations);
+          } else {
+            // Just show filtered cached images
+            const ffImages = netlistImages.filter(img => !img.label.includes("Z"));
+            const zImages = netlistImages.filter(img => img.label.includes("Z"));
+            setPopupContent(hoveredBox === "nextState" ? ffImages : zImages);
+          }
+        };
       };
     };
 
@@ -392,7 +400,7 @@ function CircuitDiagram({
         p5InstanceRef.current.remove();
       }
     };
-  }, [isGenerated, numInputs, flipFlopType, numFlipFlops, fsmType, netlistImages, setPopupContent, setPopupVisible, netlistEquations, fetchImagesFromNetlists]);
+  }, [isGenerated, numInputs, flipFlopType, numFlipFlops, fsmType, netlistImages, setPopupContent, setPopupVisible, netlistEquations, fetchImagesFromNetlists, isFetchingImagesRef]);
 
   useEffect(() => {
     if (!netlistImages || netlistImages.length === 0) return;
@@ -402,13 +410,15 @@ function CircuitDiagram({
   
     // Determine which popup was last opened
     const latestHover = hoveredBoxRef.current;
-  
-    if (latestHover === "nextState") {
-      setPopupContent(ffImages);
-    } else if (latestHover === "outputLogic") {
-      setPopupContent(zImages);
+
+    if (popupVisible) {
+      if (latestHover === "nextState") {
+        setPopupContent(ffImages);
+      } else if (latestHover === "outputLogic") {
+        setPopupContent(zImages);
+      }
     }
-  }, [netlistImages, setPopupContent]);  
+  }, [netlistImages, popupVisible, setPopupContent]);  
 
   return (
     <div className="canvas-container">

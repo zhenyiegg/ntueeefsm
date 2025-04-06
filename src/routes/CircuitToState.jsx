@@ -1,5 +1,5 @@
 /* CircuitToState.jsx */
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
@@ -180,52 +180,71 @@ const CircuitToState = () => {
     };
   }, [showPopup, showBooleanPopup]);
 
-  const fetchImagesFromNetlists = async (equations) => {
-    const imageResults = await Promise.all(
-      equations.map(async ({ label, netlist }) => {
-        try {
-          if (!Array.isArray(netlist) || netlist.length === 0) {
-            throw new Error("Netlist is invalid or empty");
-          }
-  
-          //console.log("Sending netlist for:", label, netlist); // Debug
-          console.log("Backend URL:", process.env.REACT_APP_BACKEND_URL);
-  
-          const response = await axios.post(
-            `${process.env.REACT_APP_BACKEND_URL}/api/external-call/generate-screenshot`,
-            netlist, // Must send only the netlist array, NOT wrapped in { netlist }
-            {
-              headers: {
-                "Content-Type": "application/json",
-              },
-              responseType: "arraybuffer", // To receive image buffer
-            }
-          );
+  const isFetchingImagesRef = useRef(false);
+  const fetchIdRef = useRef(0); // Track fetch sessions
 
-          console.log(`${process.env.REACT_APP_BACKEND_URL}/api/external-call/generate-screenshot`);
+  const fetchImagesFromNetlists = async (equations) => {
+    isFetchingImagesRef.current = true;
+    const thisFetchId = ++fetchIdRef.current; // New session ID
+
+    // Step 1: Initialize with empty images
+    const initialResults = equations.map(({ label }) => ({ label, image: undefined }));
+    setNetlistImages(initialResults); // Triggers loading spinners
+    let results = [...initialResults];
   
-          if (response.status !== 200) {
-            throw new Error(`API returned status ${response.status}`);
-          }
-  
-          const base64Image = `data:image/png;base64,${btoa(
-            new Uint8Array(response.data).reduce(
-              (data, byte) => data + String.fromCharCode(byte),
-              ""
-            )
-          )}`;
-  
-          return { label, image: base64Image };
-        } catch (error) {
-          console.error(`Error generating image for "${label}":`, error);
-          return { label, image: null };
+    for (let i = 0; i < equations.length; i++) {
+      const { label, netlist } = equations[i];
+      try {
+        if (!Array.isArray(netlist) || netlist.length === 0) {
+          throw new Error("Netlist is invalid or empty");
         }
-      })
-    );
   
-    setNetlistImages(imageResults);
+        console.log("Sending netlist for:", label);
+        //console.log("Backend URL:", process.env.REACT_APP_BACKEND_URL);
+  
+        const response = await axios.post(
+          `${process.env.REACT_APP_BACKEND_URL}/api/external-call/generate-screenshot`,
+          netlist, // Just the array, not wrapped
+          {
+            headers: { "Content-Type": "application/json" },
+            responseType: "arraybuffer", // Expect binary image data
+          }
+        );
+  
+        if (response.status !== 200) {
+          throw new Error(`API returned status ${response.status}`);
+        }
+  
+        const base64Image = `data:image/png;base64,${btoa(
+          new Uint8Array(response.data).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        )}`;
+
+        if (fetchIdRef.current !== thisFetchId) return; // Cancel outdated
+  
+        // Step 2: Update specific item in results
+        results[i] = { label, image: base64Image };
+        setNetlistImages([...results]); // Update state incrementally
+      } catch (error) {
+        console.error(`Error generating image for "${label}":`, error);
+        results[i] = { label, image: null }; // Show error fallback
+        setNetlistImages([...results]);
+      }
+    }
+    if (fetchIdRef.current === thisFetchId) {
+      isFetchingImagesRef.current = false;
+    }
   };
-  
+
+  // Check is all netlist images are fetched
+  const allNetlistImagesReady = useMemo(() => {
+    return (
+      netlistImages.length > 0 &&
+      netlistImages.every(({ image }) => typeof image === 'string')
+    );
+  }, [netlistImages]);  
   
   // Convert to custom eqn to boolean
   useEffect(() => {
@@ -886,8 +905,8 @@ const CircuitToState = () => {
 
     let maxTermsForOutput = maxTerms;
     if (fsmType === "Moore" && numFlipFlops === "2" && numInputs === "2") {
-      maxTermsForOutput = 12; 
-      minTerms = 8;
+      maxTermsForOutput = 8; 
+      minTerms = 4;
     }
 
     const generatedTerms = [];
@@ -1518,22 +1537,35 @@ const CircuitToState = () => {
     document.body.removeChild(link);
   };
 
-  /* Export Circuit Diagram PNG */
-  const exportCircuitDiagramAsPNG = () => {
-    const element = document.querySelector(".canvas-container");
-
-    if (!element) {
+  const exportAllImagesAsZip = async () => {
+    const zip = new JSZip();
+  
+    // 1. Add circuit diagram
+    const canvasElement = document.querySelector(".canvas-container");
+    if (!canvasElement) {
       alert("Circuit diagram not found!");
       return;
     }
+  
+    const canvas = await html2canvas(canvasElement);
+    const circuitData = canvas.toDataURL("image/png").split(',')[1];
+    zip.file(`${getBaseFileName()}_CD.png`, circuitData, { base64: true });
 
-    html2canvas(element).then((canvas) => {
-      const link = document.createElement("a");
-      link.download = `${getBaseFileName()}_CD.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+    // 2. Subfolder for netlist images
+    const netlistFolder = zip.folder("netlist_images");
+  
+    // 3. Add each netlist image to the folder
+    netlistImages.forEach(({ label, image }) => {
+      if (typeof image === 'string') {
+        const base64 = image.split(',')[1]; // Strip 'data:image/png;base64,'
+        netlistFolder.file(`${label}.png`, base64, { base64: true });
+      }
     });
-  };  
+  
+    // 4. Generate and save zip
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, `${getBaseFileName()}_CD.zip`);
+  };
 
   /* Export State Diagram PNG */
   const exportStateDiagramAsPNG = () => {
@@ -1617,11 +1649,19 @@ const CircuitToState = () => {
     zip.file(`${base}_all.csv`, csvContent);
 
     // Add circuit diagram PNG to zip
-    const circuitDiagramElement = document.querySelector(".canvas-container");
-    if (circuitDiagramElement) {
-      const canvas = await html2canvas(circuitDiagramElement);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      zip.file(`${base}_CD.png`, blob);
+    const canvasCircuit = await html2canvas(document.querySelector(".canvas-container"));
+    const blobCircuit = await new Promise(resolve => canvasCircuit.toBlob(resolve, "image/png"));
+    zip.file(`${base}_CD.png`, blobCircuit);
+
+    // Add Netlist Images Folder
+    const netlistFolder = zip.folder("netlist_images");
+    if (netlistImages && netlistImages.length > 0) {
+      netlistImages.forEach(({ label, image }) => {
+        if (image) {
+          const base64 = image.split(',')[1]; // remove prefix
+          netlistFolder.file(`${label}.png`, base64, { base64: true });
+        }
+      });
     }
   
     // Add state diagram PNG to zip
@@ -1633,9 +1673,8 @@ const CircuitToState = () => {
     }
   
     // Create and download ZIP
-    zip.generateAsync({ type: "blob" }).then(content => {
-      saveAs(content, `${base}.zip`);
-    });
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    saveAs(zipBlob, `${base}.zip`);
   };
   
   // Render
@@ -1738,13 +1777,19 @@ const CircuitToState = () => {
       <div className="circuit-container">
         {isGenerated && (
           <div className="circuit-export-btn-wrapper">
-            <button
-              className="export-btn circuit-export-btn"
-              onClick={exportCircuitDiagramAsPNG}
-              title="Export PNG"
-            >
-              <FontAwesomeIcon icon={faDownload} />
-            </button>
+            {allNetlistImagesReady ? (
+              <button
+                className="export-btn circuit-export-btn"
+                onClick={exportAllImagesAsZip}
+                title="Export PNG"
+              >
+                <FontAwesomeIcon icon={faDownload} />
+              </button>
+             ) : (
+              <div className="export-spinner" title="Generating...">
+                <div className="netlist-spinner" />
+              </div>
+            )}
           </div>
         )}
 
@@ -1761,6 +1806,8 @@ const CircuitToState = () => {
             setPopupContent={setPopupContent} 
             netlistEquations={netlistEquations}
             fetchImagesFromNetlists={fetchImagesFromNetlists}  
+            isFetchingImagesRef={isFetchingImagesRef}
+            popupVisible={popupVisible}
           />
         </div>
       </div>
@@ -1777,16 +1824,21 @@ const CircuitToState = () => {
               popupContent.map(({ label, image }) => (
                 <div key={label} style={{ marginBottom: "1rem" }}>
                   <p><strong>{label}</strong></p>
-                  {image ? (
-                    <img src={image} alt={`Netlist for ${label}`} style={{ maxWidth: "100%" }} />
-                  ) : (
+
+                  {image === null || image === undefined ? (
                     <div className="netlist-spinner-container">
                       <div className="netlist-spinner" />
                     </div>
+                  ) : (
+                    <img
+                      src={image}
+                      alt={`Netlist for ${label}`}
+                      style={{ maxWidth: "100%", height: "auto" }}
+                    />
                   )}
-                  </div>
-                ))
-              )}
+                </div>
+              ))
+            )}
             <button className="close-netlist-btn" onClick={() => setPopupVisible(false)}>Close</button>
           </div>
         </div>
@@ -1950,7 +2002,7 @@ const CircuitToState = () => {
       {isGenerated && (
         <div className="instruction-section active">
           <p>
-            Click the logic blocks to view the circuits, which may take time to load.<br />Using the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
+            Click the logic blocks to view the logic netlist circuits. (may take time to load)<br />Using the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
           </p>
         </div>
       )}
@@ -2227,8 +2279,21 @@ const CircuitToState = () => {
       {/* Download Full Exercise */}
       {showStateDiagram && isDownloadFullExerciseEnabled && (
         <div className="download-exercise-wrapper">
-          <button className="exportFull-btn" onClick={downloadFullExercise}>
-            <FontAwesomeIcon icon={faDownload} /> Download Full Exercise
+          <button 
+            className="exportFull-btn" 
+            onClick={downloadFullExercise}
+            disabled={!allNetlistImagesReady}
+            title={allNetlistImagesReady ? "" : "Generating images..."}
+          >
+            {allNetlistImagesReady ? (
+              <>
+                <FontAwesomeIcon icon={faDownload} /> Download Full Exercise
+              </>
+             ) : (
+              <>
+                <div className="netlist-spinner-full" />
+              </>
+            )}
           </button>
         </div>
       )}
