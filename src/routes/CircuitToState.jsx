@@ -1583,10 +1583,7 @@ const CircuitToState = () => {
 
     // 4. Add netlist TXT files
     netlistEquations.forEach(({ label, netlist }) => {
-      const textContent = netlist
-        .map(gate => `${gate.type.toUpperCase()} ${gate.name}: (${gate.input.join(', ')}) → ${gate.output}`)
-        .join('\n');
-
+      const textContent = JSON.stringify(netlist, null, 2); 
       netlistFolder.file(`${label}.txt`, textContent);
     });
   
@@ -1695,10 +1692,7 @@ const CircuitToState = () => {
     // Add Netlist TXT files to netlistFolder
     if (netlistEquations && netlistEquations.length > 0) {
       netlistEquations.forEach(({ label, netlist }) => {
-        const textContent = netlist
-          .map(gate => `${gate.type.toUpperCase()} ${gate.name}: (${gate.input.join(', ')}) → ${gate.output}`)
-          .join('\n');
-
+        const textContent = JSON.stringify(netlist, null, 2);
         netlistFolder.file(`${label}.txt`, textContent);
       });
     }
