@@ -249,17 +249,20 @@ const CircuitToState = () => {
   // Convert to custom eqn to boolean
   useEffect(() => {
     if (customEquationValidated && customEquations.length > 0) {
+      const { numFlipFlops, numInputs, fsmType } = generateState;
+
       const converted = customEquations.map((eq) => {
-        const { type, terms, formattedEquation } = eq;
+        const { type, terms, formattedEquation, equation } = eq;
         const termArray = terms.split(',').map(Number);
+        const rawLabel = equation;
   
         const booleanExpr = type === 'Σ'
-          ? convertMintermsToSOP(termArray, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs))
-          : convertMaxtermsToPOS(termArray, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs));
+          ? convertMintermsToSOP(termArray, parseInt(numFlipFlops), parseInt(numInputs), fsmType, rawLabel)
+          : convertMaxtermsToPOS(termArray, parseInt(numFlipFlops), parseInt(numInputs), fsmType, rawLabel);
           
         const netlist = type === 'Σ'
-          ? convertSOPToNetlist(booleanExpr)
-          : convertPOSToNetlist(booleanExpr);
+          ? convertSOPToNetlist(booleanExpr, formattedEquation, fsmType, rawLabel)
+          : convertPOSToNetlist(booleanExpr, formattedEquation, fsmType, rawLabel);
 
         return {
           label: formattedEquation,
@@ -274,21 +277,24 @@ const CircuitToState = () => {
 
       console.log("Custom Boolean Equations:", converted);
     }
-  }, [customEquationValidated, customEquations, generateState.numFlipFlops, generateState.numInputs]);
+  }, [customEquationValidated, customEquations, generateState]);
 
   // Convert to generated eqn to boolean
   useEffect(() => {
     if (logicEquation.length > 0 && isGenerated && !isUsingCustomEquation) {
+      const { numFlipFlops, numInputs, fsmType } = generateState;
+
       const converted = logicEquation.map((eq) => {
         const { equation, terms, isMinterm } = eq;
+        const rawLabel = equation.split("(")[0];
 
         const booleanExpr = isMinterm
-          ? convertMintermsToSOP(terms, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs))
-          : convertMaxtermsToPOS(terms, parseInt(generateState.numFlipFlops), parseInt(generateState.numInputs));
+          ? convertMintermsToSOP(terms, parseInt(numFlipFlops), parseInt(numInputs), fsmType, rawLabel)
+          : convertMaxtermsToPOS(terms, parseInt(numFlipFlops), parseInt(numInputs), fsmType, rawLabel);
         
         const netlist = isMinterm
-          ? convertSOPToNetlist(booleanExpr)
-          : convertPOSToNetlist(booleanExpr);
+          ? convertSOPToNetlist(booleanExpr, equation, fsmType, rawLabel)
+          : convertPOSToNetlist(booleanExpr, equation, fsmType, rawLabel);
         
         // console.log("Boolean Expression:", booleanExpr);
 
@@ -305,7 +311,7 @@ const CircuitToState = () => {
 
       console.log("Generated Boolean Equations:", converted);
     }
-  }, [logicEquation, isGenerated, isUsingCustomEquation, generateState.numFlipFlops, generateState.numInputs]);
+  }, [logicEquation, isGenerated, isUsingCustomEquation, generateState]);
 
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -437,7 +443,7 @@ const CircuitToState = () => {
   };
 
   const generateCustomEquationTemplate = (state) => {
-    const { numInputs, flipFlopType, numFlipFlops } = state;
+    const { numInputs, flipFlopType, numFlipFlops, fsmType } = state;
 
     const allFlipFlops = [];
     if (flipFlopType === "D" || flipFlopType === "T") {
@@ -454,7 +460,7 @@ const CircuitToState = () => {
 
     const formattedEquations = allFlipFlops.map((flipFlop) => ({
       equation: flipFlop,
-      formattedEquation: formatKeyForDisplay(flipFlop, numInputs, numFlipFlops), 
+      formattedEquation: formatKeyForDisplay(flipFlop, numInputs, numFlipFlops, fsmType), 
       terms: "",
       type: "Σ", // Default to minterm
     }));
@@ -861,7 +867,7 @@ const CircuitToState = () => {
   };
 
   // Helper to format keys for display
-  const formatKeyForDisplay = (key, numInputs, numFlipFlops) => {
+  /*const formatKeyForDisplay = (key, numInputs, numFlipFlops, fsmType) => {
     if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T") || key === "Z") {
       if (numInputs === "1" && numFlipFlops === "2") {
         return `${key}(Q1,\u00A0Q0,\u00A0X0)`;
@@ -872,6 +878,18 @@ const CircuitToState = () => {
       }
     }
     return key; 
+  };*/
+
+  const formatKeyForDisplay = (key, numInputs, numFlipFlops, fsmType) => {
+    const flipFlops = Array.from({ length: parseInt(numFlipFlops) }, (_, i) => `Q${numFlipFlops - i - 1}`);
+    const inputs = Array.from({ length: parseInt(numInputs) }, (_, i) => `X${numInputs - i - 1}`);
+  
+    if (key === "Z" && fsmType === "Moore") {
+      return `Z(${flipFlops.join(",\u00A0")})`; // Only Qs
+    }
+  
+    // For other keys like T1, D0, etc.
+    return `${key}(${[...flipFlops, ...inputs].join(",\u00A0")})`;
   };
 
   // Generate Logic Equations
@@ -939,7 +957,7 @@ const CircuitToState = () => {
         isMinterm
       );
 
-      const formattedKey = formatKeyForDisplay(flipFlop, numInputs, numFlipFlops);
+      const formattedKey = formatKeyForDisplay(flipFlop, numInputs, numFlipFlops, fsmType);
 
       const formattedTerms = isMinterm ? (
         <>
@@ -1012,7 +1030,7 @@ const CircuitToState = () => {
       );
     }
     
-    const formattedOutputKey = formatKeyForDisplay("Z", numInputs, numFlipFlops);
+    const formattedOutputKey = formatKeyForDisplay("Z", numInputs, numFlipFlops, fsmType);
 
     const formattedOutputTerms = isOutputMinterm ? (
       <>
@@ -1537,6 +1555,7 @@ const CircuitToState = () => {
     document.body.removeChild(link);
   };
 
+  /* Export Circuit Diagram PNG and netlist TXT */
   const exportAllImagesAsZip = async () => {
     const zip = new JSZip();
   
@@ -1551,8 +1570,8 @@ const CircuitToState = () => {
     const circuitData = canvas.toDataURL("image/png").split(',')[1];
     zip.file(`${getBaseFileName()}_CD.png`, circuitData, { base64: true });
 
-    // 2. Subfolder for netlist images
-    const netlistFolder = zip.folder("netlist_images");
+    // 2. Create subfolder for netlist images
+    const netlistFolder = zip.folder("schematic_logic_circuit");
   
     // 3. Add each netlist image to the folder
     netlistImages.forEach(({ label, image }) => {
@@ -1561,8 +1580,17 @@ const CircuitToState = () => {
         netlistFolder.file(`${label}.png`, base64, { base64: true });
       }
     });
+
+    // 4. Add netlist TXT files
+    netlistEquations.forEach(({ label, netlist }) => {
+      const textContent = netlist
+        .map(gate => `${gate.type.toUpperCase()} ${gate.name}: (${gate.input.join(', ')}) → ${gate.output}`)
+        .join('\n');
+
+      netlistFolder.file(`${label}.txt`, textContent);
+    });
   
-    // 4. Generate and save zip
+    // 5. Generate and save zip
     const content = await zip.generateAsync({ type: "blob" });
     saveAs(content, `${getBaseFileName()}_CD.zip`);
   };
@@ -1654,13 +1682,24 @@ const CircuitToState = () => {
     zip.file(`${base}_CD.png`, blobCircuit);
 
     // Add Netlist Images Folder
-    const netlistFolder = zip.folder("netlist_images");
+    const netlistFolder = zip.folder("schematic_logic_circuit");
     if (netlistImages && netlistImages.length > 0) {
       netlistImages.forEach(({ label, image }) => {
         if (image) {
           const base64 = image.split(',')[1]; // remove prefix
           netlistFolder.file(`${label}.png`, base64, { base64: true });
         }
+      });
+    }
+
+    // Add Netlist TXT files to netlistFolder
+    if (netlistEquations && netlistEquations.length > 0) {
+      netlistEquations.forEach(({ label, netlist }) => {
+        const textContent = netlist
+          .map(gate => `${gate.type.toUpperCase()} ${gate.name}: (${gate.input.join(', ')}) → ${gate.output}`)
+          .join('\n');
+
+        netlistFolder.file(`${label}.txt`, textContent);
       });
     }
   
@@ -1815,7 +1854,7 @@ const CircuitToState = () => {
       {popupVisible && (
         <div className="popup-overlay-netlist" onClick={() => setPopupVisible(false)}>
           <div className="popup-box-netlist" onClick={e => e.stopPropagation()}>
-            <h3>Logic Circuit Netlist Image</h3>
+            <h3>Schematic Logic Circuit</h3>
             {popupContent.length === 0 ? (
               <div className="netlist-spinner-container">
                 <div className="netlist-spinner" />

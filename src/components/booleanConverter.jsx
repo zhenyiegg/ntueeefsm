@@ -11,27 +11,33 @@ const getVariableNames = (numFlipFlops, numInputs) => {
 };
 
 // Convert Minterm List to SOP Boolean Expression
-export const convertMintermsToSOP = (minterms, numFlipFlops, numInputs) => {
-  const variables = getVariableNames(numFlipFlops, numInputs);
-  const numBits = variables.length;
+export const convertMintermsToSOP = (minterms, numFlipFlops, numInputs, fsmType = "Mealy", label="") => {
+  const totalBits = numFlipFlops + numInputs;
+  const useOnlyState = fsmType === "Moore" && label === "Z";
+  const variables = getVariableNames(numFlipFlops, useOnlyState ? 0 : numInputs);
+  const bitsToUse = useOnlyState ? numFlipFlops : totalBits;
 
-  const terms = minterms.map((num) => {
-    const bits = getBinary(num, numBits).split('');
+  const terms = minterms.map((rowIndex) => {
+    const bits = getBinary(rowIndex, totalBits).slice(0, bitsToUse).split('');
     return bits.map((bit, i) => (bit === '1' ? variables[i] : `${variables[i]}'`)).join('');
   });
 
-  return terms.join(' + ');
+  const uniqueTerms = [...new Set(terms)];
+  return uniqueTerms.join(' + ');
 };
 
 // Convert Maxterm List to POS Boolean Expression
-export const convertMaxtermsToPOS = (maxterms, numFlipFlops, numInputs) => {
-  const variables = getVariableNames(numFlipFlops, numInputs);
-  const numBits = variables.length;
+export const convertMaxtermsToPOS = (maxterms, numFlipFlops, numInputs, fsmType = "Mealy", label="") => {
+  const totalBits = numFlipFlops + numInputs;
+  const useOnlyState = fsmType === "Moore" && label === "Z";
+  const variables = getVariableNames(numFlipFlops, useOnlyState ? 0 : numInputs);
+  const bitsToUse = useOnlyState ? numFlipFlops : totalBits;
 
-  const terms = maxterms.map((num) => {
-    const bits = getBinary(num, numBits).split('');
+  const terms = maxterms.map((rowIndex) => {
+    const bits = getBinary(rowIndex, totalBits).slice(0, bitsToUse).split('');
     return `(${bits.map((bit, i) => (bit === '0' ? variables[i] : `${variables[i]}'`)).join(' + ')})`;
   });
 
-  return terms.join('');
+  const uniqueTerms = [...new Set(terms)];
+  return uniqueTerms.join('');
 };
