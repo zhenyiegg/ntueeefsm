@@ -15,20 +15,8 @@ const createGate = (type, inputs, output, level) => ({
 
 // Helper: split gates if inputs exceed maxInputs (3)
 const createMultiInputGate = (type, inputs, finalOutputName, baseLevel) => {
-  const maxInputs = 3;
-  const gates = [];
-  let tempInputs = [...inputs];
-  let outputCounter = 0;
-
-  while (tempInputs.length > maxInputs) {
-    const chunk = tempInputs.splice(0, maxInputs);
-    const intermediateOutput = `${finalOutputName}_mid_${outputCounter++}`;
-    gates.push(createGate(type, chunk, intermediateOutput, baseLevel));
-    tempInputs.unshift(intermediateOutput);
-  }
-
-  gates.push(createGate(type, tempInputs, finalOutputName, baseLevel + 1));
-  return gates;
+  const gate = createGate(type, inputs, finalOutputName, baseLevel);
+  return [gate];
 };
 
 // Helper: Get (or create) cached NOT output
@@ -43,7 +31,7 @@ const getCachedNotGate = (varName, gateList) => {
 };
 
 // SOP conversion (e.g., A'B'C + AB'C)
-export const convertSOPToNetlist = (expression) => {
+export const convertSOPToNetlist = (expression, finalLabel = "OUT") => {
   gateCounter = 1;
   notCache = {}; // Reset per call
 
@@ -72,13 +60,13 @@ export const convertSOPToNetlist = (expression) => {
     orInputs.push(andOutput);
   });
 
-  const finalOutput = "OUT";
+  const finalOutput = finalLabel; // Use Z, T1, T0, etc.
   const orGates = createMultiInputGate("or", orInputs, finalOutput, 3);
   return [...andGates, ...orGates];
 };
 
 // POS conversion (e.g., (A+B+C)(A+B'+C'))
-export const convertPOSToNetlist = (expression) => {
+export const convertPOSToNetlist = (expression, finalLabel = "OUT") => {
   gateCounter = 1;
   notCache = {}; // Reset per call
 
@@ -107,7 +95,7 @@ export const convertPOSToNetlist = (expression) => {
     andInputs.push(orOutput);
   });
 
-  const finalOutput = "OUT";
+  const finalOutput = finalLabel;
   const andGates = createMultiInputGate("and", andInputs, finalOutput, 3);
   return [...orGates, ...andGates];
 };
