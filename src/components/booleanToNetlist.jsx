@@ -60,7 +60,7 @@ export const convertSOPToNetlist = (expression, finalLabel = "OUT") => {
     orInputs.push(andOutput);
   });
 
-  const finalOutput = finalLabel; // Use Z, T1, T0, etc.
+  const finalOutput = finalLabel.split('(')[0].trim(); // Use Z, T1, T0, etc.
   const orGates = createMultiInputGate("or", orInputs, finalOutput, 3);
   return [...andGates, ...orGates];
 };
@@ -95,7 +95,7 @@ export const convertPOSToNetlist = (expression, finalLabel = "OUT") => {
     andInputs.push(orOutput);
   });
 
-  const finalOutput = finalLabel;
+  const finalOutput = finalLabel.split('(')[0].trim();
   const andGates = createMultiInputGate("and", andInputs, finalOutput, 3);
   return [...orGates, ...andGates];
 };
