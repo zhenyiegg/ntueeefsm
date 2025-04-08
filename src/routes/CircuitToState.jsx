@@ -200,6 +200,8 @@ const CircuitToState = () => {
         }
   
         console.log("Sending netlist for:", label);
+        console.log("Sending this netlist to backend:", JSON.stringify(netlist, null, 2));
+
         //console.log("Backend URL:", process.env.REACT_APP_BACKEND_URL);
   
         const response = await axios.post(
@@ -2035,7 +2037,7 @@ const CircuitToState = () => {
       {isGenerated && (
         <div className="instruction-section active">
           <p>
-            Click the logic blocks to view the logic netlist circuits. (may take time to load)<br />Using the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
+            Click the logic blocks to view the schematic logic circuits. (may take a moment to load)<br />Given the circuit and logic equations, complete the excitation and state transition tables to derive the state diagram.
           </p>
         </div>
       )}
