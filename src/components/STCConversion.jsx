@@ -128,17 +128,12 @@ const STCConversion = ({
             const presentStateId = row.presentState.split(" ")[0]; // e.g. "S1"
             const nextStateId = row.nextState.split(" ")[0]; // e.g. "S2"
 
-            // For safety, .padStart(...) to ensure we have uniform bits
             const presentCode = states[presentStateId].padStart(maxBits, "0");
             const nextCode = states[nextStateId].padStart(maxBits, "0");
 
             // Mark this state-input combination as used
             usedStateInputCombos.add(`${presentCode}-${inputVal}`);
 
-            // Log used state for debugging
-            console.log(`Used State at: ${presentCode}, Input: ${inputVal}`);
-
-            // For the solver: mark this combination of (presentCode + inputVal) as "valid"
             const varsForThisRow = presentCode + inputVal;
             const decimalIndex = parseInt(varsForThisRow, 2);
             validIndices.add(decimalIndex);
@@ -198,11 +193,9 @@ const STCConversion = ({
             // Remember rowExcitations currently holds them in LSB->MSB order,
             // so we can reverse if you need MSB->LSB, or just keep consistent:
             const reversed = [...rowExcitations].reverse();
+
             const excitationString =
-                flipFlopType === "JK"
-                    ? // for JK, you might want a space to separate pairs
-                      reversed.join(" ")
-                    : reversed.join("");
+                flipFlopType === "JK" ? reversed.join(" ") : reversed.join("");
 
             // Finally push one row into mergedTable
             mergedTable.push({
