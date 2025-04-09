@@ -520,7 +520,7 @@ const CircuitToState = () => {
             if (!validateMooreOutput(uniqueTerms, numFlipFlops)) {
               showPopupMessage(
                 <>
-                  Error: In Moore FSM, Z must refer to states only (0 to {maxZState}). <FontAwesomeIcon icon={faCircleInfo} className="info-custom" />
+                  Error: In Moore FSM, output Z depends only on the current states. Enter values <b>0 to {maxZState}</b>. <FontAwesomeIcon icon={faCircleInfo} className="info-custom" />
                 </>
               );
               return;
@@ -1181,7 +1181,7 @@ const CircuitToState = () => {
         return updatedInputs;
       });
     } else {
-      showPopupMessage("Flip-Flop inputs must be single-bit binary (0 or 1). ");
+      showPopupMessage("Flip-Flop inputs must be single-bit binary 0 or 1. ");
     }
   };
 
@@ -1208,7 +1208,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage(`With ${numFlipFlops} flip-flops, Next State must be a ${numFlipFlops}-bit binary (each bit is 0 or 1).`);
+        showPopupMessage(`With ${numFlipFlops} flip-flops, Next State must be a ${numFlipFlops}-bit binary, each bit is 0 or 1.`);
       }
     } else if (column === "output") {
       // Allow only single binary digit for Output Z
@@ -1221,7 +1221,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage("With one output, Z must be a single-bit binary (0 or 1).");
+        showPopupMessage("With one output, Z must be a single-bit binary 0 or 1.");
       }
     }
   };
@@ -1876,8 +1876,7 @@ const CircuitToState = () => {
                 <li><b>2 inputs & 2 F/F:</b> Enter values between <b>0-15</b>.</li>
               </ul>
               <p>
-                <b>Moore FSM:</b> Output Z is the same for all states, regardless of input
-                X.
+                <b>Moore FSM:</b> Output Z depends only on the current state, not input X.
               </p>
               <ul>
                 <li><b>2 F/F:</b> Enter values between <b>0-3</b>.</li>
@@ -2041,8 +2040,8 @@ const CircuitToState = () => {
         {showExcitationInfo && (
           <div className="info-tooltip-cts">
             <p>
-              Fill in the flip-flop input values with a single-bit binary <strong>(0 or 1)</strong>.<br /><br/>
-              Complete all fields correctly to proceed to the next exercise. You may choose to give up after 2 incorrect attempts. 
+              Fill in the flip-flop inputs with a single-bit binary <strong>0</strong> or <strong>1</strong>.<br /><br/>
+              All fields must be correct to proceed. You may give up after two incorrect attempts. 
             </p>                     
           </div>
         )}    
@@ -2144,8 +2143,8 @@ const CircuitToState = () => {
         {showStateTransitionInfo && (
           <div className="info-tooltip-cts">
             <p>
-              Fill in the next state and output values with binary <strong>(0 or 1)</strong>.<br /><br/>
-              Complete all fields correctly to proceed. You may choose to give up after 2 incorrect attempts. 
+              Fill in the next state and output values with binary <strong>0</strong>or <strong>1</strong>.<br /><br/>
+              All fields must be correct to proceed. You may give up after two incorrect attempts. 
             </p>                     
           </div>
         )}    
