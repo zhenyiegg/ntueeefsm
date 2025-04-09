@@ -473,7 +473,8 @@ const CircuitToState = () => {
 
   const validateCustomEquations = () => {
     const { numInputs, numFlipFlops, fsmType } = generateState;
-    const maxValue = numInputs === "1" && numFlipFlops === "2" ? 7 : 15; 
+    const totalRows = Math.pow(2, parseInt(numFlipFlops) + parseInt(numInputs));
+    const maxZState = Math.pow(2, parseInt(numFlipFlops)) - 1;
 
     const updatedHiddenAnswers = {};
     let correctedEquations = [...customEquations]; // Clone the equations array
@@ -489,8 +490,7 @@ const CircuitToState = () => {
         return { ...eq, terms: correctedTerms };
     });
 
-    // Update the state first before validating
-    setCustomEquations(correctedEquations);
+    setCustomEquations(correctedEquations); // Apply cleaned input to state
 
     // Validate the corrected input
     for (let eq of correctedEquations) {
@@ -500,36 +500,46 @@ const CircuitToState = () => {
         }
 
         if (!/^\d+(,\d+)*$/.test(eq.terms)) {
-            showPopupMessage("Error: Invalid characters detected. Use only numbers separated by commas. (e.g. 1,2,3)");
+            showPopupMessage("Error: Use only numbers separated by commas. (e.g. 0,1,2)");
             return;
         }
 
-        let termsArray = eq.terms.split(",").map(Number); // Convert to an array of numbers
-        let uniqueTerms = [...new Set(termsArray)]; // Remove duplicates
+        const termsArray = eq.terms.split(",").map(Number); // Convert to an array of numbers
+        const uniqueTerms = [...new Set(termsArray)]; // Remove duplicates
 
         // Check if there were duplicates
         if (uniqueTerms.length !== termsArray.length) {
             showPopupMessage("Error: Duplicate values detected.");
             return;
         }
-
-        if (uniqueTerms.some((num) => num < 0 || num > maxValue)) {
-            showPopupMessage(`Error: Allowed numbers are between 0 and ${maxValue}.`);
-            return;
-        }
-
+     
         // Moore FSM Validation
-        if (fsmType === "Moore" && eq.equation === "Z") {
-          let isValid = validateMooreOutput(uniqueTerms, numInputs, numFlipFlops);
-          if (!isValid) {
-            showPopupMessage(
-              <>
-                Error: For Moore FSM, the output Z must be the same for all current states. Read <FontAwesomeIcon icon={faCircleInfo} className="info-custom"/> for details.
-              </>
-            );
-            return;
+        if (eq.equation === "Z") {
+          if (fsmType === "Moore") {
+            // Validate only state indices (0 to 2^n - 1)
+            if (!validateMooreOutput(uniqueTerms, numFlipFlops)) {
+              showPopupMessage(
+                <>
+                  Error: In Moore FSM, Z must refer to states only (0 to {maxZState}). <FontAwesomeIcon icon={faCircleInfo} className="info-custom" />
+                </>
+              );
+              return;
+            }
+          } else {
+            // Mealy FSM Z terms — validate as row indices
+            if (uniqueTerms.some((num) => num < 0 || num >= totalRows)) {
+              showPopupMessage(`Error: In Mealy FSM, Z terms must be between 0 and ${totalRows - 1}.`);
+              return;
+            }
           }
         }
+         else {
+          // Flip-Flop equation (D0, JK1, etc)
+          if (uniqueTerms.some((num) => num < 0 || num >= totalRows)) {
+            showPopupMessage(`Error: Allowed terms for ${eq.equation} are between 0 and ${totalRows - 1}.`);
+            return;
+          }
+        }        
 
         // Sort the terms array in ascending order
         const sortedTerms = [...uniqueTerms].sort((a, b) => a - b);
@@ -542,7 +552,6 @@ const CircuitToState = () => {
     }
 
     setHiddenExcitationCorrectAnswers(updatedHiddenAnswers);
-
     setCustomEquationValidated(true);
     setIsGenerated(true);
     setShowExcitationTable(true);
@@ -552,30 +561,10 @@ const CircuitToState = () => {
     generateTablesFromCustomEquations(updatedHiddenAnswers);
   };
 
-  const validateMooreOutput = (terms, numInputs, numFlipFlops) => {
-    if ((numInputs === "1" && numFlipFlops === "2") || (numInputs === "1" && numFlipFlops === "3")) {
-      // Moore FSM: Validate pairs (0,1), (2,3), (4,5), (6,7), (8,9), (10,11), (12,13), (14,15)
-      for (let i = 0; i <= 15; i += 2) {
-        const hasFirst = terms.includes(i);
-        const hasSecond = terms.includes(i + 1);
-        if (hasFirst !== hasSecond) {
-          return false;
-        }
-      }
-    } else if (numInputs === "2" && numFlipFlops === "2") {
-      // Moore FSM: Validate groups of 4 (0-3), (4-7), (8-11), (12-15)
-      for (let i = 0; i <= 15; i += 4) {
-        const group = [i, i + 1, i + 2, i + 3];
-        const hasGroup = group.every(num => terms.includes(num));
-        const missingGroup = group.every(num => !terms.includes(num));
-
-        if (!hasGroup && !missingGroup) {
-          return false; 
-        }
-      }
-    }
-    return true; 
-  };
+  const validateMooreOutput = (terms, numFlipFlops) => {
+    const maxStateIndex = Math.pow(2, parseInt(numFlipFlops)) - 1;
+    return terms.every(term => term >= 0 && term <= maxStateIndex);
+  };  
 
   const generateTablesFromCustomEquations = (userCustomAnswers) => {
     const { numFlipFlops, numInputs, preFillOption } = generateState;
@@ -606,9 +595,17 @@ const CircuitToState = () => {
 
         const zTerms = userCustomAnswers?.["Z"]?.terms || [];
         const isZMinterm = userCustomAnswers?.["Z"]?.isMinterm;
-        const outputValue = isZMinterm
+        let outputValue = "0";
+        if (generateState.fsmType === "Moore") {
+          const stateIndexDec = parseInt(currentState, 2);
+          outputValue = isZMinterm
+            ? zTerms.includes(stateIndexDec) ? "1" : "0"
+            : zTerms.includes(stateIndexDec) ? "0" : "1";
+        } else {
+          outputValue = isZMinterm
             ? zTerms.includes(rowIndex) ? "1" : "0"
             : zTerms.includes(rowIndex) ? "0" : "1";
+        }
   
         const transitionRow = {
           currentState,
@@ -868,20 +865,6 @@ const CircuitToState = () => {
     return terms;
   };
 
-  // Helper to format keys for display
-  /*const formatKeyForDisplay = (key, numInputs, numFlipFlops, fsmType) => {
-    if (key.startsWith("J") || key.startsWith("K") || key.startsWith("D") || key.startsWith("T") || key === "Z") {
-      if (numInputs === "1" && numFlipFlops === "2") {
-        return `${key}(Q1,\u00A0Q0,\u00A0X0)`;
-      } else if (numInputs === "2" && numFlipFlops === "2") {
-        return `${key}(Q1,\u00A0Q0,\u00A0X1,\u00A0X0)`;
-      } else if (numInputs === "1" && numFlipFlops === "3") {
-        return `${key}(Q2,\u00A0Q1,\u00A0Q0,\u00A0X0)`;
-      }
-    }
-    return key; 
-  };*/
-
   const formatKeyForDisplay = (key, numInputs, numFlipFlops, fsmType) => {
     const flipFlops = Array.from({ length: parseInt(numFlipFlops) }, (_, i) => `Q${numFlipFlops - i - 1}`);
     const inputs = Array.from({ length: parseInt(numInputs) }, (_, i) => `X${numInputs - i - 1}`);
@@ -923,10 +906,16 @@ const CircuitToState = () => {
       maxTerms = 10;
     }
 
-    let maxTermsForOutput = maxTerms;
-    if (fsmType === "Moore" && numFlipFlops === "2" && numInputs === "2") {
-      maxTermsForOutput = 8; 
-      minTerms = 4;
+    let outputMinTerms = minTerms;
+    let outputMaxTerms = maxTerms;  
+    if (fsmType === "Moore") {
+      if (numFlipFlops === "2") {
+        outputMinTerms = 1;
+        outputMaxTerms = 3; // Because 2 FFs = 4 states = max 4 Z terms (0–3)
+      } else if (numFlipFlops === "3") {
+        outputMinTerms = 4;
+        outputMaxTerms = 6; // 3 FFs = 8 states = max 8 Z terms (0–7)
+      }
     }
 
     const generatedTerms = [];
@@ -985,46 +974,18 @@ const CircuitToState = () => {
     let outputTerms = [];
 
     if (fsmType === "Moore") {
-      const stateGroupedIndices = {};
-      binaryStates.forEach((currentState) => {
-        stateGroupedIndices[currentState] = [];
-      });
-
-      const rowsPerState = binaryInputs.length; 
-      binaryStates.forEach((currentState, stateIndex) => {
-        binaryInputs.forEach((input, inputIndex) => {
-          const rowIndex = stateIndex * binaryInputs.length + inputIndex;
-          stateGroupedIndices[currentState].push(rowIndex);
-        });
-      });
-
-      let numSelectedStates = getRandomNumber(
-        Math.ceil(minTerms / rowsPerState), 
-        Math.floor(maxTermsForOutput / rowsPerState) 
+      const stateDecimalList = binaryStates.map(state => parseInt(state, 2));
+      const maxStates = stateDecimalList.length; // e.g. 4 or 8
+    
+      const numSelectedStates = getRandomNumber(
+        Math.max(1, outputMinTerms), 
+        Math.min(outputMaxTerms, maxStates)
       );
     
-      let selectedStates = shuffleArray(Object.keys(stateGroupedIndices)).slice(0, numSelectedStates);
-
-      outputTerms = [];
-      selectedStates.forEach((state) => {
-          outputTerms.push(...stateGroupedIndices[state]); 
-      });
-
-      while (outputTerms.length > maxTermsForOutput) {
-        outputTerms.pop();
-      }
-      while (outputTerms.length < minTerms) {
-        for (let i = 0; i < maxValue; i++) {
-          if (!outputTerms.includes(i)) {
-            outputTerms.push(i);
-            if (outputTerms.length >= minTerms) break;
-          }
-        }
-      }
-
-      outputTerms.sort((a, b) => a - b);
-
-      } else {
+      const selectedStates = shuffleArray(stateDecimalList).slice(0, numSelectedStates);
+      outputTerms = selectedStates.sort((a, b) => a - b); // Z(Q1,Q0) = m(0, 1) etc.
+    }
+    else {
       // Default random generation for Mealy 
       outputTerms = generateUniqueTerms(
         getRandomNumber(minTerms, maxTerms),
@@ -1078,14 +1039,24 @@ const CircuitToState = () => {
           parseInt(numFlipFlops)
         );
 
+        let outputVal = "0";
+        if (fsmType === "Moore") {
+          const stateIndexDec = parseInt(currentState, 2); // 0 to 3 or 7
+          outputVal = isOutputMinterm
+            ? outputTerms.includes(stateIndexDec) ? "1" : "0"
+            : outputTerms.includes(stateIndexDec) ? "0" : "1";
+        } else {
+          outputVal = isOutputMinterm
+            ? outputTerms.includes(rowIndex) ? "1" : "0"
+            : outputTerms.includes(rowIndex) ? "0" : "1";
+        }
+
         // Add to state transition table
         const transitionRow = {
           currentState,
           input,
           nextState,
-          output: isOutputMinterm
-          ? outputTerms.includes(rowIndex) ? "1" : "0" // Minterms
-          : outputTerms.includes(rowIndex) ? "0" : "1", // Maxterms
+          output: outputVal,
         };
 
         // Populate excitation table
@@ -1909,8 +1880,8 @@ const CircuitToState = () => {
                 X.
               </p>
               <ul>
-                <li><b>1 input & 2 or 3 F/F:</b> Enter pairs, e.g. <b>(0,1)</b> <b>(2,3)</b> <b>(4,5)</b></li>
-                <li><b>2 inputs & 2 F/F:</b> Enter groups of four, e.g. <b>(0,1,2,3)</b> <b>(4,5,6,7)</b></li>
+                <li><b>2 F/F:</b> Enter values between <b>0-3</b>.</li>
+                <li><b>3 F/F:</b> Enter values between <b>0-7</b>.</li>
               </ul>
             </div>
           )}

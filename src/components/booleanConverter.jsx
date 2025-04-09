@@ -18,7 +18,7 @@ export const convertMintermsToSOP = (minterms, numFlipFlops, numInputs, fsmType 
   const bitsToUse = useOnlyState ? numFlipFlops : totalBits;
 
   const terms = minterms.map((rowIndex) => {
-    const bits = getBinary(rowIndex, totalBits).slice(0, bitsToUse).split('');
+    const bits = getBinary(rowIndex, bitsToUse).split('');
     return bits.map((bit, i) => (bit === '1' ? variables[i] : `${variables[i]}'`)).join('');
   });
 
@@ -34,7 +34,7 @@ export const convertMaxtermsToPOS = (maxterms, numFlipFlops, numInputs, fsmType 
   const bitsToUse = useOnlyState ? numFlipFlops : totalBits;
 
   const terms = maxterms.map((rowIndex) => {
-    const bits = getBinary(rowIndex, totalBits).slice(0, bitsToUse).split('');
+    const bits = getBinary(rowIndex, bitsToUse).split('');
     return `(${bits.map((bit, i) => (bit === '0' ? variables[i] : `${variables[i]}'`)).join(' + ')})`;
   });
 
