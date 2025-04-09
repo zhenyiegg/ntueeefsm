@@ -520,7 +520,7 @@ const CircuitToState = () => {
             if (!validateMooreOutput(uniqueTerms, numFlipFlops)) {
               showPopupMessage(
                 <>
-                  Error: In Moore FSM, output Z depends only on the current states. Enter values <b>0 to {maxZState}</b>. <FontAwesomeIcon icon={faCircleInfo} className="info-custom" />
+                  Error: Moore FSM output Z depends only on the current states. Valid values: <b>0 to {maxZState}</b>. <FontAwesomeIcon icon={faCircleInfo} className="info-custom" />
                 </>
               );
               return;
@@ -528,7 +528,7 @@ const CircuitToState = () => {
           } else {
             // Mealy FSM Z terms — validate as row indices
             if (uniqueTerms.some((num) => num < 0 || num >= totalRows)) {
-              showPopupMessage(`Error: In Mealy FSM, Z terms must be between 0 and ${totalRows - 1}.`);
+              showPopupMessage(`Error: Mealy FSM output Z terms must be 0 to ${totalRows - 1}.`);
               return;
             }
           }
@@ -536,7 +536,7 @@ const CircuitToState = () => {
          else {
           // Flip-Flop equation (D0, JK1, etc)
           if (uniqueTerms.some((num) => num < 0 || num >= totalRows)) {
-            showPopupMessage(`Error: Allowed terms for ${eq.equation} are between 0 and ${totalRows - 1}.`);
+            showPopupMessage(`Error: Allowed terms for ${eq.equation} are 0 to ${totalRows - 1}.`);
             return;
           }
         }        
@@ -1181,7 +1181,7 @@ const CircuitToState = () => {
         return updatedInputs;
       });
     } else {
-      showPopupMessage("Flip-Flop inputs must be single-bit binary 0 or 1. ");
+      showPopupMessage("Flip-Flop inputs must be single-bit binary values: 0 or 1. ");
     }
   };
 
@@ -1221,7 +1221,7 @@ const CircuitToState = () => {
           return updatedInputs;
         });
       } else {
-        showPopupMessage("With one output, Z must be a single-bit binary 0 or 1.");
+        showPopupMessage("With one output, output Z must be single-bit binary: 0 or 1.");
       }
     }
   };
