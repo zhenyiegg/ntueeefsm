@@ -1449,7 +1449,7 @@ const CircuitToState = () => {
     return headers;
   };
 
-  // File Name for export
+  // File Name for download
   const getBaseFileName = () => {
     const today = new Date();
     const yyyymmdd = today.toISOString().slice(0, 10).replace(/-/g, "");
@@ -1765,7 +1765,7 @@ const CircuitToState = () => {
             className={`generate-btn ${isFormComplete ? '' : 'disabled'}`}
             onClick={handleGenerateButtonClick}
             disabled={!isFormComplete}
-            title="Refresh logic equation"
+            title="Regenerate equations"
           >
             Generate
           </button>
@@ -1787,7 +1787,7 @@ const CircuitToState = () => {
               <button
                 className="export-btn circuit-export-btn"
                 onClick={exportAllImagesAsZip}
-                title="Export PNG"
+                title="Download Circuits & Netlists ZIP"
               >
                 <FontAwesomeIcon icon={faDownload} />
               </button>
@@ -2031,7 +2031,7 @@ const CircuitToState = () => {
               className={`export-btn ${isDownloadExcitationEnabled ? "active" : "disabled"}`}
               disabled={!isDownloadExcitationEnabled}
               onClick={() => exportToCSV("excitation")}
-              title="Export CSV"
+              title="Download Excitation Table CSV"
               >
                 <FontAwesomeIcon icon={faDownload} />
             </button>
@@ -2134,7 +2134,7 @@ const CircuitToState = () => {
               className={`export-btn ${isDownloadStateTransitionEnabled ? "active" : "disabled"}`}
               disabled={!isDownloadStateTransitionEnabled}
               onClick={() => exportToCSV("stateTransition")}
-              title="Export CSV"
+              title="Download State Transition Table CSV"
             >
               <FontAwesomeIcon icon={faDownload} />
             </button>
@@ -2263,7 +2263,7 @@ const CircuitToState = () => {
             <button 
               className="export-btn"
               onClick={exportStateDiagramAsPNG}
-              title="Export PNG"
+              title="Download State Diagram PNG"
             >
               <FontAwesomeIcon icon={faDownload} />
             </button>
