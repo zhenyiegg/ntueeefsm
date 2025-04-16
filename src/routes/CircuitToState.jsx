@@ -2153,7 +2153,7 @@ const CircuitToState = () => {
         {showStateTransitionInfo && (
           <div className="info-tooltip-cts">
             <p>
-              Fill in the next state and output values with binary <strong>0</strong>or <strong>1</strong>.<br /><br/>
+              Fill in the next state and output values with binary <strong>0 </strong>or <strong>1</strong>.<br /><br/>
               All fields must be correct to proceed. You may give up after two incorrect attempts. 
             </p>                     
           </div>
