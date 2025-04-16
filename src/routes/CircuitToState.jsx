@@ -74,6 +74,8 @@ const CircuitToState = () => {
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupContent, setPopupContent] = useState([]);
 
+  const [hasClickedGenerate, setHasClickedGenerate] = useState(false);
+
   const [dropdownState, setDropdownState] = useState({
     numInputs: "",
     flipFlopType: "",
@@ -250,7 +252,7 @@ const CircuitToState = () => {
   
   // Convert to custom eqn to boolean
   useEffect(() => {
-    if (customEquationValidated && customEquations.length > 0) {
+    if (hasClickedGenerate && customEquationValidated && customEquations.length > 0) {
       const { numFlipFlops, numInputs, fsmType } = generateState;
 
       const converted = customEquations.map((eq) => {
@@ -279,11 +281,11 @@ const CircuitToState = () => {
 
       console.log("Custom Boolean Equations:", converted);
     }
-  }, [customEquationValidated, customEquations, generateState]);
+  }, [hasClickedGenerate, customEquationValidated, customEquations, generateState]);
 
   // Convert to generated eqn to boolean
   useEffect(() => {
-    if (logicEquation.length > 0 && isGenerated && !isUsingCustomEquation) {
+    if (hasClickedGenerate && logicEquation.length > 0 && isGenerated && !isUsingCustomEquation) {
       const { numFlipFlops, numInputs, fsmType } = generateState;
 
       const converted = logicEquation.map((eq) => {
@@ -313,7 +315,7 @@ const CircuitToState = () => {
 
       console.log("Generated Boolean Equations:", converted);
     }
-  }, [logicEquation, isGenerated, isUsingCustomEquation, generateState]);
+  }, [hasClickedGenerate, logicEquation, isGenerated, isUsingCustomEquation, generateState]);
 
   // Handle dropdown changes with dependent resets
   const handleDropdownChange = (key, value) => {
@@ -330,6 +332,8 @@ const CircuitToState = () => {
   // Trigger generation manually on button click
   const handleGenerateButtonClick = () => {
     if (isFormComplete) {
+      setHasClickedGenerate(true);
+
       // Reset attempt counters 
       setExcitationAttemptCount(0);
       setStateTransitionAttemptCount(0);
@@ -394,6 +398,8 @@ const CircuitToState = () => {
     if (randomDropdownState.numInputs === "2" && randomDropdownState.numFlipFlops === "3") {
       randomDropdownState.numFlipFlops = "2";
     }
+  
+    setHasClickedGenerate(true);
 
     // Reset attempt counters
     setExcitationAttemptCount(0);
@@ -442,6 +448,10 @@ const CircuitToState = () => {
   const handleCustomEquationCheckboxChange = () => {
     setIsCustomEquationChecked((prev) => !prev); 
     setIsUsingCustomEquation(false);
+
+    // Reset netlist fetch state to avoid premature updates
+    setHasClickedGenerate(false); 
+    //setNetlistImages([]);
   };
 
   const generateCustomEquationTemplate = (state) => {
