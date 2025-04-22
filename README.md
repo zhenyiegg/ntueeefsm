@@ -15,5 +15,5 @@ https://fyp-fsm.web.app/
 ## 🛠️ Tech Stack
 
 - **Frontend**: React.js, JavaScript
-- **Visualization**: [JointJS](https://www.jointjs.com/)
+- **Visualization**: [JointJS](https://www.jointjs.com/) , [P5.JS](https://p5js.org/)
 - **Styling**: HTML5, CSS3
