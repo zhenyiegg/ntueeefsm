@@ -1543,7 +1543,7 @@ const CircuitToState = () => {
     const zip = new JSZip();
   
     // 1. Add circuit diagram
-    const canvasElement = document.querySelector(".canvas-container");
+    const canvasElement = document.querySelector(".canvas-container canvas");
     if (!canvasElement) {
       alert("Circuit diagram not found!");
       return;
@@ -1657,7 +1657,7 @@ const CircuitToState = () => {
     zip.file(`${base}_all.csv`, csvContent);
 
     // Add circuit diagram PNG to zip
-    const canvasCircuit = await html2canvas(document.querySelector(".canvas-container"));
+    const canvasCircuit = await html2canvas(document.querySelector(".canvas-container canvas"));
     const blobCircuit = await new Promise(resolve => canvasCircuit.toBlob(resolve, "image/png"));
     zip.file(`${base}_CD.png`, blobCircuit);
 
@@ -2050,7 +2050,7 @@ const CircuitToState = () => {
         {showExcitationInfo && (
           <div className="info-tooltip-cts">
             <p>
-              Fill in the flip-flop inputs with a single-bit binary <strong>0</strong> or <strong>1</strong>.<br /><br/>
+              Determine the <strong>flip-flop inputs</strong> based on the logic equations. Fill in each flip-flop input with a single-bit binary <strong>0</strong> or <strong>1</strong>.<br /><br/>
               All fields must be correct to proceed. You may give up after two incorrect attempts. 
             </p>                     
           </div>
@@ -2153,7 +2153,7 @@ const CircuitToState = () => {
         {showStateTransitionInfo && (
           <div className="info-tooltip-cts">
             <p>
-              Fill in the next state and output values with binary <strong>0 </strong>or <strong>1</strong>.<br /><br/>
+              Determine the <strong>Next State</strong> based on the flip-flop inputs in the excitation table. Then, compute the <strong>Output Z</strong> using the logic equations. Fill in the Next State and Output Z values with binary <strong>0 </strong>or <strong>1</strong>.<br /><br/>
               All fields must be correct to proceed. You may give up after two incorrect attempts. 
             </p>                     
           </div>
