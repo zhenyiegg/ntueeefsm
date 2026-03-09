@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "fyp-fsm"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }
