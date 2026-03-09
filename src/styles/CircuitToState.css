@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh; 
+  min-height: 100vh;
   text-align: center;
 }
 
@@ -20,11 +20,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center; 
-  gap: 10px; 
+  justify-content: center;
+  gap: 10px;
   width: 90%;
   margin-bottom: 20px;
-}  
+}
 
 select {
   padding: 8px 10px;
@@ -82,10 +82,15 @@ select:focus {
   gap: 10px;
 }
 
-.generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn, .close-netlist-btn {
+.generate-btn,
+.auto-generate-btn,
+.ok-btn,
+.next-btn,
+.giveup-btn,
+.close-netlist-btn {
   padding: 10px 10px;
   font-size: 16px;
-  background-color: #4CAF50; 
+  background-color: #4caf50;
   color: white;
   border: none;
   border-radius: 6px;
@@ -93,11 +98,15 @@ select:focus {
   transition: background-color 0.2s ease-out;
 }
 
-.ok-btn, .next-btn, .giveup-btn {
+.ok-btn,
+.next-btn,
+.giveup-btn {
   padding: 8px 10px;
 }
 
-.auto-generate-btn, .ok-btn, .close-netlist-btn {
+.auto-generate-btn,
+.ok-btn,
+.close-netlist-btn {
   background-color: #6f42c1;
 }
 
@@ -105,11 +114,15 @@ select:focus {
   background-color: #3f9343;
 }
 
-.auto-generate-btn:hover, .ok-btn:hover, .close-netlist-btn:hover {
+.auto-generate-btn:hover,
+.ok-btn:hover,
+.close-netlist-btn:hover {
   background-color: #5429a9;
 }
 
-.generate-btn.disabled, .next-btn.disabled, .giveup-btn.disabled {
+.generate-btn.disabled,
+.next-btn.disabled,
+.giveup-btn.disabled {
   background-color: #ccc;
   cursor: not-allowed;
   pointer-events: none;
@@ -134,8 +147,8 @@ select:focus {
   white-space: nowrap;
 }
 
-canvas { 
-  max-width: 1100px;  
+canvas {
+  max-width: 1100px;
   padding: 20px 15px;
 }
 
@@ -144,7 +157,7 @@ canvas {
 }
 
 .circuit-export-btn-wrapper {
-  position: absolute; 
+  position: absolute;
   top: 8px;
   right: 8px;
   z-index: 20;
@@ -176,14 +189,14 @@ canvas {
 }
 
 .equation-section.active .equation-item {
-  display: inline-block; 
-  margin-right: 1.25rem; 
-  white-space: nowrap; 
+  display: inline-block;
+  margin-right: 1.25rem;
+  white-space: nowrap;
 }
 
 .equation-section.active p {
-  overflow-wrap: break-word; 
-  word-wrap: break-word; 
+  overflow-wrap: break-word;
+  word-wrap: break-word;
   word-break: break-word;
   margin-bottom: 6px;
 }
@@ -192,7 +205,7 @@ canvas {
   font-family: "Times New Roman", "Courier New", serif;
   font-size: 1.15em;
   font-weight: normal;
-  color: #333; 
+  color: #333;
 }
 
 .content-box.active .customEqn-header {
@@ -211,7 +224,7 @@ canvas {
 
 .customEqn-tooltip {
   position: absolute;
-  top: 3rem; 
+  top: 3rem;
   right: 0;
   color: #333;
   border: 2px solid #c2a3eb;
@@ -228,7 +241,8 @@ canvas {
   animation: fadeInTooltip 0.2s ease-in-out;
 }
 
-.content-box .customEqn-tooltip p, .customEqn-tooltip ul {
+.content-box .customEqn-tooltip p,
+.customEqn-tooltip ul {
   color: #333;
   line-height: 1.8;
   text-align: left;
@@ -246,8 +260,8 @@ canvas {
   color: #333;
 }
 
-.custom-select  {
-  font-family: "Times New Roman", serif; 
+.custom-select {
+  font-family: "Times New Roman", serif;
 }
 
 .custom-equation input {
@@ -285,7 +299,6 @@ canvas {
   background-color: #5429a9;
 }
 
-
 /**********  INSTRUCTION SECTION  **********/
 .instruction-section.active {
   width: 80%;
@@ -314,7 +327,7 @@ canvas {
   margin: 0;
   font-size: 20px;
   margin-bottom: 0;
-  color: #ccc; 
+  color: #ccc;
 }
 
 .content-box.active .content-header {
@@ -329,10 +342,11 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px; 
+  gap: 6px;
 }
 
-.content-box.active .content-title, .content-box .customEqn-title {
+.content-box.active .content-title,
+.content-box .customEqn-title {
   color: #6f42c1;
   font-size: 18px;
   margin: 0;
@@ -344,7 +358,8 @@ canvas {
   margin: 16px auto;
 }
 
-.stateDiagram-box, .stateDiagram-box.active {
+.stateDiagram-box,
+.stateDiagram-box.active {
   margin-bottom: 80px;
 }
 
@@ -366,16 +381,16 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;      
+  gap: 10px;
   margin: 20px auto 0 auto;
 }
 
 .next-btn {
-  background-color: #6f42c1; 
+  background-color: #6f42c1;
 }
 
 .giveup-btn {
-  background-color: #ff4444; 
+  background-color: #ff4444;
 }
 
 .export-btn {
@@ -404,10 +419,11 @@ canvas {
 }
 
 .giveup-btn.active:hover {
-  background-color: #dd0e0e; 
+  background-color: #dd0e0e;
 }
 
-.export-btn.active:hover, .export-btn:hover {
+.export-btn.active:hover,
+.export-btn:hover {
   color: #0056b3;
 }
 
@@ -447,13 +463,13 @@ canvas {
   transition: color 0.2s ease;
 }
 
-.info-icon:hover{
+.info-icon:hover {
   color: #0056b3;
 }
 
 .info-tooltip-cts {
   position: absolute;
-  top: 3rem; 
+  top: 3rem;
   left: 0;
   padding: 16px;
   background: white;
@@ -475,12 +491,12 @@ canvas {
 
 @keyframes fadeInTooltip {
   from {
-      opacity: 0;
-      transform: translateY(-10px);
+    opacity: 0;
+    transform: translateY(-10px);
   }
   to {
-      opacity: 1;
-      transform: translateY(0);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -495,7 +511,8 @@ table {
   margin: 16px auto 0 auto;
 }
 
-table th, table td {
+table th,
+table td {
   border: 1px solid #ede1ff;
   padding: 2.6px;
   text-align: center;
@@ -531,15 +548,15 @@ table tr:hover {
 }
 
 .currentState-column {
-  width: 115px; 
+  width: 115px;
 }
 
 .inputX-column {
-  width: 70px; 
+  width: 70px;
 }
 
 .outputZ-column {
-  width: 70px; 
+  width: 70px;
 }
 
 .input-correct {
@@ -573,7 +590,9 @@ table tr:hover {
 }
 
 /**********  POPUP DISPLAY **********/
-.error-popup-overlay, .boolean-popup-overlay, .transition-popup-overlay {
+.error-popup-overlay,
+.boolean-popup-overlay,
+.transition-popup-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
@@ -583,7 +602,9 @@ table tr:hover {
   z-index: 9999;
 }
 
-.error-popup-content, .boolean-popup-content, .transition-popup-content {
+.error-popup-content,
+.boolean-popup-content,
+.transition-popup-content {
   background: white;
   line-height: 1.6;
   text-align: left;
@@ -613,7 +634,8 @@ table tr:hover {
   text-align: center;
 }
 
-.error-popup-content p, .transition-popup-content pre {
+.error-popup-content p,
+.transition-popup-content pre {
   font-size: 18px;
   text-align: center;
 }
@@ -643,7 +665,7 @@ table tr:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -658,7 +680,7 @@ table tr:hover {
   overflow-y: auto;
   width: 80%;
   max-width: 700px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -696,14 +718,15 @@ table tr:hover {
 /**********  RESPONSIVE LAYOUT *********/
 @media (max-width: 1064px) {
   .canvas-container {
-    width: 90%; 
+    width: 90%;
   }
 
   .content-box {
     width: 80%;
   }
 
-  .equation-section, .equation-section.active {
+  .equation-section,
+  .equation-section.active {
     width: 80%;
   }
 }
@@ -716,29 +739,42 @@ table tr:hover {
 }
 
 @media (max-width: 480px) {
-  .error-popup-content, .boolean-popup-content, .transition-popup-content {
+  .error-popup-content,
+  .boolean-popup-content,
+  .transition-popup-content {
     width: 80%;
     max-width: 320px;
     padding: 12px;
   }
 
-  .transition-popup-content h2, .boolean-popup-content h3 {
+  .transition-popup-content h2,
+  .boolean-popup-content h3 {
     font-size: 18px;
   }
 
-  .error-popup-content p, .transition-popup-content pre {
+  .error-popup-content p,
+  .transition-popup-content pre {
     font-size: 16px;
   }
 
-  .boolean-popup-content p{
+  .boolean-popup-content p {
     font-size: 16px;
   }
 
-  .content-box.active .content-title, .customEqn-title {
+  .content-box.active .content-title,
+  .customEqn-title {
     font-size: 16px;
   }
 
-  .instruction-section.active p, select, .custom-label, .equation-section p, table th, table td, .content-box.active p, .customEqn-subtitle, .customEqn-tooltip {
+  .instruction-section.active p,
+  select,
+  .custom-label,
+  .equation-section p,
+  table th,
+  table td,
+  .content-box.active p,
+  .customEqn-subtitle,
+  .customEqn-tooltip {
     font-size: 14px;
   }
 
@@ -750,7 +786,11 @@ table tr:hover {
     margin-bottom: 2px;
   }
 
-  .generate-btn, .auto-generate-btn, .ok-btn, .next-btn, .giveup-btn {
+  .generate-btn,
+  .auto-generate-btn,
+  .ok-btn,
+  .next-btn,
+  .giveup-btn {
     font-size: 14px;
     padding: 10px;
   }
