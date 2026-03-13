@@ -126,6 +126,13 @@ const CircuitToState = () => {
     preFillOption: "",
   });
 
+  useEffect(() => {
+    console.log("CircuitToState mounted");
+    return () => {
+      console.log("CircuitToState unmounted");
+    };
+  }, []);
+
   // Helper: Check if all dropdowns are selected
   const isFormComplete =
     dropdownState.numInputs &&
@@ -169,7 +176,7 @@ const CircuitToState = () => {
   const handleClosePopup = () => {
     setShowPopup(false);
     if (previouslyFocusedElement.current) {
-      previouslyFocusedElement.current.focus(); // Restore focus
+      previouslyFocusedElement.current.focus({ preventScroll: true }); // Restore focus
     }
   };
 
@@ -218,7 +225,7 @@ const CircuitToState = () => {
   const isFetchingImagesRef = useRef(false);
   const fetchIdRef = useRef(0); // Track fetch sessions
 
-  const fetchImagesFromNetlists = async (equations) => {
+  const fetchImagesFromNetlists = useCallback(async (equations) => {
     isFetchingImagesRef.current = true;
     const thisFetchId = ++fetchIdRef.current; // New session ID
 
@@ -280,7 +287,7 @@ const CircuitToState = () => {
       isFetchingImagesRef.current = false;
       setFetchImagesCompleted(true); // always mark complete
     }
-  };
+  }, []);
 
   // Convert to custom eqn to boolean
   useEffect(() => {
@@ -350,6 +357,7 @@ const CircuitToState = () => {
     customEquationValidated,
     customEquations,
     generateState,
+    fetchImagesFromNetlists,
   ]);
 
   // Convert to generated eqn to boolean
@@ -411,6 +419,7 @@ const CircuitToState = () => {
     isGenerated,
     isUsingCustomEquation,
     generateState,
+    fetchImagesFromNetlists,
   ]);
 
   // Handle dropdown changes with dependent resets
@@ -2064,6 +2073,7 @@ const CircuitToState = () => {
             </label>
           </div>
           <button
+            type="button"
             className={`generate-btn ${isFormComplete ? "" : "disabled"}`}
             onClick={handleGenerateButtonClick}
             disabled={!isFormComplete}
@@ -2072,6 +2082,7 @@ const CircuitToState = () => {
             Generate
           </button>
           <button
+            type="button"
             className="auto-generate-btn"
             onClick={handleAutoGenerate}
             title="Randomise selections"
@@ -2087,6 +2098,7 @@ const CircuitToState = () => {
           <div className="circuit-export-btn-wrapper">
             {fetchImagesCompleted ? (
               <button
+                type="button"
                 className="export-btn circuit-export-btn"
                 onClick={exportAllImagesAsZip}
                 title="Download Circuits & Netlists ZIP"
@@ -2177,6 +2189,7 @@ const CircuitToState = () => {
               ))
             )}
             <button
+              type="button"
               className="close-netlist-btn"
               onClick={() => setPopupVisible(false)}
             >
@@ -2193,6 +2206,7 @@ const CircuitToState = () => {
             <div className="customEqn-title-wrapper">
               <h2 className="customEqn-title">Custom Equation</h2>
               <button
+                type="button"
                 className="info-icon"
                 onClick={() => setShowCustomEqnInfo(!showCustomEqnInfo)}
               >
@@ -2263,7 +2277,11 @@ const CircuitToState = () => {
               </div>
             </div>
           ))}
-          <button className="ok-btn" onClick={validateCustomEquations}>
+          <button
+            type="button"
+            className="ok-btn"
+            onClick={validateCustomEquations}
+          >
             OK
           </button>
         </div>
@@ -2296,6 +2314,7 @@ const CircuitToState = () => {
             ))}
           </p>
           <button
+            type="button"
             className="boolean-btn"
             onClick={() => setShowBooleanPopup(true)}
           >
@@ -2319,6 +2338,7 @@ const CircuitToState = () => {
             </>
           )}
           <button
+            type="button"
             className="boolean-btn"
             onClick={() => setShowBooleanPopup(true)}
           >
@@ -2385,6 +2405,7 @@ const CircuitToState = () => {
             <h2 className="content-title">Excitation Table</h2>
             {showExcitationTable && (
               <button
+                type="button"
                 className="info-icon"
                 onClick={() => setShowExcitationInfo(!showExcitationInfo)}
               >
@@ -2394,6 +2415,7 @@ const CircuitToState = () => {
           </div>
           {excitationTable.length > 0 && showExcitationTable && (
             <button
+              type="button"
               className={`export-btn ${isDownloadExcitationEnabled ? "active" : "disabled"}`}
               disabled={!isDownloadExcitationEnabled}
               onClick={() => exportToCSV("excitation")}
@@ -2441,9 +2463,10 @@ const CircuitToState = () => {
                               <input
                                 type="text"
                                 value={value}
-                                onFocus={(e) =>
-                                  e.target.select({ preventScroll: true })
-                                }
+                                onFocus={(e) => {
+                                  e.target.focus({ preventScroll: true });
+                                  e.target.select();
+                                }}
                                 onChange={(e) =>
                                   handleExcitationInputChange(
                                     rowIndex,
@@ -2476,6 +2499,7 @@ const CircuitToState = () => {
                 {!isExcitationTableComplete && (
                   <>
                     <button
+                      type="button"
                       className={`next-btn ${isNextExcitationButtonEnabled ? "active" : "disabled"}`}
                       disabled={!isNextExcitationButtonEnabled}
                       onClick={validateExcitationInputs}
@@ -2484,6 +2508,7 @@ const CircuitToState = () => {
                     </button>
                     {!isExcitationGivenUp && (
                       <button
+                        type="button"
                         className={`giveup-btn ${excitationAttemptCount >= 2 ? "active" : "disabled"}`}
                         disabled={excitationAttemptCount < 2}
                         onClick={handleGiveUpExcitation}
@@ -2508,6 +2533,7 @@ const CircuitToState = () => {
             <h2 className="content-title">State Transition Table</h2>
             {showStateTransitionTable && (
               <button
+                type="button"
                 className="info-icon"
                 onClick={() =>
                   setShowStateTransitionInfo(!showStateTransitionInfo)
@@ -2519,6 +2545,7 @@ const CircuitToState = () => {
           </div>
           {stateTransitionTable.length > 0 && showStateTransitionTable && (
             <button
+              type="button"
               className={`export-btn ${isDownloadStateTransitionEnabled ? "active" : "disabled"}`}
               disabled={!isDownloadStateTransitionEnabled}
               onClick={() => exportToCSV("stateTransition")}
@@ -2566,7 +2593,9 @@ const CircuitToState = () => {
                           type="text"
                           value={row.nextState.value}
                           onFocus={(e) => {
-                            e.target.select({ preventScroll: true });
+                            e.target.focus({ preventScroll: true });
+                            e.target.select();
+
                             // Trigger tooltip when user focuses
                             // handleStateTransitionInputChange(
                             //   rowIndex,
@@ -2604,9 +2633,10 @@ const CircuitToState = () => {
                       <input
                         type="text"
                         value={row.output.value}
-                        onFocus={(e) =>
-                          e.target.select({ preventScroll: true })
-                        }
+                        onFocus={(e) => {
+                          e.target.focus({ preventScroll: true });
+                          e.target.select();
+                        }}
                         onChange={(e) =>
                           row.output.editable &&
                           handleStateTransitionInputChange(
@@ -2635,6 +2665,7 @@ const CircuitToState = () => {
               {!isStateTransitionTableComplete && (
                 <>
                   <button
+                    type="button"
                     className={`next-btn ${isGenerateStateDiagramButtonEnabled ? "active" : "disabled"}`}
                     disabled={!isGenerateStateDiagramButtonEnabled}
                     onClick={validateStateTransitionInputs}
@@ -2643,6 +2674,7 @@ const CircuitToState = () => {
                   </button>
                   {!isStateTransitionGivenUp && (
                     <button
+                      type="button"
                       className={`giveup-btn ${stateTransitionAttemptCount >= 2 ? "active" : "disabled"}`}
                       disabled={stateTransitionAttemptCount < 2}
                       onClick={handleGiveUpStateTransition}
@@ -2666,6 +2698,7 @@ const CircuitToState = () => {
             <h2 className="content-title">State Diagram</h2>
             {showStateDiagram && (
               <button
+                type="button"
                 className="info-icon"
                 onClick={() => setShowStateDiagramInfo(!showStateDiagramInfo)}
               >
@@ -2683,6 +2716,7 @@ const CircuitToState = () => {
           )}
           {showStateDiagram && stateTransitionTable.length > 0 && (
             <button
+              type="button"
               className="export-btn"
               onClick={exportStateDiagramAsPNG}
               title="Download State Diagram PNG"
@@ -2708,6 +2742,7 @@ const CircuitToState = () => {
       {showStateDiagram && isDownloadFullExerciseEnabled && (
         <div className="download-exercise-wrapper">
           <button
+            type="button"
             className="exportFull-btn"
             onClick={downloadFullExercise}
             disabled={isFetchingImagesRef.current} // only disable while fetching
