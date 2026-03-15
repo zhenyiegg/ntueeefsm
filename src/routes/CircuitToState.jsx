@@ -2143,11 +2143,18 @@ const CircuitToState = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3>
-              {" "}
-              {popupContent.some(({ image }) => image)
+              {/* {popupContent.some(({ image }) => image)
                 ? "Schematic Logic Circuit"
-                : "Schematic Logic Circuit Netlist"}
+                : "Schematic Logic Circuit Netlist"} */}
+              Schematic Logic Circuit
             </h3>
+            {fetchImagesCompleted &&
+              netlistImages.some((img) => img.image === null) && (
+                <p style={{ color: "#b45309", marginBottom: "0.75rem" }}>
+                  Unable to generate the schematic logic circuit images. The
+                  netlists are shown below instead.
+                </p>
+              )}
             {popupContent.length === 0 ? (
               <div className="netlist-spinner-container">
                 <div className="netlist-spinner" />
@@ -2384,11 +2391,8 @@ const CircuitToState = () => {
       {isGenerated && (
         <div className="instruction-section active">
           <p>
-            Click logic blocks to view the{" "}
-            {fetchImagesCompleted && netlistImages.some((img) => img.image)
-              ? "schematic logic circuits"
-              : "schematic logic circuit netlists as text"}
-            . {isFetchingImagesRef.current ? "(may take a moment to load)" : ""}
+            Click logic blocks to view the schematic logic circuits.
+            {/* {isFetchingImagesRef.current ? " (may take a moment to load)" : ""} */}
             <br />
             Given the circuit and logic equations, complete the excitation and
             state transition tables to derive the state diagram.
