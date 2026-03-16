@@ -1,7 +1,7 @@
 /* CircuitDiagram.jsx */
 import React, { useEffect, useRef } from "react";
 import p5 from "p5";
-import "../styles/CircuitToState.css";
+import "../../styles/CircuitToState.css";
 
 function CircuitDiagram({
   numInputs,
@@ -10,12 +10,12 @@ function CircuitDiagram({
   fsmType,
   isGenerated,
   netlistImages = [],
-  setPopupContent,
-  setPopupVisible,
-  netlistEquations,
-  fetchImagesFromNetlists,
-  isFetchingImagesRef,
-  popupVisible,
+  setNetlistPopupContent = () => {},
+  setShowNetlistPopup = () => {},
+  netlistEquations = [],
+  fetchImagesFromNetlists = () => {},
+  isFetchingImagesRef = { current: false },
+  showNetlistPopup = false,
 }) {
   const canvasRef = useRef(null); // Reference for the canvas container
   const p5InstanceRef = useRef(null); // Store the p5 instance to manage updates and cleanup
@@ -638,22 +638,26 @@ function CircuitDiagram({
         hoveredBoxRef.current = hoveredBox; // Track which box was clicked
 
         const imagesExist = netlistImages && netlistImages.length > 0;
-        setPopupVisible(true);
+        setShowNetlistPopup(true);
 
         if (!imagesExist || isFetchingImagesRef?.current) {
-          setPopupContent([]); // Show loading spinner
+          setNetlistPopupContent([]); // Show loading spinner
+
           if (!isFetchingImagesRef.current && netlistEquations?.length > 0) {
             fetchImagesFromNetlists(netlistEquations);
-          } else {
-            // Just show filtered cached images
-            const ffImages = netlistImages.filter(
-              (img) => !img.label.includes("Z"),
-            );
-            const zImages = netlistImages.filter((img) =>
-              img.label.includes("Z"),
-            );
-            setPopupContent(hoveredBox === "nextState" ? ffImages : zImages);
           }
+        } else {
+          // Just show filtered cached images
+          const ffImages = netlistImages.filter(
+            (img) => !img.label.includes("Z"),
+          );
+          const zImages = netlistImages.filter((img) =>
+            img.label.includes("Z"),
+          );
+
+          setNetlistPopupContent(
+            hoveredBox === "nextState" ? ffImages : zImages,
+          );
         }
       };
     };
@@ -679,8 +683,8 @@ function CircuitDiagram({
     numFlipFlops,
     fsmType,
     netlistImages,
-    setPopupContent,
-    setPopupVisible,
+    setNetlistPopupContent,
+    setShowNetlistPopup,
     netlistEquations,
     fetchImagesFromNetlists,
     isFetchingImagesRef,
@@ -695,14 +699,14 @@ function CircuitDiagram({
     // Determine which popup was last opened
     const latestHover = hoveredBoxRef.current;
 
-    if (popupVisible) {
+    if (showNetlistPopup) {
       if (latestHover === "nextState") {
-        setPopupContent(ffImages);
+        setNetlistPopupContent(ffImages);
       } else if (latestHover === "outputLogic") {
-        setPopupContent(zImages);
+        setNetlistPopupContent(zImages);
       }
     }
-  }, [netlistImages, popupVisible, setPopupContent]);
+  }, [netlistImages, showNetlistPopup, setNetlistPopupContent]);
 
   return (
     <div className="canvas-container">

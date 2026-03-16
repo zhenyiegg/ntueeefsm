@@ -1,7 +1,7 @@
 /* CTSConversion.jsx */
 import React, { useEffect, useState } from "react";
 import { dia, shapes } from "jointjs";
-import "../styles/CTSConversion.css";
+import "../../styles/CTSConversion.css";
 
 const CTSConversion = ({
   stateTransitionTable,
